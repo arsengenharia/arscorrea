@@ -31,8 +31,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ContractStatusBadge } from "./ContractStatusBadge";
-import { MoreHorizontal, Pencil, FileDown, DollarSign, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, FileDown, DollarSign, Trash2, MessageCircle, MapPin } from "lucide-react";
 import { useState } from "react";
+
+const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  const numbers = phone.replace(/\D/g, "");
+  if (numbers.length <= 11) {
+    return `55${numbers}`;
+  }
+  return numbers;
+};
+
+const openWhatsApp = (phone: string) => {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  window.open(`https://wa.me/${formattedPhone}`, "_blank");
+};
+
+const openGoogleMaps = (address: string) => {
+  const encodedAddress = encodeURIComponent(address);
+  window.open(
+    `https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`,
+    "_blank"
+  );
+};
 
 export function ContractsList() {
   const navigate = useNavigate();
@@ -48,7 +71,13 @@ export function ContractsList() {
           *,
           clients (
             name,
-            document
+            document,
+            phone,
+            street,
+            number,
+            neighborhood,
+            city,
+            state
           )
         `)
         .order("created_at", { ascending: false });
@@ -106,6 +135,8 @@ export function ContractsList() {
             <TableRow>
               <TableHead>Número</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Endereço</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Comissão</TableHead>
@@ -114,72 +145,120 @@ export function ContractsList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contracts.map((contract) => (
-              <TableRow key={contract.id}>
-                <TableCell className="font-medium">
-                  {contract.contract_number}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <p className="font-medium">{contract.clients?.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {contract.clients?.document || "Sem documento"}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(contract.total)}
-                </TableCell>
-                <TableCell>
-                  <ContractStatusBadge status={contract.status || "ativo"} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Prev: </span>
-                    {formatCurrency(contract.commission_expected_value)}
-                  </div>
-                  <div className="text-sm text-green-600">
-                    <span className="text-muted-foreground">Rec: </span>
-                    {formatCurrency(contract.commission_received_value)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {format(new Date(contract.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}`)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}/financeiro`)}>
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Financeiro
-                      </DropdownMenuItem>
-                      {contract.pdf_path && (
-                        <DropdownMenuItem>
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Baixar PDF
+          {contracts.map((contract) => {
+              const fullAddress = [
+                contract.clients?.street,
+                contract.clients?.number,
+                contract.clients?.neighborhood,
+                contract.clients?.city,
+                contract.clients?.state,
+              ].filter(Boolean).join(", ");
+
+              return (
+                <TableRow key={contract.id}>
+                  <TableCell className="font-medium">
+                    {contract.contract_number}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{contract.clients?.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {contract.clients?.document || "Sem documento"}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {contract.clients?.phone ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{contract.clients.phone}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => openWhatsApp(contract.clients!.phone!)}
+                          title="Abrir WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {fullAddress ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm truncate max-w-[150px]" title={fullAddress}>
+                          {fullAddress}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => openGoogleMaps(fullAddress)}
+                          title="Abrir no Google Maps"
+                        >
+                          <MapPin className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(contract.total)}
+                  </TableCell>
+                  <TableCell>
+                    <ContractStatusBadge status={contract.status || "ativo"} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Prev: </span>
+                      {formatCurrency(contract.commission_expected_value)}
+                    </div>
+                    <div className="text-sm text-green-600">
+                      <span className="text-muted-foreground">Rec: </span>
+                      {formatCurrency(contract.commission_received_value)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(contract.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}`)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => setDeleteId(contract.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                        <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}/financeiro`)}>
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Financeiro
+                        </DropdownMenuItem>
+                        {contract.pdf_path && (
+                          <DropdownMenuItem>
+                            <FileDown className="h-4 w-4 mr-2" />
+                            Baixar PDF
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeleteId(contract.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
