@@ -26,12 +26,6 @@ export function ProjectInfo({ project }: { project: Project }) {
         <Text style={styles.label}>Data de Conclusão: </Text>
         {formatDate(project.end_date)}
       </Text>
-      {project.description && (
-        <Text style={styles.text}>
-          <Text style={styles.label}>Descrição: </Text>
-          {project.description}
-        </Text>
-      )}
       {project.project_manager && (
         <Text style={styles.text}>
           <Text style={styles.label}>Gestor da Obra: </Text>

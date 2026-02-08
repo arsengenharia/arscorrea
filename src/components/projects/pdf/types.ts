@@ -15,8 +15,6 @@ export interface Stage {
   id: string;
   name: string;
   status: string;
-  due_date: string | null;
-  completed_at: string | null;
   report: string | null;
   report_start_date: string | null;
   report_end_date: string | null;
@@ -33,7 +31,6 @@ export interface Project {
   status: string;
   start_date: string | null;
   end_date: string | null;
-  description: string | null;
-  project_manager?: string;
+  project_manager?: string | null;
   stages?: Stage[];
 }

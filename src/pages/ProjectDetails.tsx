@@ -124,7 +124,6 @@ export function ProjectDetails() {
           <ProjectInfoCard
             name={project.name}
             status={project.status}
-            description={project.description}
             startDate={project.start_date}
             endDate={project.end_date}
             projectManager={project.project_manager}

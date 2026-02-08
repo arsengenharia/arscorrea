@@ -16,7 +16,7 @@ interface ClientFile {
   id: string;
   file_name: string;
   file_url: string;
-  uploaded_at: string;
+  created_at: string;
 }
 
 export function ClientFilesDialog({ clientId, clientName, trigger }: ClientFilesDialogProps) {
@@ -128,7 +128,7 @@ export function ClientFilesDialog({ clientId, clientName, trigger }: ClientFiles
                   <div className="flex items-center gap-2 min-w-0">
                     <File className="h-4 w-4 text-muted-foreground" />
                     <span className="truncate max-w-[180px]">{file.file_name}</span>
-                    <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{new Date(file.uploaded_at).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{new Date(file.created_at).toLocaleString("pt-BR")}</span>
                   </div>
                   <Button
                     variant="ghost"

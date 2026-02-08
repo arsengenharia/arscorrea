@@ -25,13 +25,12 @@ const getStatusBadgeVariant = (status: string) => {
 interface ProjectInfoCardProps {
   name: string;
   status: string;
-  description: string | null;
   startDate: string | null;
   endDate: string | null;
   projectManager?: string | null;
 }
 
-export function ProjectInfoCard({ name, status, description, startDate, endDate, projectManager }: ProjectInfoCardProps) {
+export function ProjectInfoCard({ name, status, startDate, endDate, projectManager }: ProjectInfoCardProps) {
   // Convert status to display format
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -59,11 +58,6 @@ export function ProjectInfoCard({ name, status, description, startDate, endDate,
           </Badge>
         </div>
         
-        {description && (
-          <div>
-            <p className="text-sm text-muted-foreground mt-2">{description}</p>
-          </div>
-        )}
 
         {projectManager && (
           <div className="flex items-center gap-2">

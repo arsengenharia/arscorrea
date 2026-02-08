@@ -25,29 +25,6 @@ export default function Auth() {
     }
   }
 
-  // Create admin user if it doesn't exist yet
-  async function createAdminUser() {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase.auth.signUp({
-        email: "admin@arsengenharia.com",
-        password: "ARSEngenharia01",
-      });
-      
-      if (error) {
-        toast.error("Erro ao criar usuário admin: " + error.message);
-      } else {
-        toast.success("Usuário admin criado com sucesso!");
-        // Auto-fill the form with admin credentials
-        setEmail("admin@arsengenharia.com");
-        setPassword("ARSEngenharia01");
-      }
-    } catch (error: any) {
-      toast.error("Erro: " + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -85,17 +62,6 @@ export default function Auth() {
           </Button>
         </form>
         
-        <div className="text-center text-sm text-muted-foreground">
-          <Button 
-            variant="link" 
-            size="sm" 
-            onClick={createAdminUser}
-            disabled={isLoading}
-            className="text-xs text-muted-foreground"
-          >
-            Criar usuário admin (somente para desenvolvimento)
-          </Button>
-        </div>
       </div>
     </div>
   );

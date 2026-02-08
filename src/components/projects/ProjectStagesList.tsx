@@ -48,7 +48,6 @@ interface Stage {
   id: string;
   name: string;
   status: string;
-  description: string | null;
   report: string | null;
   report_start_date: string | null;
   report_end_date: string | null;
@@ -156,9 +155,6 @@ export function ProjectStagesList({ projectId, stages, onStageDeleted }: Project
                   </div>
                 </div>
 
-                {stage.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{stage.description}</p>
-                )}
 
                 {stage.report && (
                   <div className="mt-2">
