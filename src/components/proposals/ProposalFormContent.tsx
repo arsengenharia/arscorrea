@@ -120,7 +120,11 @@ export const ProposalFormContent = ({
   });
 
   // Fetch selected client data
-  const { data: selectedClient } = useQuery({
+  const { 
+    data: selectedClient, 
+    isLoading: isLoadingClient,
+    refetch: refetchClient 
+  } = useQuery({
     queryKey: ["client", formData.clientId],
     queryFn: async () => {
       if (!formData.clientId) return null;
@@ -135,6 +139,11 @@ export const ProposalFormContent = ({
     },
     enabled: !!formData.clientId,
   });
+
+  const handleClientUpdated = useCallback(() => {
+    refetchClient();
+    queryClient.invalidateQueries({ queryKey: ["clients-list"] });
+  }, [refetchClient, queryClient]);
 
   // Populate form when editing
   useEffect(() => {
@@ -412,7 +421,6 @@ export const ProposalFormContent = ({
       <ProposalClientSection
         clientId={formData.clientId}
         onClientChange={(id) => updateFormData("clientId", id)}
-        selectedClient={selectedClient}
       />
 
       {/* Work Section */}
@@ -421,10 +429,13 @@ export const ProposalFormContent = ({
         workAddress={formData.workAddress}
         city={formData.city}
         state={formData.state}
+        selectedClient={formData.clientId ? selectedClient : undefined}
+        isLoadingClient={isLoadingClient && !!formData.clientId}
         onCondoNameChange={(v) => updateFormData("condoName", v)}
         onWorkAddressChange={(v) => updateFormData("workAddress", v)}
         onCityChange={(v) => updateFormData("city", v)}
         onStateChange={(v) => updateFormData("state", v)}
+        onClientUpdated={handleClientUpdated}
       />
 
       {/* Title */}
