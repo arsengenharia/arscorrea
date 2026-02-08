@@ -55,11 +55,16 @@ export type Database = {
           document: string | null
           email: string | null
           id: string
+          lead_channel: string | null
+          lead_date: string | null
+          lead_referral: string | null
           name: string
+          neighborhood: string | null
           number: string | null
           observations: string | null
           phone: string | null
           responsible: string | null
+          service_rep: string | null
           state: string | null
           street: string | null
           updated_at: string
@@ -73,11 +78,16 @@ export type Database = {
           document?: string | null
           email?: string | null
           id?: string
+          lead_channel?: string | null
+          lead_date?: string | null
+          lead_referral?: string | null
           name: string
+          neighborhood?: string | null
           number?: string | null
           observations?: string | null
           phone?: string | null
           responsible?: string | null
+          service_rep?: string | null
           state?: string | null
           street?: string | null
           updated_at?: string
@@ -91,11 +101,16 @@ export type Database = {
           document?: string | null
           email?: string | null
           id?: string
+          lead_channel?: string | null
+          lead_date?: string | null
+          lead_referral?: string | null
           name?: string
+          neighborhood?: string | null
           number?: string | null
           observations?: string | null
           phone?: string | null
           responsible?: string | null
+          service_rep?: string | null
           state?: string | null
           street?: string | null
           updated_at?: string
