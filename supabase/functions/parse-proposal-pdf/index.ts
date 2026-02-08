@@ -64,6 +64,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -75,6 +76,11 @@ serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+    console.log("Environment check - URL exists:", !!SUPABASE_URL);
+    console.log("Environment check - SERVICE_ROLE exists:", !!SUPABASE_SERVICE_ROLE_KEY);
+    console.log("Environment check - ANON_KEY exists:", !!SUPABASE_ANON_KEY);
+    console.log("Environment check - LOVABLE_API_KEY exists:", !!LOVABLE_API_KEY);
+
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY não configurada");
       throw new Error("LOVABLE_API_KEY não configurada");
@@ -82,24 +88,23 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Create client with user's auth token
+    // Create client with user's auth token for validation
     const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Validate the JWT using getClaims
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getUser(token);
+    // Validate the user by calling getUser() which uses the auth header
+    const { data: userData, error: authError } = await supabaseUser.auth.getUser();
     
-    if (claimsError || !claimsData?.user) {
-      console.error("Auth error:", claimsError);
+    if (authError || !userData?.user) {
+      console.error("Auth error:", authError?.message || "No user found");
       return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.user.id;
+    const userId = userData.user.id;
     console.log("Authenticated user:", userId);
 
     const { importId } = await req.json();
