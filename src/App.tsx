@@ -16,6 +16,9 @@ import { AuthProvider } from "./components/auth/AuthProvider";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Proposals from "./pages/Proposals";
 import ProposalForm from "./pages/ProposalForm";
+import Contracts from "./pages/Contracts";
+import ContractForm from "./pages/ContractForm";
+import ContractFinancial from "./pages/ContractFinancial";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -109,6 +112,38 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ProposalForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contratos"
+            element={
+              <ProtectedRoute>
+                <Contracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contratos/novo"
+            element={
+              <ProtectedRoute>
+                <ContractForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contratos/:id"
+            element={
+              <ProtectedRoute>
+                <ContractForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contratos/:id/financeiro"
+            element={
+              <ProtectedRoute>
+                <ContractFinancial />
               </ProtectedRoute>
             }
           />
