@@ -61,11 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for changes on auth state
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
       
-      if (!session?.user) {
+      // Only redirect to auth on explicit sign out, not on every auth state change
+      if (event === 'SIGNED_OUT') {
         navigate("/auth");
       }
     });
