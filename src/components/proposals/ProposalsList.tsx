@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, Download, Loader2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Download, Loader2, MessageCircle, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
@@ -37,15 +37,44 @@ type ProposalWithClientAndStage = {
   created_at: string;
   pdf_path: string | null;
   stage_id: string | null;
+  work_address: string | null;
+  city: string | null;
+  state: string | null;
   client: {
     id: string;
     name: string;
     document: string | null;
+    phone: string | null;
   } | null;
   stage: {
     id: string;
     name: string;
   } | null;
+};
+
+const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  // Remove all non-numeric characters
+  const numbers = phone.replace(/\D/g, "");
+  // Add Brazil country code if not present
+  if (numbers.length <= 11) {
+    return `55${numbers}`;
+  }
+  return numbers;
+};
+
+const openWhatsApp = (phone: string) => {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  window.open(`https://wa.me/${formattedPhone}`, "_blank");
+};
+
+const openGoogleMaps = (address: string) => {
+  const encodedAddress = encodeURIComponent(address);
+  window.open(
+    `https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`,
+    "_blank"
+  );
 };
 
 export const ProposalsList = () => {
@@ -58,8 +87,8 @@ export const ProposalsList = () => {
       const { data, error } = await supabase
         .from("proposals")
         .select(`
-          id, number, title, status, total, created_at, pdf_path, stage_id,
-          client:clients(id, name, document),
+          id, number, title, status, total, created_at, pdf_path, stage_id, work_address, city, state,
+          client:clients(id, name, document, phone),
           stage:proposal_stages(id, name)
         `)
         .order("created_at", { ascending: false });
@@ -142,6 +171,8 @@ export const ProposalsList = () => {
           <TableRow>
             <TableHead>Número / Título</TableHead>
             <TableHead>Cliente</TableHead>
+            <TableHead>Telefone</TableHead>
+            <TableHead>Endereço</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead>Data</TableHead>
@@ -149,26 +180,73 @@ export const ProposalsList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {proposals.map((proposal) => (
-            <TableRow key={proposal.id}>
-              <TableCell>
-                <div>
-                  <span className="font-medium">{proposal.number}</span>
-                  {proposal.title && (
-                    <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                      {proposal.title}
-                    </p>
+          {proposals.map((proposal) => {
+            const fullAddress = [
+              proposal.work_address,
+              proposal.city,
+              proposal.state,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
+            return (
+              <TableRow key={proposal.id}>
+                <TableCell>
+                  <div>
+                    <span className="font-medium">{proposal.number}</span>
+                    {proposal.title && (
+                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                        {proposal.title}
+                      </p>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <span className="font-medium">{proposal.client?.name || "-"}</span>
+                    {proposal.client?.document && (
+                      <p className="text-xs text-muted-foreground">{proposal.client.document}</p>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {proposal.client?.phone ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{proposal.client.phone}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => openWhatsApp(proposal.client!.phone!)}
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
                   )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <span className="font-medium">{proposal.client?.name || "-"}</span>
-                  {proposal.client?.document && (
-                    <p className="text-xs text-muted-foreground">{proposal.client.document}</p>
+                </TableCell>
+                <TableCell>
+                  {fullAddress ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm truncate max-w-[150px]" title={fullAddress}>
+                        {fullAddress}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => openGoogleMaps(fullAddress)}
+                        title="Abrir no Google Maps"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
                   )}
-                </div>
-              </TableCell>
+                </TableCell>
               <TableCell>
                 <ProposalStageSelect
                   proposalId={proposal.id}
@@ -239,8 +317,9 @@ export const ProposalsList = () => {
                   </AlertDialog>
                 </div>
               </TableCell>
-            </TableRow>
-          ))}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
