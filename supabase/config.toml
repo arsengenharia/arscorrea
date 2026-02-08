@@ -1,1 +1,4 @@
 project_id = "qajzskxuvxsbvuyuvlnd"
+
+[functions.parse-proposal-pdf]
+verify_jwt = true

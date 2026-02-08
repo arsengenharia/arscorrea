@@ -15,7 +15,8 @@ import { ProposalTotalsSection } from "./ProposalTotalsSection";
 import { ProposalTermsSection } from "./ProposalTermsSection";
 import { pdf } from "@react-pdf/renderer";
 import { ProposalPDF } from "./pdf/ProposalPDF";
-
+import { ImportProposalSection, ParsedProposalData } from "./import";
+import { normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
 const DEFAULT_SCOPE = `SERVIÇOS DE REFORMA DE FACHADA
 
 1. SERVIÇOS PRELIMINARES
@@ -201,6 +202,36 @@ export const ProposalFormContent = ({
     },
     []
   );
+
+  // Handle import data from PDF
+  const handleApplyImport = useCallback((data: ParsedProposalData) => {
+    // Update form fields
+    setFormData((prev) => ({
+      ...prev,
+      scopeText: data.scope_text || prev.scopeText,
+      paymentTerms: data.payment_terms || prev.paymentTerms,
+      warrantyTerms: data.warranty_terms || prev.warrantyTerms,
+      exclusions: data.exclusions || prev.exclusions,
+      notes: data.notes || prev.notes,
+      discountType: data.totals?.discount_type || prev.discountType,
+      discountValue: data.totals?.discount_value || prev.discountValue,
+    }));
+
+    // Convert imported items to ProposalItem format
+    if (data.items && data.items.length > 0) {
+      const importedItems: ProposalItem[] = data.items.map((item) => ({
+        id: crypto.randomUUID(),
+        category: normalizeCategory(item.category),
+        description: item.description || "",
+        unit: normalizeUnit(item.unit),
+        quantity: item.quantity || 0,
+        unitPrice: item.unit_price || 0,
+        total: item.total || (item.quantity || 0) * (item.unit_price || 0),
+        notes: "",
+      }));
+      setItems(importedItems);
+    }
+  }, []);
 
   const saveProposal = async (newStatus?: string) => {
     if (!formData.clientId) {
@@ -437,6 +468,14 @@ export const ProposalFormContent = ({
         onStateChange={(v) => updateFormData("state", v)}
         onClientUpdated={handleClientUpdated}
       />
+
+      {/* Import from PDF Section - only show for new proposals after client is selected */}
+      {!isEditing && formData.clientId && (
+        <ImportProposalSection
+          clientId={formData.clientId}
+          onApplyImport={handleApplyImport}
+        />
+      )}
 
       {/* Title */}
       <Card>
