@@ -68,11 +68,27 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
           onMouseEnter={() => setHoveredProposal(proposal)}
           onMouseLeave={() => setHoveredProposal(null)}
         >
-          <div
-            className="w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-125"
-            style={{ backgroundColor: getStageColor(proposal.stageName) }}
-          >
-            <MapPin className="w-3 h-3 text-white" />
+          <div className="relative group cursor-pointer">
+            {/* Pulse animation ring */}
+            <div
+              className="absolute inset-0 w-10 h-10 rounded-full opacity-30 animate-ping"
+              style={{ backgroundColor: getStageColor(proposal.stageName) }}
+            />
+            {/* Main pin */}
+            <div
+              className="relative w-10 h-10 rounded-full border-3 border-white shadow-xl flex items-center justify-center transition-all duration-200 group-hover:scale-125 group-hover:shadow-2xl"
+              style={{ 
+                backgroundColor: getStageColor(proposal.stageName),
+                boxShadow: `0 4px 14px -2px ${getStageColor(proposal.stageName)}80, 0 2px 6px -1px rgba(0,0,0,0.3)`
+              }}
+            >
+              <MapPin className="w-5 h-5 text-white drop-shadow-sm" />
+            </div>
+            {/* Bottom pointer */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent"
+              style={{ borderTopColor: getStageColor(proposal.stageName) }}
+            />
           </div>
         </AdvancedMarker>
       ))}
