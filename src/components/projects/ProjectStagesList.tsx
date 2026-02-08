@@ -15,10 +15,10 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { StagePhoto } from "./StagePhoto";
 
 const formatDate = (date: string | null) => {
   if (!date) return 'Não definida';
@@ -194,12 +194,7 @@ export function ProjectStagesList({ projectId, stages, onStageDeleted }: Project
                     <p className="text-sm font-medium mb-2">Fotos</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {stage.stage_photos.map((photo) => (
-                        <img
-                          key={photo.id}
-                          src={photo.photo_url}
-                          alt="Foto da etapa"
-                          className="w-full h-32 object-cover rounded-md"
-                        />
+                        <StagePhoto key={photo.id} photoPath={photo.photo_url} />
                       ))}
                     </div>
                   </div>

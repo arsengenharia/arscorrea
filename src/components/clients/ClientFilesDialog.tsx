@@ -32,7 +32,7 @@ export function ClientFilesDialog({ clientId, clientName, trigger }: ClientFiles
       .from("client_files")
       .select("*")
       .eq("client_id", clientId)
-      .order("uploaded_at", { ascending: false });
+      .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao buscar arquivos");
       setLoading(false);
@@ -66,14 +66,14 @@ export function ClientFilesDialog({ clientId, clientName, trigger }: ClientFiles
       return;
     }
 
-    // Save to client_files table
-    const publicUrl = supabase.storage.from("client_files").getPublicUrl(filePath).data.publicUrl;
+    // Save to client_files table - store the file path instead of public URL
+    // The path can be used to generate signed URLs when downloading
     const { error: insertError } = await supabase
       .from("client_files")
       .insert({
         client_id: clientId,
         file_name: file.name,
-        file_url: publicUrl,
+        file_url: filePath, // Store the path, not the URL
       });
     if (insertError) {
       toast.error("Erro ao salvar referência do arquivo");
@@ -86,8 +86,18 @@ export function ClientFilesDialog({ clientId, clientName, trigger }: ClientFiles
     setUploading(false);
   };
 
-  const handleDownload = (file: ClientFile) => {
-    window.open(file.file_url, "_blank");
+  const handleDownload = async (file: ClientFile) => {
+    // Generate a signed URL for secure file access (1 hour expiry)
+    const { data, error } = await supabase.storage
+      .from("client_files")
+      .createSignedUrl(file.file_url, 3600);
+    
+    if (error || !data?.signedUrl) {
+      toast.error("Erro ao gerar link para download");
+      return;
+    }
+    
+    window.open(data.signedUrl, "_blank");
   };
 
   return (
