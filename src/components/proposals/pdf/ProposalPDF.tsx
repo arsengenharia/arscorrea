@@ -1,489 +1,304 @@
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Image,
-  Font,
-} from "@react-pdf/renderer";
+import React from "react";
+import { Document, Page, View, Text, Image } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { styles } from "./proposalStyles";
 
-// Register fonts
-Font.register({
-  family: "Helvetica",
-  src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2",
-});
+type ProposalClient = {
+  name: string;
+  document: string | null;
+  responsible: string | null;
+  phone: string | null;
+  email: string | null;
+  street: string | null;
+  number: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code?: string | null;
+};
 
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 10,
-    fontFamily: "Helvetica",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 30,
-    borderBottom: 2,
-    borderBottomColor: "#1e40af",
-    paddingBottom: 15,
-  },
-  logo: {
-    width: 120,
-    height: 50,
-  },
-  headerInfo: {
-    textAlign: "right",
-  },
-  proposalNumber: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#1e40af",
-  },
-  proposalDate: {
-    fontSize: 9,
-    color: "#666",
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#1e40af",
-    marginBottom: 10,
-    borderBottom: 1,
-    borderBottomColor: "#e5e7eb",
-    paddingBottom: 5,
-  },
-  clientInfo: {
-    backgroundColor: "#f8fafc",
-    padding: 10,
-    borderRadius: 4,
-  },
-  clientRow: {
-    flexDirection: "row",
-    marginBottom: 4,
-  },
-  clientLabel: {
-    width: 80,
-    fontWeight: "bold",
-    color: "#374151",
-  },
-  clientValue: {
-    flex: 1,
-    color: "#1f2937",
-  },
-  workInfo: {
-    backgroundColor: "#f0f9ff",
-    padding: 10,
-    borderRadius: 4,
-  },
-  scopeText: {
-    fontSize: 9,
-    lineHeight: 1.5,
-    whiteSpace: "pre-wrap",
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#1e40af",
-    color: "white",
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  tableRowAlt: {
-    backgroundColor: "#f8fafc",
-  },
-  tableCell: {
-    padding: 6,
-    fontSize: 8,
-  },
-  tableCellCategory: {
-    width: "20%",
-  },
-  tableCellDescription: {
-    width: "30%",
-  },
-  tableCellUnit: {
-    width: "10%",
-    textAlign: "center",
-  },
-  tableCellQty: {
-    width: "10%",
-    textAlign: "right",
-  },
-  tableCellPrice: {
-    width: "15%",
-    textAlign: "right",
-  },
-  tableCellTotal: {
-    width: "15%",
-    textAlign: "right",
-  },
-  totalsSection: {
-    marginTop: 20,
-    alignItems: "flex-end",
-  },
-  totalsRow: {
-    flexDirection: "row",
-    width: 200,
-    justifyContent: "space-between",
-    paddingVertical: 4,
-  },
-  totalsLabel: {
-    color: "#374151",
-  },
-  totalsValue: {
-    fontWeight: "bold",
-  },
-  totalFinal: {
-    flexDirection: "row",
-    width: 200,
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderTopWidth: 2,
-    borderTopColor: "#1e40af",
-    marginTop: 4,
-  },
-  totalFinalLabel: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#1e40af",
-  },
-  totalFinalValue: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#1e40af",
-  },
-  termsGrid: {
-    flexDirection: "row",
-    gap: 20,
-    marginBottom: 10,
-  },
-  termItem: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-    padding: 8,
-    borderRadius: 4,
-  },
-  termLabel: {
-    fontSize: 8,
-    color: "#6b7280",
-    marginBottom: 2,
-  },
-  termValue: {
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  termSection: {
-    marginBottom: 10,
-  },
-  termText: {
-    fontSize: 9,
-    lineHeight: 1.4,
-    color: "#374151",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: "center",
-    fontSize: 8,
-    color: "#9ca3af",
-    borderTop: 1,
-    borderTopColor: "#e5e7eb",
-    paddingTop: 10,
-  },
-});
+type Proposal = {
+  number: string;
+  title: string | null;
+  created_at: string;
 
-interface ProposalPDFProps {
-  proposal: {
-    number: string | null;
-    title: string | null;
-    condo_name: string | null;
-    work_address: string | null;
-    city: string | null;
-    state: string | null;
-    scope_text: string | null;
-    validity_days: number | null;
-    execution_days: number | null;
-    payment_terms: string | null;
-    warranty_terms: string | null;
-    exclusions: string | null;
-    notes: string | null;
-    subtotal: number | null;
-    discount_type: string | null;
-    discount_value: number | null;
-    total: number | null;
-    created_at: string;
-    client: {
-      name: string;
-      document: string | null;
-      responsible: string | null;
-      phone: string | null;
-      email: string | null;
-      street: string | null;
-      number: string | null;
-      city: string | null;
-      state: string | null;
-    } | null;
-  };
-  items: Array<{
-    category: string | null;
-    description: string | null;
-    unit: string | null;
-    quantity: number | null;
-    unit_price: number | null;
-    total: number | null;
-    notes: string | null;
-  }>;
+  // Campos da obra (podem existir no banco; PDF só mostra se houver valor)
+  condo_name?: string | null;
+  work_address?: string | null;
+  city?: string | null;
+  state?: string | null;
+
+  scope_text?: string | null;
+
+  payment_terms?: string | null;
+  warranty_terms?: string | null;
+  exclusions?: string | null;
+  notes?: string | null;
+
+  subtotal: number | null;
+  discount_type: string | null; // 'percent' | 'fixed'
+  discount_value: number | null;
+  total: number | null;
+
+  client: ProposalClient | null;
+};
+
+type ProposalItem = {
+  category: string | null;
+  description: string | null;
+  unit: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  total: number | null;
+  notes: string | null;
+};
+
+export interface ProposalPDFProps {
+  proposal: Proposal;
+  items: ProposalItem[];
 }
 
 const formatCurrency = (value: number | null) => {
-  if (value === null) return "R$ 0,00";
+  const v = typeof value === "number" ? value : 0;
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(v);
+};
+
+const safeText = (value?: string | null) => (value && value.trim() ? value : "-");
+
+const unitLabel = (u: string | null) => {
+  const map: Record<string, string> = {
+    m2: "m²",
+    m: "m",
+    un: "un",
+    vb: "vb",
+    dia: "dia",
+    mes: "mês",
+  };
+  if (!u) return "-";
+  return map[u] ?? u;
 };
 
 export const ProposalPDF = ({ proposal, items }: ProposalPDFProps) => {
-  const discountAmount =
-    proposal.discount_type === "percent"
-      ? (proposal.subtotal || 0) * ((proposal.discount_value || 0) / 100)
-      : proposal.discount_value || 0;
+  const subtotal = proposal.subtotal ?? 0;
+  const discountValue = proposal.discount_value ?? 0;
+
+  const discountAmount = proposal.discount_type === "percent" ? subtotal * (discountValue / 100) : discountValue;
+
+  const total = typeof proposal.total === "number" ? proposal.total : Math.max(0, subtotal - discountAmount);
+
+  const createdAt = proposal.created_at
+    ? format(new Date(proposal.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    : "-";
+
+  const hasWorkInfo = !!proposal.condo_name || !!proposal.work_address || !!proposal.city || !!proposal.state;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Image
-            src="/lovable-uploads/ars-correa-logo.png"
-            style={styles.logo}
-          />
+          <Image src="/lovable-uploads/ars-correa-logo.png" style={styles.logo} />
           <View style={styles.headerInfo}>
-            <Text style={styles.proposalNumber}>{proposal.number}</Text>
-            <Text style={styles.proposalDate}>
-              {format(new Date(proposal.created_at), "dd 'de' MMMM 'de' yyyy", {
-                locale: ptBR,
-              })}
-            </Text>
+            <Text style={styles.proposalNumber}>{safeText(proposal.number)}</Text>
+            <Text style={styles.proposalDate}>{createdAt}</Text>
           </View>
         </View>
 
         {/* Title */}
-        {proposal.title && (
+        {proposal.title ? (
           <View style={styles.section}>
-            <Text style={{ fontSize: 14, fontWeight: "bold", textAlign: "center" }}>
-              {proposal.title}
-            </Text>
+            <Text style={styles.title}>{proposal.title}</Text>
           </View>
-        )}
+        ) : null}
 
-        {/* Client Info */}
+        {/* Cliente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>CLIENTE</Text>
-          <View style={styles.clientInfo}>
-            <View style={styles.clientRow}>
-              <Text style={styles.clientLabel}>Nome:</Text>
-              <Text style={styles.clientValue}>{proposal.client?.name || "-"}</Text>
-            </View>
-            {proposal.client?.document && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>CNPJ/CPF:</Text>
-                <Text style={styles.clientValue}>{proposal.client.document}</Text>
-              </View>
-            )}
-            {proposal.client?.responsible && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>Responsável:</Text>
-                <Text style={styles.clientValue}>{proposal.client.responsible}</Text>
-              </View>
-            )}
-            {proposal.client?.phone && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>Telefone:</Text>
-                <Text style={styles.clientValue}>{proposal.client.phone}</Text>
-              </View>
-            )}
-            {proposal.client?.email && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>E-mail:</Text>
-                <Text style={styles.clientValue}>{proposal.client.email}</Text>
-              </View>
-            )}
-          </View>
-        </View>
 
-        {/* Work Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>LOCAL DA OBRA</Text>
-          <View style={styles.workInfo}>
-            {proposal.condo_name && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>Condomínio:</Text>
-                <Text style={styles.clientValue}>{proposal.condo_name}</Text>
+          <View style={styles.infoBlock}>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Nome:</Text>
+              <Text style={styles.value}>{safeText(proposal.client?.name)}</Text>
+            </View>
+
+            {proposal.client?.document ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>CNPJ/CPF:</Text>
+                <Text style={styles.value}>{proposal.client.document}</Text>
               </View>
-            )}
-            {proposal.work_address && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>Endereço:</Text>
-                <Text style={styles.clientValue}>{proposal.work_address}</Text>
+            ) : null}
+
+            {proposal.client?.responsible ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Responsável:</Text>
+                <Text style={styles.value}>{proposal.client.responsible}</Text>
               </View>
-            )}
-            {(proposal.city || proposal.state) && (
-              <View style={styles.clientRow}>
-                <Text style={styles.clientLabel}>Cidade/UF:</Text>
-                <Text style={styles.clientValue}>
-                  {[proposal.city, proposal.state].filter(Boolean).join(" - ")}
+            ) : null}
+
+            {proposal.client?.phone ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Telefone:</Text>
+                <Text style={styles.value}>{proposal.client.phone}</Text>
+              </View>
+            ) : null}
+
+            {proposal.client?.email ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>E-mail:</Text>
+                <Text style={styles.value}>{proposal.client.email}</Text>
+              </View>
+            ) : null}
+
+            {/* Endereço do cliente */}
+            {proposal.client?.street || proposal.client?.city || proposal.client?.state ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Endereço:</Text>
+                <Text style={styles.value}>
+                  {[
+                    proposal.client?.street,
+                    proposal.client?.number,
+                    proposal.client?.neighborhood,
+                    proposal.client?.city,
+                    proposal.client?.state ? `${proposal.client.state}` : null,
+                    proposal.client?.zip_code ? `CEP: ${proposal.client.zip_code}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
         </View>
 
-        {/* Scope */}
-        {proposal.scope_text && (
+        {/* Obra (só aparece se tiver informação) */}
+        {hasWorkInfo ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ESCOPO DOS SERVIÇOS</Text>
-            <Text style={styles.scopeText}>{proposal.scope_text}</Text>
-          </View>
-        )}
-
-        {/* Items Table */}
-        {items.length > 0 && (
-          <View style={styles.section} break>
-            <Text style={styles.sectionTitle}>ITENS DA PROPOSTA</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, styles.tableCellCategory]}>Categoria</Text>
-                <Text style={[styles.tableCell, styles.tableCellDescription]}>Descrição</Text>
-                <Text style={[styles.tableCell, styles.tableCellUnit]}>Un.</Text>
-                <Text style={[styles.tableCell, styles.tableCellQty]}>Qtd</Text>
-                <Text style={[styles.tableCell, styles.tableCellPrice]}>V. Unit.</Text>
-                <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
-              </View>
-              {items.map((item, index) => (
-                <View
-                  key={index}
-                  style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
-                >
-                  <Text style={[styles.tableCell, styles.tableCellCategory]}>
-                    {item.category || "-"}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellDescription]}>
-                    {item.description || "-"}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellUnit]}>
-                    {item.unit || "-"}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellQty]}>
-                    {item.quantity || 0}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                    {formatCurrency(item.unit_price)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                    {formatCurrency(item.total)}
-                  </Text>
+            <Text style={styles.sectionTitle}>OBRA</Text>
+            <View style={styles.infoBlock}>
+              {proposal.condo_name ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Condomínio:</Text>
+                  <Text style={styles.value}>{proposal.condo_name}</Text>
                 </View>
-              ))}
-            </View>
+              ) : null}
 
-            {/* Totals */}
-            <View style={styles.totalsSection}>
-              <View style={styles.totalsRow}>
-                <Text style={styles.totalsLabel}>Subtotal:</Text>
-                <Text style={styles.totalsValue}>
-                  {formatCurrency(proposal.subtotal)}
-                </Text>
-              </View>
-              {(proposal.discount_value || 0) > 0 && (
-                <View style={styles.totalsRow}>
-                  <Text style={styles.totalsLabel}>
-                    Desconto
-                    {proposal.discount_type === "percent"
-                      ? ` (${proposal.discount_value}%)`
-                      : ""}
-                    :
-                  </Text>
-                  <Text style={styles.totalsValue}>
-                    - {formatCurrency(discountAmount)}
-                  </Text>
+              {proposal.work_address ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Endereço:</Text>
+                  <Text style={styles.value}>{proposal.work_address}</Text>
                 </View>
-              )}
-              <View style={styles.totalFinal}>
-                <Text style={styles.totalFinalLabel}>TOTAL:</Text>
-                <Text style={styles.totalFinalValue}>
-                  {formatCurrency(proposal.total)}
-                </Text>
-              </View>
+              ) : null}
+
+              {proposal.city || proposal.state ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Cidade/UF:</Text>
+                  <Text style={styles.value}>{[proposal.city, proposal.state].filter(Boolean).join(" / ")}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
-        )}
+        ) : null}
 
-        {/* Terms */}
+        {/* Escopo */}
+        {proposal.scope_text ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ESCOPO</Text>
+            <View style={styles.infoBlock}>
+              <Text style={styles.paragraph}>{proposal.scope_text}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Itens */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>CONDIÇÕES COMERCIAIS</Text>
-          <View style={styles.termsGrid}>
-            <View style={styles.termItem}>
-              <Text style={styles.termLabel}>Prazo de Execução</Text>
-              <Text style={styles.termValue}>{proposal.execution_days || 60} dias</Text>
+          <Text style={styles.sectionTitle}>ITENS</Text>
+
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.th, styles.colCat]}>Categoria</Text>
+              <Text style={[styles.th, styles.colDesc]}>Descrição</Text>
+              <Text style={[styles.th, styles.colUnit]}>Un</Text>
+              <Text style={[styles.th, styles.colQty]}>Qtd</Text>
+              <Text style={[styles.th, styles.colPrice]}>V. Unit.</Text>
+              <Text style={[styles.th, styles.colTotal]}>Total</Text>
             </View>
-            <View style={styles.termItem}>
-              <Text style={styles.termLabel}>Validade da Proposta</Text>
-              <Text style={styles.termValue}>{proposal.validity_days || 10} dias</Text>
-            </View>
+
+            {(items || []).map((it, idx) => (
+              <View key={`${idx}`} style={styles.tableRow}>
+                <Text style={[styles.td, styles.colCat]}>{safeText(it.category)}</Text>
+                <Text style={[styles.td, styles.colDesc]}>{safeText(it.description)}</Text>
+                <Text style={[styles.td, styles.colUnit]}>{unitLabel(it.unit)}</Text>
+                <Text style={[styles.td, styles.colQty]}>{(it.quantity ?? 0).toString()}</Text>
+                <Text style={[styles.td, styles.colPrice]}>{formatCurrency(it.unit_price)}</Text>
+                <Text style={[styles.td, styles.colTotal]}>{formatCurrency(it.total)}</Text>
+              </View>
+            ))}
           </View>
 
-          {proposal.payment_terms && (
-            <View style={styles.termSection}>
-              <Text style={[styles.termLabel, { marginBottom: 4 }]}>
-                Forma de Pagamento:
+          {/* Totais */}
+          <View style={styles.totals}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(subtotal)}</Text>
+            </View>
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>
+                Desconto{proposal.discount_type === "percent" ? ` (${discountValue}%)` : ""}:
               </Text>
-              <Text style={styles.termText}>{proposal.payment_terms}</Text>
+              <Text style={styles.totalValue}>- {formatCurrency(discountAmount)}</Text>
             </View>
-          )}
 
-          {proposal.warranty_terms && (
-            <View style={styles.termSection}>
-              <Text style={[styles.termLabel, { marginBottom: 4 }]}>Garantia:</Text>
-              <Text style={styles.termText}>{proposal.warranty_terms}</Text>
+            <View style={styles.totalRowStrong}>
+              <Text style={styles.totalLabelStrong}>Total:</Text>
+              <Text style={styles.totalValueStrong}>{formatCurrency(total)}</Text>
             </View>
-          )}
-
-          {proposal.exclusions && (
-            <View style={styles.termSection}>
-              <Text style={[styles.termLabel, { marginBottom: 4 }]}>Exclusões:</Text>
-              <Text style={styles.termText}>{proposal.exclusions}</Text>
-            </View>
-          )}
-
-          {proposal.notes && (
-            <View style={styles.termSection}>
-              <Text style={[styles.termLabel, { marginBottom: 4 }]}>Observações:</Text>
-              <Text style={styles.termText}>{proposal.notes}</Text>
-            </View>
-          )}
+          </View>
         </View>
 
-        {/* Footer */}
-        <Text style={styles.footer}>
-          ARS Engenharia - Documento gerado automaticamente
-        </Text>
+        {/* Condições */}
+        {proposal.payment_terms || proposal.warranty_terms || proposal.exclusions || proposal.notes ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>CONDIÇÕES</Text>
+            <View style={styles.infoBlock}>
+              {proposal.payment_terms ? (
+                <View style={styles.blockLine}>
+                  <Text style={styles.blockTitle}>Forma de pagamento</Text>
+                  <Text style={styles.paragraph}>{proposal.payment_terms}</Text>
+                </View>
+              ) : null}
+
+              {proposal.warranty_terms ? (
+                <View style={styles.blockLine}>
+                  <Text style={styles.blockTitle}>Garantia</Text>
+                  <Text style={styles.paragraph}>{proposal.warranty_terms}</Text>
+                </View>
+              ) : null}
+
+              {proposal.exclusions ? (
+                <View style={styles.blockLine}>
+                  <Text style={styles.blockTitle}>Exclusões</Text>
+                  <Text style={styles.paragraph}>{proposal.exclusions}</Text>
+                </View>
+              ) : null}
+
+              {proposal.notes ? (
+                <View style={styles.blockLine}>
+                  <Text style={styles.blockTitle}>Observações</Text>
+                  <Text style={styles.paragraph}>{proposal.notes}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Rodapé */}
+        <Text style={styles.footer}>ARS Engenharia e Consultoria Estratégica • Corrêa Engenharia</Text>
       </Page>
     </Document>
   );
