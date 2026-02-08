@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building, FileText, Home, LogOut, Menu, Users, X } from "lucide-react";
+import { Building, FileText, Home, LogOut, Menu, ScrollText, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -11,6 +11,7 @@ const menuItems = [
   { title: "Clientes", icon: Users, path: "/clientes" },
   { title: "Obras", icon: Building, path: "/obras" },
   { title: "Propostas", icon: FileText, path: "/propostas" },
+  { title: "Contratos", icon: ScrollText, path: "/contratos" },
 ];
 
 export function TopNavigation() {

@@ -118,6 +118,199 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_financial: {
+        Row: {
+          contract_id: string
+          created_at: string | null
+          description: string | null
+          expected_date: string | null
+          expected_value: number | null
+          id: string
+          notes: string | null
+          received_date: string | null
+          received_value: number | null
+          status: string | null
+          type: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string | null
+          description?: string | null
+          expected_date?: string | null
+          expected_value?: number | null
+          id?: string
+          notes?: string | null
+          received_date?: string | null
+          received_value?: number | null
+          status?: string | null
+          type: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string | null
+          description?: string | null
+          expected_date?: string | null
+          expected_value?: number | null
+          id?: string
+          notes?: string | null
+          received_date?: string | null
+          received_value?: number | null
+          status?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_financial_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_items: {
+        Row: {
+          category: string | null
+          contract_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          order_index: number | null
+          quantity: number | null
+          total: number | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          category?: string | null
+          contract_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          quantity?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          category?: string | null
+          contract_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          quantity?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          client_id: string
+          commission_expected_date: string | null
+          commission_expected_value: number | null
+          commission_notes: string | null
+          commission_received_value: number | null
+          contract_number: string | null
+          created_at: string | null
+          created_by: string | null
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          payment_entry_value: number | null
+          payment_installment_value: number | null
+          payment_installments_count: number | null
+          payment_notes: string | null
+          pdf_path: string | null
+          proposal_id: string
+          scope_text: string | null
+          status: string | null
+          subtotal: number | null
+          title: string | null
+          total: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          commission_expected_date?: string | null
+          commission_expected_value?: number | null
+          commission_notes?: string | null
+          commission_received_value?: number | null
+          contract_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          payment_entry_value?: number | null
+          payment_installment_value?: number | null
+          payment_installments_count?: number | null
+          payment_notes?: string | null
+          pdf_path?: string | null
+          proposal_id: string
+          scope_text?: string | null
+          status?: string | null
+          subtotal?: number | null
+          title?: string | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          commission_expected_date?: string | null
+          commission_expected_value?: number | null
+          commission_notes?: string | null
+          commission_received_value?: number | null
+          contract_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          payment_entry_value?: number | null
+          payment_installment_value?: number | null
+          payment_installments_count?: number | null
+          payment_notes?: string | null
+          pdf_path?: string | null
+          proposal_id?: string
+          scope_text?: string | null
+          status?: string | null
+          subtotal?: number | null
+          title?: string | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_id: string
