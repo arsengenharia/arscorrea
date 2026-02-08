@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
-import { APIProvider, Map, AdvancedMarker, InfoWindow } from "@vis.gl/react-google-maps";
+import { useMemo, useState, useEffect } from "react";
+import { APIProvider, Map, AdvancedMarker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { MapPin, Flame } from "lucide-react";
 import { useGeocoding, type ProposalLocation } from "@/hooks/use-geocoding";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
@@ -11,15 +14,19 @@ const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
 const BELO_HORIZONTE_CENTER = { lat: -19.9167, lng: -43.9345 };
 const DEFAULT_ZOOM = 12;
 
-// Stage colors
-const STAGE_COLORS: Record<string, string> = {
-  "em aberto": "#3B82F6", // Blue
-  "em análise": "#F59E0B", // Yellow/Amber
-  "fechada": "#22C55E", // Green
-  "perdida": "#EF4444", // Red
-};
+// Stage definitions with colors
+const STAGES = [
+  { key: "em aberto", name: "Em aberto", color: "#3B82F6" },
+  { key: "em análise", name: "Em análise", color: "#F59E0B" },
+  { key: "fechada", name: "Fechada", color: "#22C55E" },
+  { key: "perdida", name: "Perdida", color: "#EF4444" },
+] as const;
 
-const DEFAULT_COLOR = "#6B7280"; // Gray
+const STAGE_COLORS: Record<string, string> = Object.fromEntries(
+  STAGES.map((s) => [s.key, s.color])
+);
+
+const DEFAULT_COLOR = "#6B7280";
 
 function getStageColor(stageName: string | undefined): string {
   if (!stageName) return DEFAULT_COLOR;
@@ -41,7 +48,72 @@ interface ProposalsMapProps {
   isLoading: boolean;
 }
 
-function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
+interface MapContentProps {
+  proposals: ProposalLocation[];
+  showHeatmap: boolean;
+}
+
+// Heatmap component using Google Maps visualization library
+function HeatmapLayer({ proposals }: { proposals: ProposalLocation[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || proposals.length === 0) return;
+
+    // Load the visualization library
+    const loadHeatmap = async () => {
+      // @ts-ignore - google.maps.visualization might not be typed
+      if (!google.maps.visualization) {
+        await google.maps.importLibrary("visualization");
+      }
+
+      const heatmapData = proposals
+        .filter((p) => p.lat !== undefined && p.lng !== undefined)
+        .map((p) => ({
+          location: new google.maps.LatLng(p.lat!, p.lng!),
+          weight: (p.total || 10000) / 10000, // Weight by proposal value
+        }));
+
+      // @ts-ignore
+      const heatmap = new google.maps.visualization.HeatmapLayer({
+        data: heatmapData,
+        map: map,
+        radius: 50,
+        opacity: 0.7,
+        gradient: [
+          "rgba(0, 255, 255, 0)",
+          "rgba(0, 255, 255, 1)",
+          "rgba(0, 191, 255, 1)",
+          "rgba(0, 127, 255, 1)",
+          "rgba(0, 63, 255, 1)",
+          "rgba(0, 0, 255, 1)",
+          "rgba(0, 0, 223, 1)",
+          "rgba(0, 0, 191, 1)",
+          "rgba(0, 0, 159, 1)",
+          "rgba(0, 0, 127, 1)",
+          "rgba(63, 0, 91, 1)",
+          "rgba(127, 0, 63, 1)",
+          "rgba(191, 0, 31, 1)",
+          "rgba(255, 0, 0, 1)",
+        ],
+      });
+
+      return () => {
+        heatmap.setMap(null);
+      };
+    };
+
+    const cleanup = loadHeatmap();
+    
+    return () => {
+      cleanup.then((fn) => fn?.());
+    };
+  }, [map, proposals]);
+
+  return null;
+}
+
+function MapContent({ proposals, showHeatmap }: MapContentProps) {
   const [hoveredProposal, setHoveredProposal] = useState<ProposalLocation | null>(null);
 
   const proposalsWithCoords = useMemo(
@@ -49,7 +121,6 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
     [proposals]
   );
 
-  // Sempre centralizar em Belo Horizonte
   const center = BELO_HORIZONTE_CENTER;
 
   return (
@@ -61,7 +132,9 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
       disableDefaultUI={false}
       className="w-full h-full rounded-lg"
     >
-      {proposalsWithCoords.map((proposal) => (
+      {showHeatmap && <HeatmapLayer proposals={proposalsWithCoords} />}
+      
+      {!showHeatmap && proposalsWithCoords.map((proposal) => (
         <AdvancedMarker
           key={proposal.id}
           position={{ lat: proposal.lat!, lng: proposal.lng! }}
@@ -93,7 +166,7 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
         </AdvancedMarker>
       ))}
 
-      {hoveredProposal && hoveredProposal.lat && hoveredProposal.lng && (
+      {!showHeatmap && hoveredProposal && hoveredProposal.lat && hoveredProposal.lng && (
         <InfoWindow
           position={{ lat: hoveredProposal.lat, lng: hoveredProposal.lng }}
           pixelOffset={[0, -30]}
@@ -134,17 +207,68 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
   );
 }
 
-function MapLegend() {
-  const stages = [
-    { name: "Em aberto", color: STAGE_COLORS["em aberto"] },
-    { name: "Em análise", color: STAGE_COLORS["em análise"] },
-    { name: "Fechada", color: STAGE_COLORS["fechada"] },
-    { name: "Perdida", color: STAGE_COLORS["perdida"] },
-  ];
+interface MapFiltersProps {
+  selectedStages: Set<string>;
+  onStageToggle: (stageKey: string) => void;
+  showHeatmap: boolean;
+  onHeatmapToggle: (checked: boolean) => void;
+}
+
+function MapFilters({ selectedStages, onStageToggle, showHeatmap, onHeatmapToggle }: MapFiltersProps) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+      {/* Stage filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="text-sm font-medium text-muted-foreground">Filtrar:</span>
+        {STAGES.map((stage) => (
+          <label
+            key={stage.key}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
+            <Checkbox
+              checked={selectedStages.has(stage.key)}
+              onCheckedChange={() => onStageToggle(stage.key)}
+              className="border-2"
+              style={{ 
+                borderColor: stage.color,
+                backgroundColor: selectedStages.has(stage.key) ? stage.color : 'transparent'
+              }}
+            />
+            <span className="text-sm">{stage.name}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* Heatmap toggle */}
+      <div className="flex items-center gap-2">
+        <Switch
+          id="heatmap-toggle"
+          checked={showHeatmap}
+          onCheckedChange={onHeatmapToggle}
+        />
+        <Label htmlFor="heatmap-toggle" className="flex items-center gap-1.5 cursor-pointer">
+          <Flame className="h-4 w-4 text-orange-500" />
+          <span className="text-sm">Heat Zone</span>
+        </Label>
+      </div>
+    </div>
+  );
+}
+
+function MapLegend({ showHeatmap }: { showHeatmap: boolean }) {
+  if (showHeatmap) {
+    return (
+      <div className="flex items-center justify-center gap-2 mt-3">
+        <span className="text-xs text-muted-foreground">Menor concentração</span>
+        <div className="h-3 w-32 rounded-full bg-gradient-to-r from-cyan-400 via-blue-600 to-red-500" />
+        <span className="text-xs text-muted-foreground">Maior concentração</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap gap-4 mt-3 justify-center">
-      {stages.map((stage) => (
+      {STAGES.map((stage) => (
         <div key={stage.name} className="flex items-center gap-1.5">
           <div
             className="w-3 h-3 rounded-full"
@@ -159,8 +283,36 @@ function MapLegend() {
 
 export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
   const { geocodedProposals, isGeocoding, progress } = useGeocoding(data);
+  
+  // Filter state - all stages selected by default
+  const [selectedStages, setSelectedStages] = useState<Set<string>>(
+    new Set(STAGES.map((s) => s.key))
+  );
+  
+  // Heatmap toggle state
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
-  const geocodedCount = geocodedProposals.filter(
+  const handleStageToggle = (stageKey: string) => {
+    setSelectedStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageKey)) {
+        next.delete(stageKey);
+      } else {
+        next.add(stageKey);
+      }
+      return next;
+    });
+  };
+
+  // Filter proposals by selected stages
+  const filteredProposals = useMemo(() => {
+    return geocodedProposals.filter((p) => {
+      const stageName = p.stageName?.toLowerCase().trim() || "";
+      return selectedStages.has(stageName) || (!stageName && selectedStages.size === STAGES.length);
+    });
+  }, [geocodedProposals, selectedStages]);
+
+  const geocodedCount = filteredProposals.filter(
     (p) => p.lat !== undefined && p.lng !== undefined
   ).length;
 
@@ -198,12 +350,18 @@ export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
         </div>
       </CardHeader>
       <CardContent>
+        <MapFilters
+          selectedStages={selectedStages}
+          onStageToggle={handleStageToggle}
+          showHeatmap={showHeatmap}
+          onHeatmapToggle={setShowHeatmap}
+        />
         <div className="w-full h-[400px] rounded-lg overflow-hidden border">
           <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-            <MapContent proposals={geocodedProposals} />
+            <MapContent proposals={filteredProposals} showHeatmap={showHeatmap} />
           </APIProvider>
         </div>
-        <MapLegend />
+        <MapLegend showHeatmap={showHeatmap} />
       </CardContent>
     </Card>
   );
