@@ -129,19 +129,19 @@ export function ContractsList() {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-visible">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Endereço</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Comissão</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="whitespace-nowrap">Número</TableHead>
+              <TableHead className="min-w-[120px]">Cliente</TableHead>
+              <TableHead className="whitespace-nowrap">Telefone</TableHead>
+              <TableHead className="min-w-[100px]">Endereço</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Total</TableHead>
+              <TableHead className="whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Comissão</TableHead>
+              <TableHead className="whitespace-nowrap">Data</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
