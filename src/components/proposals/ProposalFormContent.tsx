@@ -393,7 +393,7 @@ export const ProposalFormContent = ({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Salvar Rascunho
+            Salvar
           </Button>
           <Button
             variant="outline"
