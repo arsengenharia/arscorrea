@@ -12,6 +12,7 @@ import { NextPaymentsTable } from "@/components/dashboard/NextPaymentsTable";
 import { ProposalsFunnel } from "@/components/dashboard/ProposalsFunnel";
 import { ProposalsAgingChart } from "@/components/dashboard/ProposalsAgingChart";
 import { OldestProposalsTable } from "@/components/dashboard/OldestProposalsTable";
+import { ProposalsMap } from "@/components/dashboard/ProposalsMap";
 
 import { 
   useDashboardMetrics, 
@@ -41,6 +42,7 @@ const Index = () => {
     oldestOpenProposals,
     lossRate,
     allStages,
+    proposalsForMap,
   } = useDashboardMetrics(dateRange);
 
   return (
@@ -82,6 +84,9 @@ const Index = () => {
                 isLoading={isLoading} 
               />
             </div>
+
+            {/* Proposals Map */}
+            <ProposalsMap data={proposalsForMap} isLoading={isLoading} />
 
             {/* Table */}
             <OldestProposalsTable data={oldestOpenProposals} isLoading={isLoading} />

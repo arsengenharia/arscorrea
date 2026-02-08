@@ -76,8 +76,12 @@ export function useDashboardMetrics(dateRange: DateRange) {
           total,
           created_at,
           stage_id,
+          work_address,
+          city,
+          state,
+          condo_name,
           proposal_stages (name),
-          clients (name)
+          clients (name, street, number, city, state)
         `);
 
       if (error) {
@@ -377,6 +381,61 @@ export function useDashboardMetrics(dateRange: DateRange) {
     };
   };
 
+  // Build address string for proposals
+  const buildProposalAddress = (proposal: typeof proposalsData extends (infer T)[] ? T : never) => {
+    // Priority 1: work_address + city + state
+    if (proposal.work_address) {
+      const parts = [proposal.work_address];
+      if (proposal.city) parts.push(proposal.city);
+      if (proposal.state) parts.push(proposal.state);
+      return parts.join(", ");
+    }
+    
+    // Priority 2: condo_name + city + state
+    if (proposal.condo_name) {
+      const parts = [proposal.condo_name];
+      if (proposal.city) parts.push(proposal.city);
+      if (proposal.state) parts.push(proposal.state);
+      return parts.join(", ");
+    }
+    
+    // Priority 3: city + state from proposal
+    if (proposal.city || proposal.state) {
+      const parts = [];
+      if (proposal.city) parts.push(proposal.city);
+      if (proposal.state) parts.push(proposal.state);
+      return parts.join(", ");
+    }
+    
+    // Fallback: client address
+    const client = proposal.clients;
+    if (client) {
+      const parts = [];
+      if (client.street) {
+        parts.push(client.number ? `${client.street}, ${client.number}` : client.street);
+      }
+      if (client.city) parts.push(client.city);
+      if (client.state) parts.push(client.state);
+      if (parts.length > 0) return parts.join(", ");
+    }
+    
+    return "";
+  };
+
+  // Prepare proposals for map
+  const getProposalsForMap = () => {
+    if (!proposalsData) return [];
+    
+    return proposalsData.map(p => ({
+      id: p.id,
+      number: p.number || "",
+      clientName: p.clients?.name || "",
+      stageName: p.proposal_stages?.name || "",
+      total: p.total || 0,
+      address: buildProposalAddress(p),
+    }));
+  };
+
   return {
     isLoading: isLoadingFinancial || isLoadingProposals,
     financial: calculateFinancialMetrics(),
@@ -388,6 +447,7 @@ export function useDashboardMetrics(dateRange: DateRange) {
     oldestOpenProposals: getOldestOpenProposals(),
     lossRate: calculateLossRate(),
     commercial: calculateCommercialMetrics(),
+    proposalsForMap: getProposalsForMap(),
     allStages: proposalsData 
       ? [...new Set(proposalsData.map(p => p.proposal_stages?.name || "Sem etapa"))]
       : [],
