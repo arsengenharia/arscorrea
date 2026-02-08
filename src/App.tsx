@@ -19,6 +19,7 @@ import ProposalForm from "./pages/ProposalForm";
 import Contracts from "./pages/Contracts";
 import ContractForm from "./pages/ContractForm";
 import ContractFinancial from "./pages/ContractFinancial";
+import Agenda from "./pages/Agenda";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -144,6 +145,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ContractFinancial />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/agenda"
+            element={
+              <ProtectedRoute>
+                <Agenda />
               </ProtectedRoute>
             }
           />

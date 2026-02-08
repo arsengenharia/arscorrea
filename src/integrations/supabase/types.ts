@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_event_attendees: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          all_day: boolean | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          end_at: string
+          google_publish_url: string | null
+          google_published_at: string | null
+          id: string
+          location: string | null
+          start_at: string
+          timezone: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          end_at: string
+          google_publish_url?: string | null
+          google_published_at?: string | null
+          id?: string
+          location?: string | null
+          start_at: string
+          timezone?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          end_at?: string
+          google_publish_url?: string | null
+          google_published_at?: string | null
+          id?: string
+          location?: string | null
+          start_at?: string
+          timezone?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       client_files: {
         Row: {
           client_id: string
