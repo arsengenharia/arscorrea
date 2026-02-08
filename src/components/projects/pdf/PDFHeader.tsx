@@ -8,7 +8,7 @@ export function PDFHeader() {
   return (
     <View style={styles.header}>
       <Image
-        src="/lovable-uploads/8458c9e0-f836-458a-a48d-c0191e1cc57d.png"
+        src="/lovable-uploads/ars-correa-logo.png"
         style={styles.logo}
       />
       <Text style={styles.headerDate}>

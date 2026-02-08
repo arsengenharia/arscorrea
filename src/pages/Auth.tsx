@@ -30,8 +30,8 @@ export default function Auth() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signUp({
-        email: "admin@zengenharia.com",
-        password: "Zengenharia01",
+        email: "admin@arsengenharia.com",
+        password: "ARSEngenharia01",
       });
       
       if (error) {
@@ -39,8 +39,8 @@ export default function Auth() {
       } else {
         toast.success("Usuário admin criado com sucesso!");
         // Auto-fill the form with admin credentials
-        setEmail("admin@zengenharia.com");
-        setPassword("Zengenharia01");
+        setEmail("admin@arsengenharia.com");
+        setPassword("ARSEngenharia01");
       }
     } catch (error: any) {
       toast.error("Erro: " + error.message);
@@ -52,11 +52,11 @@ export default function Auth() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <img
-            src="/lovable-uploads/8458c9e0-f836-458a-a48d-c0191e1cc57d.png"
-            alt="Z Engenharia Logo"
-            className="h-12"
+            src="/lovable-uploads/ars-correa-logo.png"
+            alt="ARS Engenharia e Consultoria Estratégica"
+            className="h-24"
           />
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -85,13 +85,13 @@ export default function Auth() {
           </Button>
         </form>
         
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-muted-foreground">
           <Button 
             variant="link" 
             size="sm" 
             onClick={createAdminUser}
             disabled={isLoading}
-            className="text-xs"
+            className="text-xs text-muted-foreground"
           >
             Criar usuário admin (somente para desenvolvimento)
           </Button>
