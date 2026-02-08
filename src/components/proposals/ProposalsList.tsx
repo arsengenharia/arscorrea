@@ -13,6 +13,7 @@ import { Eye, Pencil, Trash2, Download, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
+import { ProposalStageSelect } from "./ProposalStageSelect";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -27,16 +28,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type ProposalWithClient = {
+type ProposalWithClientAndStage = {
   id: string;
   number: string | null;
   title: string | null;
-  condo_name: string | null;
   status: string | null;
   total: number | null;
   created_at: string;
   pdf_path: string | null;
+  stage_id: string | null;
   client: {
+    id: string;
+    name: string;
+    document: string | null;
+  } | null;
+  stage: {
     id: string;
     name: string;
   } | null;
@@ -51,11 +57,15 @@ export const ProposalsList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proposals")
-        .select(`*, client:clients(id, name)`)
+        .select(`
+          id, number, title, status, total, created_at, pdf_path, stage_id,
+          client:clients(id, name, document),
+          stage:proposal_stages(id, name)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as ProposalWithClient[];
+      return data as ProposalWithClientAndStage[];
     },
   });
 
@@ -132,7 +142,7 @@ export const ProposalsList = () => {
           <TableRow>
             <TableHead>Número / Título</TableHead>
             <TableHead>Cliente</TableHead>
-            <TableHead>Condomínio</TableHead>
+            <TableHead>Situação</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead>Data</TableHead>
@@ -152,8 +162,21 @@ export const ProposalsList = () => {
                   )}
                 </div>
               </TableCell>
-              <TableCell>{proposal.client?.name || "-"}</TableCell>
-              <TableCell>{proposal.condo_name || "-"}</TableCell>
+              <TableCell>
+                <div>
+                  <span className="font-medium">{proposal.client?.name || "-"}</span>
+                  {proposal.client?.document && (
+                    <p className="text-xs text-muted-foreground">{proposal.client.document}</p>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <ProposalStageSelect
+                  proposalId={proposal.id}
+                  currentStageId={proposal.stage_id}
+                  currentStageName={proposal.stage?.name || null}
+                />
+              </TableCell>
               <TableCell>
                 <ProposalStatusBadge status={proposal.status || "draft"} />
               </TableCell>
