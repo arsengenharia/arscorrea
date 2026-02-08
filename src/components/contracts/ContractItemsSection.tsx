@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ITEM_CATEGORIES, ITEM_UNITS, normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
 
 export interface ContractItem {
   id?: string;
@@ -35,15 +35,6 @@ interface ContractItemsSectionProps {
   items: ContractItem[];
   onChange: (items: ContractItem[]) => void;
 }
-
-const unitOptions = ["m²", "m", "un", "vb", "dia", "mês"];
-const categoryOptions = [
-  "Mão de Obra",
-  "Material",
-  "Equipamento",
-  "Serviço Terceirizado",
-  "Outros",
-];
 
 export function ContractItemsSection({ items, onChange }: ContractItemsSectionProps) {
   const formatCurrency = (value: number) => {
@@ -129,14 +120,14 @@ export function ContractItemsSection({ items, onChange }: ContractItemsSectionPr
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={item.category}
+                        value={normalizeCategory(item.category)}
                         onValueChange={(value) => updateItem(index, "category", value)}
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categoryOptions.map((cat) => (
+                          {ITEM_CATEGORIES.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
@@ -154,14 +145,14 @@ export function ContractItemsSection({ items, onChange }: ContractItemsSectionPr
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={item.unit}
+                        value={normalizeUnit(item.unit)}
                         onValueChange={(value) => updateItem(index, "unit", value)}
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {unitOptions.map((unit) => (
+                          {ITEM_UNITS.map((unit) => (
                             <SelectItem key={unit} value={unit}>
                               {unit}
                             </SelectItem>
