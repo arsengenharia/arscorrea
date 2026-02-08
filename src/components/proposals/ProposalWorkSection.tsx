@@ -69,19 +69,19 @@ export const ProposalWorkSection = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Client Data Block */}
-        {selectedClient === undefined && !isLoadingClient ? (
+        {/* Client Data Block - only show when client is selected */}
+        {!selectedClient && !isLoadingClient ? (
           <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg text-muted-foreground">
             <Info className="h-4 w-4" />
             <span className="text-sm">Selecione um cliente para carregar os dados</span>
           </div>
-        ) : (
+        ) : (selectedClient || isLoadingClient) ? (
           <ClientDataBlock
-            client={selectedClient}
+            client={selectedClient || null}
             isLoading={isLoadingClient}
             onClientUpdated={onClientUpdated}
           />
-        )}
+        ) : null}
 
         {/* Work Location Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

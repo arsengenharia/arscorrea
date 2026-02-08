@@ -429,7 +429,7 @@ export const ProposalFormContent = ({
         workAddress={formData.workAddress}
         city={formData.city}
         state={formData.state}
-        selectedClient={formData.clientId ? selectedClient : undefined}
+        selectedClient={selectedClient}
         isLoadingClient={isLoadingClient && !!formData.clientId}
         onCondoNameChange={(v) => updateFormData("condoName", v)}
         onWorkAddressChange={(v) => updateFormData("workAddress", v)}
