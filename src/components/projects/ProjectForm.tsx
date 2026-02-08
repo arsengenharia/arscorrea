@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
 export function ProjectForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -60,20 +61,27 @@ export function ProjectForm() {
         project_manager: values.project_manager || null,
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("projects")
-        .insert(projectData);
+        .insert(projectData)
+        .select();
       
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast.success("Obra cadastrada com sucesso!");
       setIsSubmitting(false);
-      navigate("/obras");
+      // Invalidate projects query to update list
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      navigate("/obras?tab=list");
     },
-    onError: () => {
+    onError: (error: any) => {
       setIsSubmitting(false);
-      toast.error("Erro ao cadastrar obra");
+      const errorMessage = error?.message || "Erro desconhecido";
+      const errorCode = error?.code || "";
+      toast.error(`Erro ao cadastrar obra: ${errorMessage}${errorCode ? ` (${errorCode})` : ""}`);
+      console.error("Supabase error:", error);
     },
   });
 

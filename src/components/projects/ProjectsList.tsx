@@ -28,14 +28,14 @@ export function ProjectsList() {
     }
   }, []);
 
-  const { data: projects, isLoading, refetch } = useQuery({
+  const { data: projects, isLoading, refetch, error } = useQuery({
     queryKey: ["projects", statusFilter, sortBy],
     queryFn: async () => {
       let query = supabase
         .from("projects")
         .select(`
           *,
-          client:clients(name)
+          client:clients!left(name, phone, street, number, neighborhood, city, state)
         `);
 
       if (statusFilter !== "todos") {
@@ -48,10 +48,21 @@ export function ProjectsList() {
 
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase query error:", error);
+        throw error;
+      }
       return data;
     },
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      const err = error as any;
+      toast.error(`Erro ao carregar obras: ${err?.message || "Erro desconhecido"}`);
+    }
+  }, [error]);
 
   const { mutate: updateProjectStatus } = useMutation({
     mutationFn: async ({ projectId, status }: { projectId: string, status: string }) => {
@@ -66,18 +77,24 @@ export function ProjectsList() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Status atualizado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao atualizar status");
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Erro desconhecido";
+      toast.error(`Erro ao atualizar status: ${errorMessage}`);
+      console.error("Update status error:", error);
     },
   });
 
   const { mutate: deleteProject } = useMutation({
     mutationFn: async (projectId: string) => {
       // First delete all stages and their photos
-      const { data: stages } = await supabase
+      const { data: stages, error: stagesError } = await supabase
         .from('stages')
         .select('id')
         .eq('project_id', projectId);
+      
+      if (stagesError) {
+        console.error("Error fetching stages:", stagesError);
+      }
       
       if (stages) {
         for (const stage of stages) {
@@ -107,8 +124,10 @@ export function ProjectsList() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Obra excluída com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao excluir obra");
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Erro desconhecido";
+      toast.error(`Erro ao excluir obra: ${errorMessage}`);
+      console.error("Delete project error:", error);
     },
   });
 
