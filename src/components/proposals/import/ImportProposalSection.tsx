@@ -163,13 +163,26 @@ export const ImportProposalSection = ({
       case "uploading":
         return "Enviando arquivo...";
       case "processing":
-        return "Processando com IA...";
+        return "Extraindo texto e processando com IA...";
       case "done":
         return "Processamento concluído!";
       case "error":
+        // Provide more specific error messages
+        if (errorMessage?.includes("muito grande")) {
+          return "PDF muito grande (máximo 15MB)";
+        }
+        if (errorMessage?.includes("Limite de requisições")) {
+          return "Limite de requisições atingido. Aguarde alguns minutos.";
+        }
+        if (errorMessage?.includes("Créditos")) {
+          return "Créditos de IA insuficientes";
+        }
+        if (errorMessage?.includes("extrair texto")) {
+          return "Não foi possível extrair texto do PDF";
+        }
         return errorMessage || "Erro no processamento";
       default:
-        return "Importe uma proposta existente em PDF";
+        return "Importe uma proposta existente em PDF (máx. 15MB, 10 páginas)";
     }
   };
 
