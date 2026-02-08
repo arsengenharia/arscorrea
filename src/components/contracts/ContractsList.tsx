@@ -15,12 +15,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ContractStatusBadge } from "./ContractStatusBadge";
-import { MoreHorizontal, Pencil, FileDown, DollarSign, Trash2, MessageCircle, MapPin } from "lucide-react";
+import { Pencil, FileDown, DollarSign, Trash2, MessageCircle, MapPin } from "lucide-react";
 import { useState } from "react";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
@@ -129,23 +123,23 @@ export function ContractsList() {
 
   return (
     <>
-      <div className="rounded-md border overflow-visible">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="whitespace-nowrap">Número</TableHead>
-              <TableHead className="min-w-[120px]">Cliente</TableHead>
-              <TableHead className="whitespace-nowrap">Telefone</TableHead>
-              <TableHead className="min-w-[100px]">Endereço</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Total</TableHead>
-              <TableHead className="whitespace-nowrap">Status</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Comissão</TableHead>
-              <TableHead className="whitespace-nowrap">Data</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead>Número</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Endereço</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Comissão</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-          {contracts.map((contract) => {
+            {contracts.map((contract) => {
               const fullAddress = [
                 contract.clients?.street,
                 contract.clients?.number,
@@ -225,36 +219,41 @@ export function ContractsList() {
                     {format(new Date(contract.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}`)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/contratos/${contract.id}/financeiro`)}>
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Financeiro
-                        </DropdownMenuItem>
-                        {contract.pdf_path && (
-                          <DropdownMenuItem>
-                            <FileDown className="h-4 w-4 mr-2" />
-                            Baixar PDF
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteId(contract.id)}
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/contratos/${contract.id}`)}
+                        title="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/contratos/${contract.id}/financeiro`)}
+                        title="Financeiro"
+                      >
+                        <DollarSign className="h-4 w-4" />
+                      </Button>
+                      {contract.pdf_path && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Baixar PDF"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <FileDown className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(contract.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
