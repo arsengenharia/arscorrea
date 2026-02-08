@@ -103,15 +103,14 @@ export default function StageForm() {
 
             if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage
-              .from('stages')
-              .getPublicUrl(`${stage.id}/${fileName}`);
+            // Store the file path for signed URL generation later
+            const filePath = `${stage.id}/${fileName}`;
 
             const { error: photoError } = await supabase
               .from('stage_photos')
               .insert({
                 stage_id: stage.id,
-                photo_url: urlData.publicUrl
+                photo_url: filePath // Store path, not URL
               });
 
             if (photoError) throw photoError;
