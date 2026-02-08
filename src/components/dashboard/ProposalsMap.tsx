@@ -7,8 +7,9 @@ import { useGeocoding, type ProposalLocation } from "@/hooks/use-geocoding";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
 
-// Brazil center coordinates
-const BRAZIL_CENTER = { lat: -14.235, lng: -51.9253 };
+// Belo Horizonte center coordinates
+const BELO_HORIZONTE_CENTER = { lat: -19.9167, lng: -43.9345 };
+const DEFAULT_ZOOM = 12;
 
 // Stage colors
 const STAGE_COLORS: Record<string, string> = {
@@ -48,19 +49,13 @@ function MapContent({ proposals }: { proposals: ProposalLocation[] }) {
     [proposals]
   );
 
-  const center = useMemo(() => {
-    if (proposalsWithCoords.length === 0) return BRAZIL_CENTER;
-    
-    const avgLat = proposalsWithCoords.reduce((sum, p) => sum + (p.lat || 0), 0) / proposalsWithCoords.length;
-    const avgLng = proposalsWithCoords.reduce((sum, p) => sum + (p.lng || 0), 0) / proposalsWithCoords.length;
-    
-    return { lat: avgLat, lng: avgLng };
-  }, [proposalsWithCoords]);
+  // Sempre centralizar em Belo Horizonte
+  const center = BELO_HORIZONTE_CENTER;
 
   return (
     <Map
       defaultCenter={center}
-      defaultZoom={proposalsWithCoords.length > 0 ? 10 : 4}
+      defaultZoom={DEFAULT_ZOOM}
       mapId="proposals-map"
       gestureHandling="greedy"
       disableDefaultUI={false}
