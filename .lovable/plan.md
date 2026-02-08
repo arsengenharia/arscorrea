@@ -1,399 +1,470 @@
 
-# Plano: Modulo de Contratos com Gestao Financeira
+# Plano: Padronizacao de Itens e Nova UX de Pagamento/Comissao
 
 ## Visao Geral
 
-Este plano implementa um modulo completo de Contratos derivados de Propostas, com gestao financeira integrada (recebimentos e comissionamento). O modulo mantem independencia total das tabelas existentes.
+Este plano implementa:
+1. Constantes compartilhadas para categorias/unidades de itens (eliminando divergencia entre Propostas e Contratos)
+2. Nova tabela `contract_payments` como fonte canonica para forma de pagamento
+3. Nova UX baseada em linhas para pagamentos e comissionamento
+4. Resumo financeiro com validacoes e alertas
 
 ---
 
-## 1. Alteracoes no Banco de Dados
+## 1. Constantes Compartilhadas (Shared Constants)
 
-### 1.1 Sequencia para Numeracao Automatica
-
-```sql
-CREATE SEQUENCE IF NOT EXISTS public.contract_number_seq START 1;
-```
-
-### 1.2 Tabela `contracts`
-
-```sql
-CREATE TABLE public.contracts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_number text UNIQUE,
-  proposal_id uuid NOT NULL REFERENCES public.proposals(id),
-  client_id uuid NOT NULL REFERENCES public.clients(id),
-  title text,
-  scope_text text,
-  subtotal numeric DEFAULT 0,
-  discount_type text DEFAULT 'fixed',
-  discount_value numeric DEFAULT 0,
-  total numeric DEFAULT 0,
-  status text DEFAULT 'ativo',
-  payment_entry_value numeric DEFAULT 0,
-  payment_installments_count integer DEFAULT 0,
-  payment_installment_value numeric DEFAULT 0,
-  payment_notes text,
-  commission_expected_value numeric DEFAULT 0,
-  commission_expected_date date,
-  commission_received_value numeric DEFAULT 0,
-  commission_notes text,
-  pdf_path text,
-  created_by uuid DEFAULT auth.uid(),
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
-
-### 1.3 Trigger para Numeracao Automatica
-
-```sql
-CREATE OR REPLACE FUNCTION public.generate_contract_number()
-RETURNS trigger LANGUAGE plpgsql
-SET search_path = 'public' AS $$
-BEGIN
-  IF NEW.contract_number IS NULL OR NEW.contract_number = '' THEN
-    NEW.contract_number := 'CONT-' || 
-      EXTRACT(YEAR FROM now())::TEXT || '-' || 
-      LPAD(nextval('public.contract_number_seq')::TEXT, 4, '0');
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER set_contract_number
-  BEFORE INSERT ON public.contracts
-  FOR EACH ROW EXECUTE FUNCTION generate_contract_number();
-```
-
-### 1.4 Tabela `contract_items`
-
-```sql
-CREATE TABLE public.contract_items (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id uuid NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  category text,
-  description text,
-  unit text,
-  quantity numeric DEFAULT 0,
-  unit_price numeric DEFAULT 0,
-  total numeric DEFAULT 0,
-  order_index integer DEFAULT 0,
-  notes text,
-  created_at timestamptz DEFAULT now()
-);
-```
-
-### 1.5 Tabela `contract_financial`
-
-```sql
-CREATE TABLE public.contract_financial (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id uuid NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  type text NOT NULL, -- 'recebimento', 'comissao', 'ajuste'
-  description text,
-  expected_value numeric DEFAULT 0,
-  received_value numeric DEFAULT 0,
-  expected_date date,
-  received_date date,
-  status text DEFAULT 'pendente', -- 'pendente', 'parcial', 'recebido'
-  notes text,
-  created_at timestamptz DEFAULT now()
-);
-```
-
-### 1.6 Storage Bucket
-
-```sql
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('contracts', 'contracts', false)
-ON CONFLICT DO NOTHING;
-```
-
-### 1.7 RLS Policies
-
-```sql
--- contracts
-ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Authenticated users can view contracts"
-  ON public.contracts FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated users can create contracts"
-  ON public.contracts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated users can update contracts"
-  ON public.contracts FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated users can delete contracts"
-  ON public.contracts FOR DELETE USING (auth.role() = 'authenticated');
-
--- contract_items
-ALTER TABLE public.contract_items ENABLE ROW LEVEL SECURITY;
--- (mesmas politicas)
-
--- contract_financial
-ALTER TABLE public.contract_financial ENABLE ROW LEVEL SECURITY;
--- (mesmas politicas)
-
--- Storage policies para bucket contracts
-CREATE POLICY "Authenticated users can upload contracts"
-  ON storage.objects FOR INSERT WITH CHECK (
-    bucket_id = 'contracts' AND auth.role() = 'authenticated'
-  );
-CREATE POLICY "Authenticated users can read contracts"
-  ON storage.objects FOR SELECT USING (
-    bucket_id = 'contracts' AND auth.role() = 'authenticated'
-  );
-CREATE POLICY "Authenticated users can update contracts storage"
-  ON storage.objects FOR UPDATE USING (
-    bucket_id = 'contracts' AND auth.role() = 'authenticated'
-  );
-```
-
----
-
-## 2. Estrutura de Arquivos
-
-```text
-src/
-  pages/
-    Contracts.tsx                  (lista de contratos)
-    ContractForm.tsx               (criar/editar contrato)
-    ContractFinancial.tsx          (gestao financeira)
-  components/
-    contracts/
-      ContractsList.tsx            (tabela de listagem)
-      ContractStatusBadge.tsx      (badge de status)
-      ContractProposalSelect.tsx   (selecao de proposta)
-      ContractClientSection.tsx    (dados do cliente readonly)
-      ContractItemsSection.tsx     (itens editaveis - reutiliza padrao)
-      ContractPaymentSection.tsx   (forma de pagamento estruturada)
-      ContractCommissionSection.tsx (comissionamento)
-      ContractTotalsSection.tsx    (subtotal/desconto/total)
-      ContractFormContent.tsx      (formulario principal)
-      FinancialList.tsx            (listagem de lancamentos)
-      FinancialItemRow.tsx         (linha editavel do financeiro)
-      pdf/
-        ContractPDF.tsx            (geracao PDF)
-        contractStyles.ts          (estilos PDF)
-```
-
----
-
-## 3. Rotas
-
-Adicionar em `App.tsx`:
+### Criar `src/lib/itemOptions.ts`
 
 ```typescript
-import Contracts from "./pages/Contracts";
-import ContractForm from "./pages/ContractForm";
-import ContractFinancial from "./pages/ContractFinancial";
+export const ITEM_CATEGORIES = [
+  "Mao de Obra",
+  "Material",
+  "Equipamento",
+  "Servico Terceirizado",
+  "Outros",
+] as const;
 
-// Novas rotas protegidas:
-<Route path="/contratos" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
-<Route path="/contratos/novo" element={<ProtectedRoute><ContractForm /></ProtectedRoute>} />
-<Route path="/contratos/:id" element={<ProtectedRoute><ContractForm /></ProtectedRoute>} />
-<Route path="/contratos/:id/financeiro" element={<ProtectedRoute><ContractFinancial /></ProtectedRoute>} />
-```
+export const ITEM_UNITS = [
+  "un",
+  "m2",
+  "m",
+  "vb",
+  "dia",
+  "mes",
+] as const;
 
----
+export type ItemCategory = typeof ITEM_CATEGORIES[number];
+export type ItemUnit = typeof ITEM_UNITS[number];
 
-## 4. Navegacao
+// Helper para tratar categorias antigas/invalidas
+export const normalizeCategory = (category: string | null): string => {
+  if (!category) return "Outros";
+  if (ITEM_CATEGORIES.includes(category as ItemCategory)) return category;
+  return "Outros";
+};
 
-Adicionar item "Contratos" no menu (`TopNavigation.tsx`):
-
-```typescript
-{ title: "Contratos", icon: ScrollText, path: "/contratos" },
-```
-
----
-
-## 5. Pagina de Listagem (`/contratos`)
-
-### Colunas da Tabela
-
-| Numero | Cliente | Total | Status | Comissao | Data | Acoes |
-|--------|---------|-------|--------|----------|------|-------|
-| CONT-2026-0001 | Nome (CNPJ) | R$ 50.000 | Ativo | R$ 2.500 / R$ 1.000 | 08/02/2026 | ... |
-
-### Componentes
-
-- `ContractsList.tsx`: Query com join em `clients`
-- `ContractStatusBadge.tsx`: Cores para ativo/em_assinatura/encerrado/cancelado
-- Acoes: Editar, Baixar PDF, Financeiro, Excluir
-
----
-
-## 6. Formulario de Contrato (`/contratos/novo` e `/contratos/:id`)
-
-### Secoes do Formulario
-
-1. **Selecao de Proposta** (obrigatorio ao criar)
-   - `ContractProposalSelect.tsx`
-   - Dropdown com numero + cliente + total
-   - Ao selecionar: preenche automaticamente todos os campos
-
-2. **Dados do Cliente** (readonly)
-   - `ContractClientSection.tsx`
-   - Reutiliza `ClientDataBlock.tsx` com botao "Editar"
-
-3. **Conteudo do Contrato** (editavel)
-   - Titulo (input)
-   - Escopo (`Textarea` grande)
-   - Itens (`ContractItemsSection.tsx` - mesmo padrao da proposta)
-
-4. **Totais**
-   - `ContractTotalsSection.tsx`
-   - Subtotal, Desconto (tipo + valor), Total
-
-5. **Forma de Pagamento**
-   - `ContractPaymentSection.tsx`
-   - Campo livre `payment_notes` (textarea)
-   - Campos estruturados:
-     - Entrada (`payment_entry_value`)
-     - Numero de parcelas (`payment_installments_count`)
-     - Valor por parcela (`payment_installment_value`) - sugestao automatica
-   - Botao "Gerar Lancamentos" (opcional)
-
-6. **Comissionamento**
-   - `ContractCommissionSection.tsx`
-   - Valor previsto (`commission_expected_value`)
-   - Data previsao (`commission_expected_date`)
-   - Observacoes (`commission_notes`)
-
-### Botoes de Acao
-
-- Salvar (grava contrato + itens + lancamento de comissao no financial)
-- Gerar PDF
-- Voltar
-
-### Logica de Criacao
-
-```typescript
-// Ao salvar contrato:
-1. Insert/update em contracts
-2. Delete + insert em contract_items
-3. Upsert em contract_financial (linha de comissao)
-```
-
----
-
-## 7. Gestao Financeira (`/contratos/:id/financeiro`)
-
-### Layout
-
-- Resumo do contrato no topo (total, entrada, parcelas, comissao prevista)
-- Tabela de lancamentos (`contract_financial`)
-
-### Tabela de Lancamentos
-
-| Tipo | Descricao | Previsto | Recebido | Data Prev. | Data Rec. | Status | Acoes |
-|------|-----------|----------|----------|------------|-----------|--------|-------|
-| Recebimento | Entrada | R$ 10.000 | R$ 10.000 | 10/02 | 10/02 | Recebido | ... |
-| Recebimento | Parcela 1/5 | R$ 8.000 | R$ 0 | 10/03 | - | Pendente | ... |
-| Comissao | Comissao | R$ 2.500 | R$ 1.000 | 15/02 | 15/02 | Parcial | ... |
-
-### Funcionalidades
-
-- Editar inline: `received_value`, `received_date`, `status`
-- Ao atualizar comissao: sincronizar `contracts.commission_received_value`
-- Adicionar novo lancamento (botao)
-
-### Componentes
-
-- `FinancialList.tsx`: Lista de lancamentos
-- `FinancialItemRow.tsx`: Linha editavel com inline editing
-
----
-
-## 8. Geracao de Lancamentos Automaticos
-
-Quando usuario clica "Gerar Lancamentos":
-
-```typescript
-const generateFinancialEntries = () => {
-  const entries = [];
-  
-  // Entrada
-  if (paymentEntryValue > 0) {
-    entries.push({
-      type: 'recebimento',
-      description: 'Entrada',
-      expected_value: paymentEntryValue,
-      status: 'pendente'
-    });
-  }
-  
-  // Parcelas
-  for (let i = 1; i <= installmentsCount; i++) {
-    entries.push({
-      type: 'recebimento',
-      description: `Parcela ${i}/${installmentsCount}`,
-      expected_value: installmentValue,
-      expected_date: addMonths(new Date(), i), // sugestao
-      status: 'pendente'
-    });
-  }
-  
-  return entries;
+// Helper para tratar unidades antigas/invalidas
+export const normalizeUnit = (unit: string | null): string => {
+  if (!unit) return "un";
+  if (ITEM_UNITS.includes(unit as ItemUnit)) return unit;
+  return "un";
 };
 ```
 
 ---
 
-## 9. Sincronizacao de Comissao
+## 2. Atualizacao dos Componentes de Itens
 
-Ao atualizar `received_value` de um lancamento tipo 'comissao':
+### 2.1 `ProposalItemsSection.tsx`
+
+**Alteracoes:**
+- Importar `ITEM_CATEGORIES` e `ITEM_UNITS` de `@/lib/itemOptions`
+- Remover constantes locais `CATEGORIES` e `UNITS`
+- Usar `normalizeCategory` e `normalizeUnit` ao renderizar selects
+
+### 2.2 `ContractItemsSection.tsx`
+
+**Alteracoes:**
+- Importar `ITEM_CATEGORIES` e `ITEM_UNITS` de `@/lib/itemOptions`
+- Remover constantes locais `categoryOptions` e `unitOptions`
+- Manter layout atual (ja esta padronizado)
+
+### 2.3 Fluxo Proposta -> Contrato
+
+**Em `ContractFormContent.tsx`:**
+- Ao copiar itens da proposta, aplicar `normalizeCategory` e `normalizeUnit`
+- Garantir copia 1:1 de todos os campos: `category`, `unit`, `quantity`, `unit_price`, `total`, `description`, `notes`
+
+---
+
+## 3. Nova Tabela `contract_payments`
+
+### Migracao SQL
+
+```sql
+CREATE TABLE public.contract_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id uuid NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  kind text NOT NULL, -- 'entrada', 'parcela', 'sinal', 'ajuste', 'comissao'
+  description text,
+  expected_value numeric DEFAULT 0,
+  expected_date date,
+  received_value numeric DEFAULT 0,
+  received_date date,
+  status text DEFAULT 'pendente', -- 'pendente', 'parcial', 'recebido'
+  order_index integer DEFAULT 0,
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE public.contract_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can view contract payments"
+  ON public.contract_payments FOR SELECT 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can create contract payments"
+  ON public.contract_payments FOR INSERT 
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can update contract payments"
+  ON public.contract_payments FOR UPDATE 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can delete contract payments"
+  ON public.contract_payments FOR DELETE 
+  USING (auth.role() = 'authenticated');
+
+-- Indice para queries por contrato
+CREATE INDEX idx_contract_payments_contract_id 
+  ON public.contract_payments(contract_id);
+```
+
+**Observacao:** A tabela `contract_financial` existente sera mantida por compatibilidade, mas `contract_payments` sera a fonte canonica para novos contratos. Futuramente, os dados podem ser migrados.
+
+---
+
+## 4. Nova Interface de Forma de Pagamento
+
+### 4.1 Tipos Padronizados
 
 ```typescript
-// Somar todos os received_value de tipo 'comissao'
-const totalReceived = await supabase
-  .from('contract_financial')
-  .select('received_value')
-  .eq('contract_id', contractId)
-  .eq('type', 'comissao');
+// src/lib/paymentTypes.ts
+export const PAYMENT_KINDS = [
+  { value: "entrada", label: "Entrada" },
+  { value: "sinal", label: "Sinal" },
+  { value: "parcela", label: "Parcela" },
+  { value: "ajuste", label: "Ajuste" },
+  { value: "comissao", label: "Comissao" },
+] as const;
 
-// Atualizar contracts.commission_received_value
-await supabase
-  .from('contracts')
-  .update({ commission_received_value: sum })
-  .eq('id', contractId);
+export const PAYMENT_STATUSES = [
+  { value: "pendente", label: "Pendente" },
+  { value: "parcial", label: "Parcial" },
+  { value: "recebido", label: "Recebido" },
+] as const;
+
+export interface PaymentLine {
+  id?: string;
+  kind: string;
+  description: string;
+  expected_value: number;
+  expected_date: string | null;
+  received_value: number;
+  received_date: string | null;
+  status: string;
+  order_index: number;
+  notes?: string;
+}
+```
+
+### 4.2 Novo Componente `ContractPaymentLinesSection.tsx`
+
+**Estrutura:**
+
+```text
++------------------------------------------------------------------+
+| Forma de Pagamento                                                |
++------------------------------------------------------------------+
+| RESUMO FINANCEIRO                                                 |
+| +-------------+  +-------------+  +-------------+  +------------+ |
+| | Total       |  | Previsto    |  | Recebido    |  | Diferenca  | |
+| | R$ 50.000   |  | R$ 50.000   |  | R$ 10.000   |  | R$ 0       | |
+| +-------------+  +-------------+  +-------------+  +------------+ |
+| [!] Alerta: Previsto difere do total                              |
++------------------------------------------------------------------+
+| [+ Adicionar Linha]  [Gerar Linhas (Assistido)]                   |
++------------------------------------------------------------------+
+| Tipo     | Descricao    | Previsto | Data Prev | Receb | Data Rec | Status    | Acoes |
+|----------|--------------|----------|-----------|-------|----------|-----------|-------|
+| Entrada  | Entrada      | 15.000   | 10/02     | 15.000| 10/02    | Recebido  | [v][x]|
+| Parcela  | Parcela 1/5  | 7.000    | 10/03     | 0     | -        | Pendente  | [v][x]|
+| Parcela  | Parcela 2/5  | 7.000    | 10/04     | 0     | -        | Pendente  | [v][x]|
+| Comissao | Comissao     | 2.500    | 15/02     | 1.000 | 15/02    | Parcial   | [v][x]|
++------------------------------------------------------------------+
+| Texto livre (opcional): _________________________________________ |
++------------------------------------------------------------------+
+```
+
+**Funcionalidades:**
+- Adicionar linha manualmente
+- Gerar linhas assistido (entrada + N parcelas + datas sugeridas)
+- Editar inline todos os campos
+- Reordenar linhas (setas cima/baixo)
+- Excluir linha
+- Resumo automatico com alertas
+- Campo de texto livre (`payment_notes`) preservado
+
+### 4.3 Modal "Gerar Linhas (Assistido)"
+
+**Campos:**
+- Valor de entrada (obrigatorio se > 0)
+- Numero de parcelas
+- Data da primeira parcela
+- Intervalo entre parcelas (30 dias default)
+- Incluir comissao? (checkbox)
+- Valor da comissao
+- Data prevista da comissao
+
+**Logica:**
+```typescript
+const generateLines = () => {
+  const lines: PaymentLine[] = [];
+  
+  // Entrada
+  if (entryValue > 0) {
+    lines.push({
+      kind: "entrada",
+      description: "Entrada",
+      expected_value: entryValue,
+      expected_date: today,
+      status: "pendente",
+      order_index: 0,
+    });
+  }
+  
+  // Parcelas
+  const installmentValue = (total - entryValue) / installmentsCount;
+  for (let i = 1; i <= installmentsCount; i++) {
+    lines.push({
+      kind: "parcela",
+      description: `Parcela ${i}/${installmentsCount}`,
+      expected_value: installmentValue,
+      expected_date: addMonths(firstDate, i - 1),
+      status: "pendente",
+      order_index: i,
+    });
+  }
+  
+  // Comissao
+  if (includeCommission && commissionValue > 0) {
+    lines.push({
+      kind: "comissao",
+      description: "Comissao",
+      expected_value: commissionValue,
+      expected_date: commissionDate,
+      status: "pendente",
+      order_index: lines.length,
+    });
+  }
+  
+  return lines;
+};
 ```
 
 ---
 
-## 10. Resumo de Implementacao
+## 5. Comissionamento Integrado
 
-### Arquivos Novos
+### Abordagem
+
+- Comissao sera tratada como uma linha em `contract_payments` com `kind='comissao'`
+- Permite multiplas linhas de comissao (ex: comissao por etapa)
+- Resumo separado no topo mostrando total de comissoes previsto/recebido
+
+### Remocao de Redundancia
+
+- Campos `commission_expected_value`, `commission_received_value`, `commission_expected_date`, `commission_notes` em `contracts` serao mantidos por compatibilidade
+- Ao salvar, sincronizar automaticamente:
+  ```typescript
+  const commissionLines = paymentLines.filter(l => l.kind === 'comissao');
+  const totalExpected = commissionLines.reduce((sum, l) => sum + l.expected_value, 0);
+  const totalReceived = commissionLines.reduce((sum, l) => sum + l.received_value, 0);
+  
+  // Atualizar contracts para compatibilidade
+  await supabase
+    .from('contracts')
+    .update({
+      commission_expected_value: totalExpected,
+      commission_received_value: totalReceived,
+    })
+    .eq('id', contractId);
+  ```
+
+---
+
+## 6. Resumo Financeiro com Alertas
+
+### Componente `PaymentSummary.tsx`
+
+**Metricas:**
+- Total do contrato
+- Total previsto (soma `expected_value` onde `kind != 'comissao'`)
+- Total recebido (soma `received_value` onde `kind != 'comissao'`)
+- Diferenca (contrato - previsto)
+- Inadimplencia (previsto - recebido)
+- Comissao prevista vs recebida
+
+**Alertas:**
+- Amarelo: "Previsto difere do total do contrato"
+- Vermelho: "Valores recebidos superam o previsto"
+- Info: "Comissao pendente"
+
+---
+
+## 7. Estrutura de Arquivos
+
+### Novos Arquivos
 
 | Arquivo | Descricao |
 |---------|-----------|
-| `src/pages/Contracts.tsx` | Pagina de listagem |
-| `src/pages/ContractForm.tsx` | Pagina de formulario |
-| `src/pages/ContractFinancial.tsx` | Pagina de gestao financeira |
-| `src/components/contracts/ContractsList.tsx` | Tabela de contratos |
-| `src/components/contracts/ContractStatusBadge.tsx` | Badge de status |
-| `src/components/contracts/ContractProposalSelect.tsx` | Selecao de proposta |
-| `src/components/contracts/ContractClientSection.tsx` | Dados do cliente |
-| `src/components/contracts/ContractItemsSection.tsx` | Itens do contrato |
-| `src/components/contracts/ContractPaymentSection.tsx` | Forma de pagamento |
-| `src/components/contracts/ContractCommissionSection.tsx` | Comissionamento |
-| `src/components/contracts/ContractTotalsSection.tsx` | Totais |
-| `src/components/contracts/ContractFormContent.tsx` | Formulario completo |
-| `src/components/contracts/FinancialList.tsx` | Lista de lancamentos |
-| `src/components/contracts/FinancialItemRow.tsx` | Linha editavel |
-| `src/components/contracts/pdf/ContractPDF.tsx` | PDF do contrato |
-| `src/components/contracts/pdf/contractStyles.ts` | Estilos PDF |
+| `src/lib/itemOptions.ts` | Categorias e unidades compartilhadas |
+| `src/lib/paymentTypes.ts` | Tipos e constantes de pagamento |
+| `src/components/contracts/ContractPaymentLinesSection.tsx` | Editor de linhas de pagamento |
+| `src/components/contracts/PaymentLineRow.tsx` | Linha individual editavel |
+| `src/components/contracts/PaymentSummary.tsx` | Resumo financeiro com alertas |
+| `src/components/contracts/GeneratePaymentsDialog.tsx` | Modal para geracao assistida |
 
 ### Arquivos Modificados
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/App.tsx` | Adicionar 4 novas rotas |
-| `src/components/layout/TopNavigation.tsx` | Adicionar item Contratos no menu |
+| `src/components/proposals/ProposalItemsSection.tsx` | Usar shared constants |
+| `src/components/contracts/ContractItemsSection.tsx` | Usar shared constants |
+| `src/components/contracts/ContractFormContent.tsx` | Integrar nova secao de pagamentos, remover secao antiga |
+| `src/components/contracts/ContractCommissionSection.tsx` | Remover (integrado nas linhas) |
+| `src/components/contracts/ContractPaymentSection.tsx` | Remover (substituido) |
+| `src/pages/ContractFinancial.tsx` | Usar dados de `contract_payments` |
+| `src/integrations/supabase/types.ts` | Adicionar tipos da nova tabela |
 
 ---
 
-## 11. Garantias
+## 8. Fluxo de Dados
 
-- Nenhuma alteracao nas tabelas `proposals`, `proposal_items`, `proposal_stages`
-- Nenhuma alteracao no modulo de relatorios (tabelas `stages`, `projects`, etc.)
-- Contratos sao independentes - apenas referenciam `proposal_id` e `client_id`
+```text
+                    +------------------+
+                    |    Proposta      |
+                    | (proposal_items) |
+                    +--------+---------+
+                             |
+                             | Criar Contrato
+                             | (copia 1:1 + normalize)
+                             v
++------------------------+   +------------------------+
+|      contracts         |   |    contract_items      |
+| - total                |   | - category (normalized)|
+| - payment_notes        |   | - unit (normalized)    |
+| - commission_* (sync)  |   | - quantity, price...   |
++------------------------+   +------------------------+
+                             |
+                             | Ao salvar form
+                             v
+                    +------------------------+
+                    |   contract_payments    |
+                    | - kind (padronizado)   |
+                    | - expected_value/date  |
+                    | - received_value/date  |
+                    | - status               |
+                    +------------------------+
+                             |
+                             | Analytics
+                             v
+               Dashboards de fluxo de caixa
+```
+
+---
+
+## 9. Migracao de Dados Existentes
+
+### Estrategia
+
+1. Novos contratos usarao `contract_payments` exclusivamente
+2. Contratos existentes manterao dados em `contract_financial`
+3. Script opcional (manual) para migrar dados antigos:
+
+```sql
+-- Migrar dados de contract_financial para contract_payments
+INSERT INTO contract_payments (contract_id, kind, description, expected_value, expected_date, received_value, received_date, status)
+SELECT 
+  contract_id,
+  CASE 
+    WHEN type = 'recebimento' THEN 
+      CASE WHEN description LIKE '%Entrada%' THEN 'entrada' ELSE 'parcela' END
+    WHEN type = 'comissao' THEN 'comissao'
+    ELSE 'ajuste'
+  END,
+  description,
+  expected_value,
+  expected_date,
+  received_value,
+  received_date,
+  status
+FROM contract_financial;
+```
+
+---
+
+## 10. Sequencia de Implementacao
+
+1. Criar `src/lib/itemOptions.ts` e `src/lib/paymentTypes.ts`
+2. Atualizar `ProposalItemsSection.tsx` para usar shared constants
+3. Atualizar `ContractItemsSection.tsx` para usar shared constants
+4. Criar migracao para tabela `contract_payments`
+5. Criar componentes de pagamento em linhas
+6. Atualizar `ContractFormContent.tsx` para usar nova UX
+7. Atualizar `ContractFinancial.tsx` para ler de `contract_payments`
+8. Testar fluxo completo
+
+---
+
+## Secao Tecnica
+
+### Tipos TypeScript
+
+```typescript
+// contract_payments table type
+export interface ContractPayment {
+  id: string;
+  contract_id: string;
+  kind: 'entrada' | 'sinal' | 'parcela' | 'ajuste' | 'comissao';
+  description: string | null;
+  expected_value: number;
+  expected_date: string | null;
+  received_value: number;
+  received_date: string | null;
+  status: 'pendente' | 'parcial' | 'recebido';
+  order_index: number;
+  notes: string | null;
+  created_at: string;
+}
+```
+
+### Queries Principais
+
+```typescript
+// Carregar pagamentos do contrato
+const { data: payments } = await supabase
+  .from('contract_payments')
+  .select('*')
+  .eq('contract_id', contractId)
+  .order('order_index');
+
+// Calcular totais
+const totalExpected = payments
+  .filter(p => p.kind !== 'comissao')
+  .reduce((sum, p) => sum + p.expected_value, 0);
+
+const totalReceived = payments
+  .filter(p => p.kind !== 'comissao')
+  .reduce((sum, p) => sum + p.received_value, 0);
+
+const commissionExpected = payments
+  .filter(p => p.kind === 'comissao')
+  .reduce((sum, p) => sum + p.expected_value, 0);
+
+const commissionReceived = payments
+  .filter(p => p.kind === 'comissao')
+  .reduce((sum, p) => sum + p.received_value, 0);
+```
+
+---
+
+## Garantias
+
+- Zero divergencia de categorias/unidades entre Propostas e Contratos
+- Compatibilidade retroativa com dados existentes
+- Fonte unica de verdade (`contract_payments`) para novos contratos
+- Sincronizacao automatica com campos legados para dashboards existentes
+- Nenhuma alteracao nas tabelas de relatorios
 - Build sem erros garantido
