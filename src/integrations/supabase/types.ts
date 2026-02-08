@@ -147,6 +147,145 @@ export type Database = {
           },
         ]
       }
+      proposal_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          notes: string | null
+          order_index: number | null
+          proposal_id: string
+          quantity: number | null
+          total: number | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          proposal_id: string
+          quantity?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          proposal_id?: string
+          quantity?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          city: string | null
+          client_id: string
+          condo_name: string | null
+          created_at: string
+          created_by: string | null
+          discount_type: string | null
+          discount_value: number | null
+          exclusions: string | null
+          execution_days: number | null
+          id: string
+          notes: string | null
+          number: string | null
+          payment_terms: string | null
+          pdf_path: string | null
+          scope_text: string | null
+          state: string | null
+          status: string | null
+          subtotal: number | null
+          title: string | null
+          total: number | null
+          updated_at: string
+          validity_days: number | null
+          warranty_terms: string | null
+          work_address: string | null
+        }
+        Insert: {
+          city?: string | null
+          client_id: string
+          condo_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          exclusions?: string | null
+          execution_days?: number | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          payment_terms?: string | null
+          pdf_path?: string | null
+          scope_text?: string | null
+          state?: string | null
+          status?: string | null
+          subtotal?: number | null
+          title?: string | null
+          total?: number | null
+          updated_at?: string
+          validity_days?: number | null
+          warranty_terms?: string | null
+          work_address?: string | null
+        }
+        Update: {
+          city?: string | null
+          client_id?: string
+          condo_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          exclusions?: string | null
+          execution_days?: number | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          payment_terms?: string | null
+          pdf_path?: string | null
+          scope_text?: string | null
+          state?: string | null
+          status?: string | null
+          subtotal?: number | null
+          title?: string | null
+          total?: number | null
+          updated_at?: string
+          validity_days?: number | null
+          warranty_terms?: string | null
+          work_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_photos: {
         Row: {
           created_at: string

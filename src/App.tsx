@@ -1,4 +1,3 @@
-
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -15,6 +14,8 @@ import EditStageForm from "./pages/EditStageForm";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "./components/auth/AuthProvider";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import Proposals from "./pages/Proposals";
+import ProposalForm from "./pages/ProposalForm";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -84,6 +85,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <EditStageForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propostas"
+            element={
+              <ProtectedRoute>
+                <Proposals />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propostas/nova"
+            element={
+              <ProtectedRoute>
+                <ProposalForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propostas/:id"
+            element={
+              <ProtectedRoute>
+                <ProposalForm />
               </ProtectedRoute>
             }
           />
