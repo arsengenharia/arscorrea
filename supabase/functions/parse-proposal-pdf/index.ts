@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// System prompt for the AI parser
+// System prompt for the AI parser (text -> JSON)
 const PARSER_SYSTEM_PROMPT = `Você é um especialista em análise de propostas de engenharia para reforma de fachadas (obras prediais).
 Sua tarefa é extrair dados estruturados de textos de propostas comerciais.
 
@@ -55,6 +56,82 @@ REGRAS:
 7. Priorize "Total Geral" quando houver múltiplos totais
 8. confidence deve ser um número entre 0 e 1 indicando a confiança na extração`;
 
+// OCR prompt - extract text only
+const OCR_SYSTEM_PROMPT = `Você é um sistema de OCR. Extraia TODO o texto visível deste documento PDF.
+Retorne APENAS o texto extraído, sem formatação especial, sem markdown, sem comentários.
+Mantenha a estrutura original (quebras de linha, tabelas como texto).
+Se houver tabelas, formate como texto tabulado.`;
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_PAGES = 10;
+const MIN_TEXT_LENGTH = 300; // Minimum chars to consider native extraction successful
+
+// Helper to update import status
+async function updateImportStatus(
+  supabase: ReturnType<typeof createClient>,
+  importId: string,
+  status: string,
+  extra: Record<string, unknown> = {}
+) {
+  const { error } = await supabase
+    .from("proposal_imports")
+    .update({ status, ...extra })
+    .eq("id", importId);
+  
+  if (error) {
+    console.error(`Failed to update status to ${status}:`, error);
+  }
+}
+
+// Helper to call AI Gateway
+async function callAI(
+  apiKey: string,
+  messages: Array<{ role: string; content: unknown }>,
+  model = "google/gemini-3-flash-preview"
+): Promise<{ success: boolean; content?: string; error?: string; status?: number }> {
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, messages }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI Gateway error:", response.status, errorText);
+      return { success: false, error: errorText, status: response.status };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      return { success: false, error: "AI não retornou conteúdo" };
+    }
+
+    return { success: true, content };
+  } catch (error) {
+    console.error("AI call error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Erro desconhecido" };
+  }
+}
+
+// Parse JSON from AI response (handles markdown code blocks)
+function parseJsonFromResponse(content: string): unknown {
+  let jsonStr = content.trim();
+  
+  // Try to extract JSON from markdown code blocks
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1].trim();
+  }
+  
+  return JSON.parse(jsonStr);
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -62,6 +139,7 @@ serve(async (req) => {
   }
 
   try {
+    // 1. Validate auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("Missing or invalid Authorization header");
@@ -71,13 +149,12 @@ serve(async (req) => {
       });
     }
 
+    // 2. Get environment variables
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     console.log("Environment check - URL exists:", !!SUPABASE_URL);
-    console.log("Environment check - SERVICE_ROLE exists:", !!SUPABASE_SERVICE_ROLE_KEY);
     console.log("Environment check - ANON_KEY exists:", !!SUPABASE_ANON_KEY);
     console.log("Environment check - LOVABLE_API_KEY exists:", !!LOVABLE_API_KEY);
 
@@ -86,15 +163,14 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Create client with user's auth token for validation
-    const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // 3. Create Supabase client with user's auth token
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Validate the user by calling getUser() which uses the auth header
-    const { data: userData, error: authError } = await supabaseUser.auth.getUser();
+    // 4. Validate the user
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !userData?.user) {
       console.error("Auth error:", authError?.message || "No user found");
@@ -107,6 +183,7 @@ serve(async (req) => {
     const userId = userData.user.id;
     console.log("Authenticated user:", userId);
 
+    // 5. Parse request body
     const { importId } = await req.json();
 
     if (!importId) {
@@ -116,188 +193,207 @@ serve(async (req) => {
       });
     }
 
-    // Fetch import record
-    const { data: importRecord, error: importError } = await supabaseAdmin
+    // 6. Fetch import record (RLS ensures user owns it)
+    const { data: importRecord, error: importError } = await supabase
       .from("proposal_imports")
       .select("*")
       .eq("id", importId)
-      .eq("created_by", userId)
       .single();
 
     if (importError || !importRecord) {
+      console.error("Import not found:", importError);
       return new Response(JSON.stringify({ error: "Import não encontrado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Update status to extracting
-    await supabaseAdmin
-      .from("proposal_imports")
-      .update({ status: "extracting" })
-      .eq("id", importId);
+    // Verify ownership (extra check beyond RLS)
+    if (importRecord.created_by !== userId) {
+      console.error("User doesn't own this import");
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Download PDF from storage
-    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+    // 7. Update status to extracting
+    await updateImportStatus(supabase, importId, "extracting");
+
+    // 8. Download PDF from storage
+    console.log("Downloading PDF:", importRecord.file_path);
+    const { data: fileData, error: downloadError } = await supabase.storage
       .from("proposal_uploads")
       .download(importRecord.file_path);
 
     if (downloadError || !fileData) {
-      await supabaseAdmin
-        .from("proposal_imports")
-        .update({ status: "failed", error_message: "Erro ao baixar PDF" })
-        .eq("id", importId);
-
+      console.error("Download error:", downloadError);
+      await updateImportStatus(supabase, importId, "failed", {
+        error_message: "Erro ao baixar PDF",
+      });
       return new Response(JSON.stringify({ error: "Erro ao baixar PDF" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Convert to base64 for AI processing
+    // 9. Get array buffer and validate size BEFORE any heavy operations
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const fileSize = arrayBuffer.byteLength;
+    console.log("PDF size:", fileSize, "bytes");
 
-    // Check file size (max 15MB)
-    if (arrayBuffer.byteLength > 15 * 1024 * 1024) {
-      await supabaseAdmin
-        .from("proposal_imports")
-        .update({ status: "failed", error_message: "PDF muito grande (máximo 15MB)" })
-        .eq("id", importId);
-
-      return new Response(JSON.stringify({ error: "PDF muito grande (máximo 15MB)" }), {
+    if (fileSize > MAX_FILE_SIZE) {
+      await updateImportStatus(supabase, importId, "failed", {
+        error_message: `PDF muito grande: ${Math.round(fileSize / 1024 / 1024)}MB (máximo ${MAX_FILE_SIZE / 1024 / 1024}MB)`,
+      });
+      return new Response(JSON.stringify({ 
+        error: `PDF muito grande (máximo ${MAX_FILE_SIZE / 1024 / 1024}MB)` 
+      }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Update status to parsing
-    await supabaseAdmin
-      .from("proposal_imports")
-      .update({ status: "parsing" })
-      .eq("id", importId);
+    // 10. Convert to base64 using safe method (no stack overflow)
+    console.log("Converting to base64...");
+    const base64 = encodeBase64(new Uint8Array(arrayBuffer));
+    console.log("Base64 length:", base64.length);
 
-    // Call Lovable AI with the PDF
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: PARSER_SYSTEM_PROMPT },
+    // 11. Try native text extraction first (placeholder - will use OCR for now)
+    // In a full implementation, we'd use a PDF parsing library here
+    // For now, we'll use the AI for OCR when needed
+    let extractedText = "";
+    
+    // 12. Since we can't easily extract native text in edge runtime,
+    // we'll use the AI to do OCR first, then parse
+    console.log("Performing OCR extraction...");
+    
+    const ocrResult = await callAI(LOVABLE_API_KEY, [
+      { role: "system", content: OCR_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
           {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analise este PDF de proposta comercial de engenharia e extraia os dados estruturados conforme o schema especificado. Retorne APENAS o JSON.",
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`,
-                },
-              },
-            ],
+            type: "text",
+            text: `Extraia todo o texto deste documento PDF (máximo ${MAX_PAGES} páginas). Se o documento tiver mais de ${MAX_PAGES} páginas, extraia apenas as primeiras ${MAX_PAGES}.`,
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:application/pdf;base64,${base64}`,
+            },
           },
         ],
-      }),
-    });
+      },
+    ]);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-
+    if (!ocrResult.success) {
       // Handle rate limits
-      if (aiResponse.status === 429) {
-        await supabaseAdmin
-          .from("proposal_imports")
-          .update({ status: "failed", error_message: "Limite de requisições excedido. Tente novamente mais tarde." })
-          .eq("id", importId);
-
+      if (ocrResult.status === 429) {
+        await updateImportStatus(supabase, importId, "failed", {
+          error_message: "Limite de requisições excedido. Tente novamente mais tarde.",
+        });
         return new Response(JSON.stringify({ error: "Limite de requisições excedido" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (aiResponse.status === 402) {
-        await supabaseAdmin
-          .from("proposal_imports")
-          .update({ status: "failed", error_message: "Créditos de IA insuficientes." })
-          .eq("id", importId);
-
+      if (ocrResult.status === 402) {
+        await updateImportStatus(supabase, importId, "failed", {
+          error_message: "Créditos de IA insuficientes.",
+        });
         return new Response(JSON.stringify({ error: "Créditos de IA insuficientes" }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      await supabaseAdmin
-        .from("proposal_imports")
-        .update({ status: "failed", error_message: "Erro ao processar com IA" })
-        .eq("id", importId);
+      await updateImportStatus(supabase, importId, "failed", {
+        error_message: "Erro ao extrair texto do PDF",
+      });
+      return new Response(JSON.stringify({ error: "Erro ao extrair texto do PDF" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    extractedText = ocrResult.content || "";
+    console.log("Extracted text length:", extractedText.length);
+
+    // Check if we got enough text
+    if (extractedText.length < MIN_TEXT_LENGTH) {
+      console.warn("Extracted text too short, may be a scanned document with issues");
+    }
+
+    // 13. Update status to parsing and save extracted text
+    await updateImportStatus(supabase, importId, "parsing", {
+      extracted_text: extractedText,
+    });
+
+    // 14. Parse extracted text to JSON
+    console.log("Parsing text to JSON...");
+    const parseResult = await callAI(LOVABLE_API_KEY, [
+      { role: "system", content: PARSER_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `Analise este texto de proposta comercial de engenharia e extraia os dados estruturados conforme o schema especificado. Retorne APENAS o JSON.\n\n--- TEXTO DA PROPOSTA ---\n${extractedText}`,
+      },
+    ]);
+
+    if (!parseResult.success) {
+      if (parseResult.status === 429) {
+        await updateImportStatus(supabase, importId, "failed", {
+          error_message: "Limite de requisições excedido. Tente novamente mais tarde.",
+        });
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido" }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (parseResult.status === 402) {
+        await updateImportStatus(supabase, importId, "failed", {
+          error_message: "Créditos de IA insuficientes.",
+        });
+        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes" }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await updateImportStatus(supabase, importId, "failed", {
+        error_message: "Erro ao processar com IA",
+      });
       return new Response(JSON.stringify({ error: "Erro ao processar com IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      await supabaseAdmin
-        .from("proposal_imports")
-        .update({ status: "failed", error_message: "IA não retornou conteúdo" })
-        .eq("id", importId);
-
-      return new Response(JSON.stringify({ error: "IA não retornou conteúdo" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Parse the JSON from AI response
+    // 15. Parse the JSON from AI response
     let parsedJson;
     try {
-      // Try to extract JSON from markdown code blocks if present
-      let jsonStr = content;
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1].trim();
-      }
-      parsedJson = JSON.parse(jsonStr);
+      parsedJson = parseJsonFromResponse(parseResult.content!);
     } catch (parseError) {
-      console.error("JSON parse error:", parseError, "Content:", content);
-      await supabaseAdmin
-        .from("proposal_imports")
-        .update({ 
-          status: "failed", 
-          error_message: "Erro ao interpretar resposta da IA",
-          extracted_text: content 
-        })
-        .eq("id", importId);
-
+      console.error("JSON parse error:", parseError, "Content:", parseResult.content);
+      await updateImportStatus(supabase, importId, "failed", {
+        error_message: "Erro ao interpretar resposta da IA",
+        extracted_text: extractedText, // Keep for debugging
+      });
       return new Response(JSON.stringify({ error: "Erro ao interpretar resposta da IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Update import record with success
-    await supabaseAdmin
-      .from("proposal_imports")
-      .update({
-        status: "done",
-        parsed_json: parsedJson,
-        extracted_text: content,
-      })
-      .eq("id", importId);
+    // 16. Update import record with success
+    await updateImportStatus(supabase, importId, "done", {
+      parsed_json: parsedJson,
+      extracted_text: extractedText,
+    });
+
+    console.log("Import completed successfully");
 
     return new Response(JSON.stringify({ 
       success: true, 
