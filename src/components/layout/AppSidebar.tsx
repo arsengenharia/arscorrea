@@ -1,5 +1,5 @@
 
-import { Building, Home, LogOut, PanelLeftClose, PanelLeftOpen, Users } from "lucide-react";
+import { Building, FileText, Home, LogOut, PanelLeftClose, PanelLeftOpen, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,11 @@ const menuItems = [
     title: "Obras",
     icon: Building,
     path: "/obras",
+  },
+  {
+    title: "Propostas",
+    icon: FileText,
+    path: "/propostas",
   },
 ];
 
