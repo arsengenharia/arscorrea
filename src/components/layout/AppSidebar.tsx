@@ -55,9 +55,9 @@ export function AppSidebar() {
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="flex items-center justify-between p-2 md:p-4">
         <img 
-          src="/lovable-uploads/8458c9e0-f836-458a-a48d-c0191e1cc57d.png" 
-          alt="Z Engenharia Logo" 
-          className="h-6 md:h-8"
+          src="/lovable-uploads/ars-correa-logo.png" 
+          alt="ARS Engenharia Logo" 
+          className="h-8 md:h-10"
         />
         <SidebarTrigger>
           <Button variant="ghost" size="icon">
