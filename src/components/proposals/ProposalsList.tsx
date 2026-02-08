@@ -45,6 +45,11 @@ type ProposalWithClientAndStage = {
     name: string;
     document: string | null;
     phone: string | null;
+    street: string | null;
+    number: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
   } | null;
   stage: {
     id: string;
@@ -88,7 +93,7 @@ export const ProposalsList = () => {
         .from("proposals")
         .select(`
           id, number, title, status, total, created_at, pdf_path, stage_id, work_address, city, state,
-          client:clients(id, name, document, phone),
+          client:clients(id, name, document, phone, street, number, neighborhood, city, state),
           stage:proposal_stages(id, name)
         `)
         .order("created_at", { ascending: false });
@@ -180,14 +185,18 @@ export const ProposalsList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {proposals.map((proposal) => {
-            const fullAddress = [
-              proposal.work_address,
-              proposal.city,
-              proposal.state,
-            ]
-              .filter(Boolean)
-              .join(", ");
+        {proposals.map((proposal) => {
+            // Usa endereço da obra se disponível, senão usa endereço do cliente
+            const hasWorkAddress = proposal.work_address || proposal.city || proposal.state;
+            const fullAddress = hasWorkAddress
+              ? [proposal.work_address, proposal.city, proposal.state].filter(Boolean).join(", ")
+              : [
+                  proposal.client?.street,
+                  proposal.client?.number,
+                  proposal.client?.neighborhood,
+                  proposal.client?.city,
+                  proposal.client?.state,
+                ].filter(Boolean).join(", ");
 
             return (
               <TableRow key={proposal.id}>
