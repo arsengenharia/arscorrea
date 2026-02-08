@@ -5,6 +5,7 @@ import { subDays } from "date-fns";
 
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { FinancialKPIs } from "@/components/dashboard/FinancialKPIs";
+import { CommercialKPIs } from "@/components/dashboard/CommercialKPIs";
 import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
 import { OverdueAgingChart } from "@/components/dashboard/OverdueAgingChart";
 import { NextPaymentsTable } from "@/components/dashboard/NextPaymentsTable";
@@ -31,6 +32,7 @@ const Index = () => {
   const {
     isLoading,
     financial,
+    commercial,
     cashFlowSeries,
     overdueAging,
     nextPayments,
@@ -55,30 +57,18 @@ const Index = () => {
           />
         </div>
 
-        {/* Tabs for Financial and Commercial */}
-        <Tabs defaultValue="financial" className="w-full">
+        {/* Tabs: Comercial (left) and Financeiro (right) */}
+        <Tabs defaultValue="commercial" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
             <TabsTrigger value="commercial">Comercial</TabsTrigger>
+            <TabsTrigger value="financial">Financeiro</TabsTrigger>
           </TabsList>
-
-          {/* Financial Tab */}
-          <TabsContent value="financial" className="space-y-6 mt-6">
-            {/* KPIs */}
-            <FinancialKPIs data={financial} isLoading={isLoading} />
-
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <CashFlowChart data={cashFlowSeries} isLoading={isLoading} />
-              <OverdueAgingChart data={overdueAging} isLoading={isLoading} />
-            </div>
-
-            {/* Table */}
-            <NextPaymentsTable data={nextPayments} isLoading={isLoading} />
-          </TabsContent>
 
           {/* Commercial Tab */}
           <TabsContent value="commercial" className="space-y-6 mt-6">
+            {/* KPIs Comerciais */}
+            <CommercialKPIs data={commercial} isLoading={isLoading} />
+
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <ProposalsFunnel 
@@ -95,6 +85,21 @@ const Index = () => {
 
             {/* Table */}
             <OldestProposalsTable data={oldestOpenProposals} isLoading={isLoading} />
+          </TabsContent>
+
+          {/* Financial Tab */}
+          <TabsContent value="financial" className="space-y-6 mt-6">
+            {/* KPIs */}
+            <FinancialKPIs data={financial} isLoading={isLoading} />
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <CashFlowChart data={cashFlowSeries} isLoading={isLoading} />
+              <OverdueAgingChart data={overdueAging} isLoading={isLoading} />
+            </div>
+
+            {/* Table */}
+            <NextPaymentsTable data={nextPayments} isLoading={isLoading} />
           </TabsContent>
         </Tabs>
       </div>

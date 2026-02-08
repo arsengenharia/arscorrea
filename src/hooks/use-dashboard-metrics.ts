@@ -321,6 +321,62 @@ export function useDashboardMetrics(dateRange: DateRange) {
     return Math.round((perdidas / total) * 100);
   };
 
+  // Commercial KPIs calculations
+  const calculateCommercialMetrics = () => {
+    if (!proposalsData) return null;
+
+    // Propostas em aberto (não fechadas e não perdidas)
+    const proposalsEmAberto = proposalsData.filter(p => {
+      const stageName = p.proposal_stages?.name?.toLowerCase();
+      return stageName !== "fechada" && stageName !== "perdida";
+    }).length;
+
+    // Propostas criadas no período filtrado
+    const proposalsNoPeriodo = proposalsData.filter(p => {
+      const createdAt = new Date(p.created_at);
+      return createdAt >= start && createdAt <= end;
+    }).length;
+
+    // Valor total em aberto
+    const valorTotalEmAberto = proposalsData
+      .filter(p => {
+        const stageName = p.proposal_stages?.name?.toLowerCase();
+        return stageName !== "fechada" && stageName !== "perdida";
+      })
+      .reduce((sum, p) => sum + (p.total || 0), 0);
+
+    // Taxa de conversão
+    const fechadas = proposalsData.filter(p => 
+      p.proposal_stages?.name?.toLowerCase() === "fechada"
+    ).length;
+    
+    const perdidas = proposalsData.filter(p => 
+      p.proposal_stages?.name?.toLowerCase() === "perdida"
+    ).length;
+
+    const totalFinalizadas = fechadas + perdidas;
+    const taxaConversao = totalFinalizadas > 0 
+      ? (fechadas / totalFinalizadas) * 100 
+      : 0;
+
+    // Ticket médio (média das propostas fechadas)
+    const propostasFechadas = proposalsData.filter(p => 
+      p.proposal_stages?.name?.toLowerCase() === "fechada"
+    );
+    
+    const ticketMedio = propostasFechadas.length > 0
+      ? propostasFechadas.reduce((sum, p) => sum + (p.total || 0), 0) / propostasFechadas.length
+      : 0;
+
+    return {
+      proposalsEmAberto,
+      proposalsNoPeriodo,
+      valorTotalEmAberto,
+      taxaConversao,
+      ticketMedio,
+    };
+  };
+
   return {
     isLoading: isLoadingFinancial || isLoadingProposals,
     financial: calculateFinancialMetrics(),
@@ -331,6 +387,7 @@ export function useDashboardMetrics(dateRange: DateRange) {
     proposalsAging: calculateProposalsAging(),
     oldestOpenProposals: getOldestOpenProposals(),
     lossRate: calculateLossRate(),
+    commercial: calculateCommercialMetrics(),
     allStages: proposalsData 
       ? [...new Set(proposalsData.map(p => p.proposal_stages?.name || "Sem etapa"))]
       : [],
