@@ -1,0 +1,107 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+.page-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+}
+
+/* Form optimizations */
+.form-container {
+  @apply w-full max-w-4xl mx-auto;
+}
+
+form {
+  @apply w-full;
+}
+
+/* Better form inputs for desktop */
+@media (min-width: 768px) {
+  .form-row {
+    @apply grid grid-cols-2 gap-4;
+  }
+  
+  .form-col-span-2 {
+    @apply col-span-2;
+  }
+  
+  textarea {
+    @apply min-h-[120px];
+  }
+  
+  .shadcn-form {
+    @apply bg-white p-6 rounded-lg shadow-sm;
+  }
+}
+
+/* Mobile responsive styles */
+@media (max-width: 640px) {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  .container {
+    @apply px-4;
+  }
+}
+
+/* Better scrolling for mobile */
+@media (max-width: 768px) {
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile table optimizations */
+@media (max-width: 768px) {
+  table {
+    @apply table-auto;
+  }
+  
+  th, td {
+    @apply px-2 py-2;
+  }
+}
