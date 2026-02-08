@@ -491,6 +491,63 @@ export type Database = {
           },
         ]
       }
+      proposal_imports: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          extracted_text: string | null
+          file_path: string
+          id: string
+          parsed_json: Json | null
+          proposal_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_path: string
+          id?: string
+          parsed_json?: Json | null
+          proposal_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_path?: string
+          id?: string
+          parsed_json?: Json | null
+          proposal_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_imports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_imports_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_items: {
         Row: {
           category: string | null
