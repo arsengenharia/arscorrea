@@ -5,12 +5,35 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Mail, Pencil, Phone, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, Trash2, MessageCircle, MapPin } from "lucide-react";
 import { ViewClientDialog } from "./ViewClientDialog";
 import { EditClientDialog } from "./EditClientDialog";
 import { toast } from "sonner";
 import { ProjectsSearch } from "../projects/ProjectsSearch";
 import { useNavigate } from "react-router-dom";
+
+const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  const numbers = phone.replace(/\D/g, "");
+  if (numbers.length <= 11) {
+    return `55${numbers}`;
+  }
+  return numbers;
+};
+
+const openWhatsApp = (phone: string) => {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  window.open(`https://wa.me/${formattedPhone}`, "_blank");
+};
+
+const openGoogleMaps = (address: string) => {
+  const encodedAddress = encodeURIComponent(address);
+  window.open(
+    `https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`,
+    "_blank"
+  );
+};
 
 export default function ClientsList() {
   const navigate = useNavigate();
@@ -169,88 +192,119 @@ export default function ClientsList() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[300px] whitespace-nowrap font-semibold text-muted-foreground">
+                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
                       Nome
                     </TableHead>
-                    <TableHead className="w-[150px] whitespace-nowrap font-semibold text-muted-foreground">
+                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
                       Código
                     </TableHead>
-                    <TableHead className="w-[150px] whitespace-nowrap font-semibold text-muted-foreground">
+                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
                       CPF/CNPJ
                     </TableHead>
-                    <TableHead className="w-[200px] whitespace-nowrap font-semibold text-muted-foreground">
+                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
                       Telefone
                     </TableHead>
-                    <TableHead className="w-[200px] whitespace-nowrap font-semibold text-muted-foreground">
-                      Email
+                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
+                      Endereço
                     </TableHead>
-                    <TableHead className="w-[150px] text-center whitespace-nowrap font-semibold text-muted-foreground">
+                    <TableHead className="text-right whitespace-nowrap font-semibold text-muted-foreground">
                       Ações
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients.map((client) => (
-                    <TableRow 
-                      key={client.id} 
-                      className="hover:bg-muted/50"
-                    >
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {client.name}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {client.code || '-'}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {client.document || '-'}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
+                  {filteredClients.map((client) => {
+                    const fullAddress = [
+                      client.street,
+                      client.number,
+                      client.neighborhood,
+                      client.city,
+                      client.state,
+                    ].filter(Boolean).join(", ");
+
+                    return (
+                      <TableRow 
+                        key={client.id} 
+                        className="hover:bg-muted/50"
+                      >
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {client.name}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {client.code || '-'}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {client.document || '-'}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {client.phone ? (
-                            <a href={`tel:${client.phone}`} className="text-blue-600 hover:underline">
-                              {client.phone}
-                            </a>
-                          ) : '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          {client.email ? (
-                            <a href={`mailto:${client.email}`} className="text-blue-600 hover:underline">
-                              {client.email}
-                            </a>
-                          ) : '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center items-center gap-4">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(client)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(client)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(client.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{client.phone}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => openWhatsApp(client.phone!)}
+                                title="Abrir WhatsApp"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {fullAddress ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm truncate max-w-[150px]" title={fullAddress}>
+                                {fullAddress}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => openGoogleMaps(fullAddress)}
+                                title="Abrir no Google Maps"
+                              >
+                                <MapPin className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleView(client)}
+                              title="Visualizar"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(client)}
+                              title="Editar"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(client.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
