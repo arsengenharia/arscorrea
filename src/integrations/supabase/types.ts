@@ -218,6 +218,59 @@ export type Database = {
           },
         ]
       }
+      contract_payments: {
+        Row: {
+          contract_id: string
+          created_at: string | null
+          description: string | null
+          expected_date: string | null
+          expected_value: number | null
+          id: string
+          kind: string
+          notes: string | null
+          order_index: number | null
+          received_date: string | null
+          received_value: number | null
+          status: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string | null
+          description?: string | null
+          expected_date?: string | null
+          expected_value?: number | null
+          id?: string
+          kind: string
+          notes?: string | null
+          order_index?: number | null
+          received_date?: string | null
+          received_value?: number | null
+          status?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string | null
+          description?: string | null
+          expected_date?: string | null
+          expected_value?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          order_index?: number | null
+          received_date?: string | null
+          received_value?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           client_id: string

@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FinancialList } from "@/components/contracts/FinancialList";
 import { ArrowLeft, DollarSign, Banknote, Receipt, PiggyBank } from "lucide-react";
+import { PaymentSummary } from "@/components/contracts/PaymentSummary";
+import { PaymentLine } from "@/lib/paymentTypes";
+import { FinancialList } from "@/components/contracts/FinancialList";
 
 export default function ContractFinancial() {
   const { id } = useParams();
@@ -31,6 +33,34 @@ export default function ContractFinancial() {
     enabled: !!id,
   });
 
+  const { data: paymentLines = [] } = useQuery({
+    queryKey: ["contract-payments", id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .select("*")
+        .eq("contract_id", id)
+        .order("order_index");
+
+      if (error) throw error;
+      
+      return (data || []).map(p => ({
+        id: p.id,
+        kind: p.kind,
+        description: p.description || "",
+        expected_value: p.expected_value || 0,
+        expected_date: p.expected_date,
+        received_value: p.received_value || 0,
+        received_date: p.received_date,
+        status: p.status || "pendente",
+        order_index: p.order_index || 0,
+        notes: p.notes || "",
+      })) as PaymentLine[];
+    },
+    enabled: !!id,
+  });
+
   const formatCurrency = (value: number | null) => {
     if (!value) return "R$ 0,00";
     return new Intl.NumberFormat("pt-BR", {
@@ -38,6 +68,15 @@ export default function ContractFinancial() {
       currency: "BRL",
     }).format(value);
   };
+
+  // Calculate totals from payment lines
+  const paymentOnlyLines = paymentLines.filter((l) => l.kind !== "comissao");
+  const totalExpected = paymentOnlyLines.reduce((sum, l) => sum + (l.expected_value || 0), 0);
+  const totalReceived = paymentOnlyLines.reduce((sum, l) => sum + (l.received_value || 0), 0);
+
+  const commissionLines = paymentLines.filter((l) => l.kind === "comissao");
+  const commissionExpected = commissionLines.reduce((sum, l) => sum + (l.expected_value || 0), 0);
+  const commissionReceived = commissionLines.reduce((sum, l) => sum + (l.received_value || 0), 0);
 
   if (isLoading) {
     return (
@@ -93,13 +132,13 @@ export default function ContractFinancial() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Entrada
+                Total Previsto
               </CardTitle>
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {formatCurrency(contract.payment_entry_value)}
+                {formatCurrency(totalExpected)}
               </p>
             </CardContent>
           </Card>
@@ -107,15 +146,19 @@ export default function ContractFinancial() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Parcelas
+                Total Recebido
               </CardTitle>
               <Receipt className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
-                {contract.payment_installments_count || 0}x{" "}
-                {formatCurrency(contract.payment_installment_value)}
+              <p className="text-2xl font-bold text-green-600">
+                {formatCurrency(totalReceived)}
               </p>
+              {totalExpected - totalReceived > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  A receber: {formatCurrency(totalExpected - totalReceived)}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -128,14 +171,22 @@ export default function ContractFinancial() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(contract.commission_received_value)}
+                {formatCurrency(commissionReceived)}
               </p>
               <p className="text-sm text-muted-foreground">
-                de {formatCurrency(contract.commission_expected_value)} previsto
+                de {formatCurrency(commissionExpected)} previsto
               </p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Payment Summary with alerts */}
+        {paymentLines.length > 0 && (
+          <PaymentSummary 
+            contractTotal={contract.total || 0} 
+            paymentLines={paymentLines} 
+          />
+        )}
 
         {/* Financial List */}
         <Card>
@@ -145,9 +196,10 @@ export default function ContractFinancial() {
           <CardContent>
             <FinancialList
               contractId={id!}
-              onCommissionUpdate={() =>
-                queryClient.invalidateQueries({ queryKey: ["contract", id] })
-              }
+              onCommissionUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: ["contract", id] });
+                queryClient.invalidateQueries({ queryKey: ["contract-payments", id] });
+              }}
             />
           </CardContent>
         </Card>

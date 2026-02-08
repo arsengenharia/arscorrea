@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
-import { addMonths, format } from "date-fns";
 
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -25,9 +24,10 @@ import { ContractProposalSelect } from "@/components/contracts/ContractProposalS
 import { ContractClientSection } from "@/components/contracts/ContractClientSection";
 import { ContractItemsSection, ContractItem } from "@/components/contracts/ContractItemsSection";
 import { ContractTotalsSection } from "@/components/contracts/ContractTotalsSection";
-import { ContractPaymentSection } from "@/components/contracts/ContractPaymentSection";
-import { ContractCommissionSection } from "@/components/contracts/ContractCommissionSection";
+import { ContractPaymentLinesSection } from "@/components/contracts/ContractPaymentLinesSection";
 import { ContractPDF } from "@/components/contracts/pdf/ContractPDF";
+import { PaymentLine } from "@/lib/paymentTypes";
+import { normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
 
 interface ContractFormContentProps {
   contractId?: string;
@@ -64,12 +64,7 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
   const [discountValue, setDiscountValue] = useState(0);
   const [status, setStatus] = useState("ativo");
   const [paymentNotes, setPaymentNotes] = useState("");
-  const [entryValue, setEntryValue] = useState(0);
-  const [installmentsCount, setInstallmentsCount] = useState(0);
-  const [installmentValue, setInstallmentValue] = useState(0);
-  const [commissionExpectedValue, setCommissionExpectedValue] = useState(0);
-  const [commissionExpectedDate, setCommissionExpectedDate] = useState("");
-  const [commissionNotes, setCommissionNotes] = useState("");
+  const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
 
   // Calculated values
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
@@ -103,12 +98,6 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
       setDiscountValue(contract.discount_value || 0);
       setStatus(contract.status || "ativo");
       setPaymentNotes(contract.payment_notes || "");
-      setEntryValue(contract.payment_entry_value || 0);
-      setInstallmentsCount(contract.payment_installments_count || 0);
-      setInstallmentValue(contract.payment_installment_value || 0);
-      setCommissionExpectedValue(contract.commission_expected_value || 0);
-      setCommissionExpectedDate(contract.commission_expected_date || "");
-      setCommissionNotes(contract.commission_notes || "");
 
       // Load items
       const { data: contractItems } = await supabase
@@ -120,14 +109,36 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
       if (contractItems) {
         setItems(contractItems.map(item => ({
           id: item.id,
-          category: item.category || "",
+          category: normalizeCategory(item.category),
           description: item.description || "",
-          unit: item.unit || "un",
+          unit: normalizeUnit(item.unit),
           quantity: item.quantity || 0,
           unit_price: item.unit_price || 0,
           total: item.total || 0,
           order_index: item.order_index || 0,
           notes: item.notes || "",
+        })));
+      }
+
+      // Load payment lines from contract_payments
+      const { data: payments } = await supabase
+        .from("contract_payments")
+        .select("*")
+        .eq("contract_id", contractId)
+        .order("order_index");
+
+      if (payments && payments.length > 0) {
+        setPaymentLines(payments.map(p => ({
+          id: p.id,
+          kind: p.kind,
+          description: p.description || "",
+          expected_value: p.expected_value || 0,
+          expected_date: p.expected_date,
+          received_value: p.received_value || 0,
+          received_date: p.received_date,
+          status: p.status || "pendente",
+          order_index: p.order_index || 0,
+          notes: p.notes || "",
         })));
       }
 
@@ -146,7 +157,7 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
     setDiscountValue(proposal.discount_value || 0);
     setPaymentNotes(proposal.payment_terms || "");
 
-    // Load proposal items
+    // Load proposal items with normalization
     const { data: proposalItems } = await supabase
       .from("proposal_items")
       .select("*")
@@ -155,9 +166,9 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
 
     if (proposalItems) {
       setItems(proposalItems.map(item => ({
-        category: item.category || "",
+        category: normalizeCategory(item.category),
         description: item.description || "",
-        unit: item.unit || "un",
+        unit: normalizeUnit(item.unit),
         quantity: item.quantity || 0,
         unit_price: item.unit_price || 0,
         total: item.total || 0,
@@ -174,6 +185,15 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
         throw new Error("Selecione uma proposta");
       }
 
+      // Calculate commission totals from payment lines
+      const commissionLines = paymentLines.filter(l => l.kind === "comissao");
+      const commissionExpectedValue = commissionLines.reduce((sum, l) => sum + (l.expected_value || 0), 0);
+      const commissionReceivedValue = commissionLines.reduce((sum, l) => sum + (l.received_value || 0), 0);
+
+      // Calculate payment totals for legacy fields
+      const entryLine = paymentLines.find(l => l.kind === "entrada");
+      const installmentLines = paymentLines.filter(l => l.kind === "parcela");
+
       const contractData = {
         proposal_id: proposalId,
         client_id: client.id,
@@ -185,12 +205,14 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
         total,
         status,
         payment_notes: paymentNotes,
-        payment_entry_value: entryValue,
-        payment_installments_count: installmentsCount,
-        payment_installment_value: installmentValue,
+        // Legacy fields - synced for compatibility
+        payment_entry_value: entryLine?.expected_value || 0,
+        payment_installments_count: installmentLines.length,
+        payment_installment_value: installmentLines[0]?.expected_value || 0,
         commission_expected_value: commissionExpectedValue,
-        commission_expected_date: commissionExpectedDate || null,
-        commission_notes: commissionNotes,
+        commission_received_value: commissionReceivedValue,
+        commission_expected_date: commissionLines[0]?.expected_date || null,
+        commission_notes: commissionLines[0]?.notes || "",
       };
 
       let savedContractId = contractId;
@@ -211,7 +233,7 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
         savedContractId = data.id;
       }
 
-      // Delete existing items and insert new ones
+      // Save items
       if (savedContractId) {
         await supabase.from("contract_items").delete().eq("contract_id", savedContractId);
 
@@ -231,34 +253,24 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
           if (itemsError) throw itemsError;
         }
 
-        // Create/update commission entry in contract_financial
-        if (commissionExpectedValue > 0) {
-          // Check if commission entry exists
-          const { data: existingCommission } = await supabase
-            .from("contract_financial")
-            .select("id")
-            .eq("contract_id", savedContractId)
-            .eq("type", "comissao")
-            .maybeSingle();
+        // Save payment lines
+        await supabase.from("contract_payments").delete().eq("contract_id", savedContractId);
 
-          const commissionData = {
+        if (paymentLines.length > 0) {
+          const paymentsToInsert = paymentLines.map((line, index) => ({
             contract_id: savedContractId,
-            type: "comissao",
-            description: "Comissão",
-            expected_value: commissionExpectedValue,
-            expected_date: commissionExpectedDate || null,
-            status: "pendente",
-            notes: commissionNotes,
-          };
-
-          if (existingCommission) {
-            await supabase
-              .from("contract_financial")
-              .update(commissionData)
-              .eq("id", existingCommission.id);
-          } else {
-            await supabase.from("contract_financial").insert(commissionData);
-          }
+            kind: line.kind,
+            description: line.description,
+            expected_value: line.expected_value,
+            expected_date: line.expected_date || null,
+            received_value: line.received_value,
+            received_date: line.received_date || null,
+            status: line.status,
+            order_index: index,
+            notes: line.notes || null,
+          }));
+          const { error: paymentsError } = await supabase.from("contract_payments").insert(paymentsToInsert);
+          if (paymentsError) throw paymentsError;
         }
       }
 
@@ -276,49 +288,6 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
       toast.error("Erro ao salvar contrato");
     },
   });
-
-  // Generate financial entries
-  const handleGenerateFinancialEntries = async () => {
-    if (!contractId) {
-      toast.error("Salve o contrato antes de gerar lançamentos");
-      return;
-    }
-
-    const entries: any[] = [];
-
-    // Entry payment
-    if (entryValue > 0) {
-      entries.push({
-        contract_id: contractId,
-        type: "recebimento",
-        description: "Entrada",
-        expected_value: entryValue,
-        status: "pendente",
-      });
-    }
-
-    // Installments
-    for (let i = 1; i <= installmentsCount; i++) {
-      entries.push({
-        contract_id: contractId,
-        type: "recebimento",
-        description: `Parcela ${i}/${installmentsCount}`,
-        expected_value: installmentValue,
-        expected_date: format(addMonths(new Date(), i), "yyyy-MM-dd"),
-        status: "pendente",
-      });
-    }
-
-    if (entries.length > 0) {
-      const { error } = await supabase.from("contract_financial").insert(entries);
-      if (error) {
-        toast.error("Erro ao gerar lançamentos");
-        console.error(error);
-      } else {
-        toast.success(`${entries.length} lançamentos criados!`);
-      }
-    }
-  };
 
   // Generate PDF
   const handleGeneratePDF = async () => {
@@ -469,28 +438,13 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
           onDiscountValueChange={setDiscountValue}
         />
 
-        {/* Payment */}
-        <ContractPaymentSection
+        {/* Payment Lines */}
+        <ContractPaymentLinesSection
+          contractTotal={total}
+          paymentLines={paymentLines}
+          onPaymentLinesChange={setPaymentLines}
           paymentNotes={paymentNotes}
-          entryValue={entryValue}
-          installmentsCount={installmentsCount}
-          installmentValue={installmentValue}
-          total={total}
           onPaymentNotesChange={setPaymentNotes}
-          onEntryValueChange={setEntryValue}
-          onInstallmentsCountChange={setInstallmentsCount}
-          onInstallmentValueChange={setInstallmentValue}
-          onGenerateFinancialEntries={isEditing ? handleGenerateFinancialEntries : undefined}
-        />
-
-        {/* Commission */}
-        <ContractCommissionSection
-          expectedValue={commissionExpectedValue}
-          expectedDate={commissionExpectedDate}
-          notes={commissionNotes}
-          onExpectedValueChange={setCommissionExpectedValue}
-          onExpectedDateChange={setCommissionExpectedDate}
-          onNotesChange={setCommissionNotes}
         />
       </div>
     </Layout>

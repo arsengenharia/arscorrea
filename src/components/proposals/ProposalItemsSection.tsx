@@ -24,20 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
-const CATEGORIES = [
-  "Serviços preliminares",
-  "Acesso e segurança",
-  "Tratamento de patologias",
-  "Recuperação de concreto",
-  "Selantes/Juntas",
-  "Pintura/Revitalização",
-  "Limpeza/Proteção",
-  "Mobilização",
-  "Outros",
-];
-
-const UNITS = ["m²", "m", "un", "vb", "dia", "mês"];
+import { ITEM_CATEGORIES, ITEM_UNITS, normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
 
 export interface ProposalItem {
   id: string;
@@ -188,14 +175,14 @@ export const ProposalItemsSection = ({
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={item.category}
+                          value={normalizeCategory(item.category)}
                           onValueChange={(v) => updateItem(item.id, "category", v)}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Categoria" />
                           </SelectTrigger>
                           <SelectContent>
-                            {CATEGORIES.map((cat) => (
+                            {ITEM_CATEGORIES.map((cat) => (
                               <SelectItem key={cat} value={cat}>
                                 {cat}
                               </SelectItem>
@@ -236,14 +223,14 @@ export const ProposalItemsSection = ({
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={item.unit}
+                          value={normalizeUnit(item.unit)}
                           onValueChange={(v) => updateItem(item.id, "unit", v)}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {UNITS.map((unit) => (
+                            {ITEM_UNITS.map((unit) => (
                               <SelectItem key={unit} value={unit}>
                                 {unit}
                               </SelectItem>
