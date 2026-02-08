@@ -142,7 +142,6 @@ export const ProposalsList = () => {
           <TableRow>
             <TableHead>Número / Título</TableHead>
             <TableHead>Cliente</TableHead>
-            <TableHead>Situação</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead>Data</TableHead>
@@ -176,9 +175,6 @@ export const ProposalsList = () => {
                   currentStageId={proposal.stage_id}
                   currentStageName={proposal.stage?.name || null}
                 />
-              </TableCell>
-              <TableCell>
-                <ProposalStatusBadge status={proposal.status || "draft"} />
               </TableCell>
               <TableCell className="text-right font-medium">
                 {formatCurrency(proposal.total)}
