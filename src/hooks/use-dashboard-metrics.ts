@@ -294,7 +294,7 @@ export function useDashboardMetrics(dateRange: DateRange) {
     return proposalsData
       .filter(p => {
         const stageName = p.proposal_stages?.name?.toLowerCase();
-        return stageName !== "fechada" && stageName !== "perdida";
+        return stageName !== "proposta aprovada" && stageName !== "proposta recusada";
       })
       .map(p => ({
         id: p.id,
@@ -312,11 +312,11 @@ export function useDashboardMetrics(dateRange: DateRange) {
     if (!proposalsData) return 0;
 
     const fechadas = proposalsData.filter(p => 
-      p.proposal_stages?.name?.toLowerCase() === "fechada"
+      p.proposal_stages?.name?.toLowerCase() === "proposta aprovada"
     ).length;
     
     const perdidas = proposalsData.filter(p => 
-      p.proposal_stages?.name?.toLowerCase() === "perdida"
+      p.proposal_stages?.name?.toLowerCase() === "proposta recusada"
     ).length;
 
     const total = fechadas + perdidas;
@@ -332,7 +332,7 @@ export function useDashboardMetrics(dateRange: DateRange) {
     // Propostas em aberto (não fechadas e não perdidas)
     const proposalsEmAberto = proposalsData.filter(p => {
       const stageName = p.proposal_stages?.name?.toLowerCase();
-      return stageName !== "fechada" && stageName !== "perdida";
+      return stageName !== "proposta aprovada" && stageName !== "proposta recusada";
     }).length;
 
     // Propostas criadas no período filtrado
@@ -345,17 +345,17 @@ export function useDashboardMetrics(dateRange: DateRange) {
     const valorTotalEmAberto = proposalsData
       .filter(p => {
         const stageName = p.proposal_stages?.name?.toLowerCase();
-        return stageName !== "fechada" && stageName !== "perdida";
+        return stageName !== "proposta aprovada" && stageName !== "proposta recusada";
       })
       .reduce((sum, p) => sum + (p.total || 0), 0);
 
     // Taxa de conversão
     const fechadas = proposalsData.filter(p => 
-      p.proposal_stages?.name?.toLowerCase() === "fechada"
+      p.proposal_stages?.name?.toLowerCase() === "proposta aprovada"
     ).length;
     
     const perdidas = proposalsData.filter(p => 
-      p.proposal_stages?.name?.toLowerCase() === "perdida"
+      p.proposal_stages?.name?.toLowerCase() === "proposta recusada"
     ).length;
 
     const totalFinalizadas = fechadas + perdidas;
@@ -365,7 +365,7 @@ export function useDashboardMetrics(dateRange: DateRange) {
 
     // Ticket médio (média das propostas fechadas)
     const propostasFechadas = proposalsData.filter(p => 
-      p.proposal_stages?.name?.toLowerCase() === "fechada"
+      p.proposal_stages?.name?.toLowerCase() === "proposta aprovada"
     );
     
     const ticketMedio = propostasFechadas.length > 0

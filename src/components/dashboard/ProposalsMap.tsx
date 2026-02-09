@@ -16,10 +16,14 @@ const DEFAULT_ZOOM = 12;
 
 // Stage definitions with colors
 const STAGES = [
-  { key: "em aberto", name: "Em aberto", color: "#3B82F6" },
-  { key: "em análise", name: "Em análise", color: "#F59E0B" },
-  { key: "fechada", name: "Fechada", color: "#22C55E" },
-  { key: "perdida", name: "Perdida", color: "#EF4444" },
+  { key: "proposta em aberto (inicial)", name: "Proposta em aberto (inicial)", color: "#3B82F6" },
+  { key: "visita agendada", name: "Visita agendada", color: "#6366F1" },
+  { key: "visita realizada", name: "Visita realizada", color: "#A855F7" },
+  { key: "proposta enviada", name: "Proposta enviada", color: "#06B6D4" },
+  { key: "reunião marcada para entrega", name: "Reunião marcada para entrega", color: "#F59E0B" },
+  { key: "proposta em aberto", name: "Proposta em aberto", color: "#0EA5E9" },
+  { key: "proposta recusada", name: "Proposta recusada", color: "#EF4444" },
+  { key: "proposta aprovada", name: "Proposta aprovada", color: "#22C55E" },
 ] as const;
 
 const STAGE_COLORS: Record<string, string> = Object.fromEntries(
