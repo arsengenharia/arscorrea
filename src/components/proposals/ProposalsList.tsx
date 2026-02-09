@@ -105,13 +105,54 @@ export const ProposalsList = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (proposalId: string) => {
-      // Limpar imports órfãos primeiro (são apenas logs de importação)
+      // 1. Buscar contratos vinculados
+      const { data: contracts } = await supabase
+        .from("contracts")
+        .select("id")
+        .eq("proposal_id", proposalId);
+
+      // 2. Para cada contrato, excluir dados financeiros relacionados
+      if (contracts && contracts.length > 0) {
+        for (const contract of contracts) {
+          // Excluir pagamentos do contrato
+          await supabase
+            .from("contract_payments")
+            .delete()
+            .eq("contract_id", contract.id);
+
+          // Excluir itens do contrato
+          await supabase
+            .from("contract_items")
+            .delete()
+            .eq("contract_id", contract.id);
+
+          // Excluir financeiro do contrato
+          await supabase
+            .from("contract_financial")
+            .delete()
+            .eq("contract_id", contract.id);
+        }
+
+        // 3. Excluir os contratos
+        await supabase
+          .from("contracts")
+          .delete()
+          .eq("proposal_id", proposalId);
+      }
+
+      // 4. Limpar imports órfãos (logs de importação)
       await supabase
         .from("proposal_imports")
         .delete()
         .eq("proposal_id", proposalId);
 
-      // Agora excluir a proposta
+      // 5. Excluir itens da proposta
+      await supabase
+        .from("proposal_items")
+        .delete()
+        .eq("proposal_id", proposalId);
+
+      // 6. Finalmente excluir a proposta
       const { error } = await supabase
         .from("proposals")
         .delete()
@@ -120,16 +161,12 @@ export const ProposalsList = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
-      toast.success("Proposta excluída com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      toast.success("Proposta e dados vinculados excluídos com sucesso");
     },
     onError: (error: any) => {
       console.error("Erro ao excluir proposta:", error);
-      const msg = error?.message || "";
-      if (msg.includes("contracts_proposal_id_fkey")) {
-        toast.error("Esta proposta possui um contrato vinculado. Exclua o contrato primeiro.");
-      } else {
-        toast.error("Erro ao excluir proposta");
-      }
+      toast.error("Erro ao excluir proposta: " + (error?.message || "Erro desconhecido"));
     },
   });
 
