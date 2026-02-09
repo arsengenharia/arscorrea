@@ -105,6 +105,13 @@ export const ProposalsList = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (proposalId: string) => {
+      // Limpar imports órfãos primeiro (são apenas logs de importação)
+      await supabase
+        .from("proposal_imports")
+        .delete()
+        .eq("proposal_id", proposalId);
+
+      // Agora excluir a proposta
       const { error } = await supabase
         .from("proposals")
         .delete()
@@ -115,8 +122,14 @@ export const ProposalsList = () => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta excluída com sucesso");
     },
-    onError: () => {
-      toast.error("Erro ao excluir proposta");
+    onError: (error: any) => {
+      console.error("Erro ao excluir proposta:", error);
+      const msg = error?.message || "";
+      if (msg.includes("contracts_proposal_id_fkey")) {
+        toast.error("Esta proposta possui um contrato vinculado. Exclua o contrato primeiro.");
+      } else {
+        toast.error("Erro ao excluir proposta");
+      }
     },
   });
 
