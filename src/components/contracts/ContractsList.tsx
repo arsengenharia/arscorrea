@@ -91,8 +91,9 @@ export function ContractsList() {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setDeleteId(null);
     },
-    onError: () => {
-      toast.error("Erro ao excluir contrato");
+    onError: (error: any) => {
+      console.error("Erro ao excluir contrato:", error);
+      toast.error("Erro ao excluir contrato: " + (error?.message || "Erro desconhecido"));
     },
   });
 
