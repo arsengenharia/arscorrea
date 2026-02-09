@@ -17,10 +17,14 @@ interface ProposalsFunnelProps {
 }
 
 const COLORS: { [key: string]: string } = {
-  "Em aberto": "#3B82F6",
-  "Em análise": "#F59E0B",
-  "Fechada": "#22C55E",
-  "Perdida": "#EF4444",
+  "Proposta em aberto (inicial)": "#3B82F6",
+  "Visita agendada": "#6366F1",
+  "Visita realizada": "#A855F7",
+  "Proposta enviada": "#06B6D4",
+  "Reunião marcada para entrega": "#F59E0B",
+  "Proposta em aberto": "#0EA5E9",
+  "Proposta recusada": "#EF4444",
+  "Proposta aprovada": "#22C55E",
   "Sem etapa": "#94A3B8",
 };
 
