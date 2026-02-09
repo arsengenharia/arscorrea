@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -44,7 +45,7 @@ const LEAD_CHANNELS = [
 
 const clientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  document: z.string().min(11, "CPF/CNPJ deve ter pelo menos 11 caracteres"),
+  document: z.string().optional().or(z.literal("")),
   responsible: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
@@ -92,6 +93,7 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 export function ClientForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [documentNotProvided, setDocumentNotProvided] = useState(false);
   const navigate = useNavigate();
 
   const form = useForm<ClientFormValues>({
@@ -238,9 +240,24 @@ export function ClientForm() {
                 name="document"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CPF/CNPJ *</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>CPF/CNPJ</FormLabel>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={documentNotProvided}
+                          onCheckedChange={(checked: boolean) => {
+                            setDocumentNotProvided(checked);
+                            if (checked) {
+                              form.setValue("document", "");
+                              form.clearErrors("document");
+                            }
+                          }}
+                        />
+                        Não informado
+                      </label>
+                    </div>
                     <FormControl>
-                      <Input placeholder="CPF ou CNPJ do cliente" {...field} />
+                      <Input placeholder="CPF ou CNPJ do cliente" disabled={documentNotProvided} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
