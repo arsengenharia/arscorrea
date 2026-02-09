@@ -70,28 +70,84 @@ export default function ClientsList() {
   };
 
   const handleDelete = async (clientId: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este cliente?')) return;
+    if (!window.confirm('Tem certeza que deseja excluir este cliente e TODOS os dados vinculados (propostas, contratos, projetos)?')) return;
 
     try {
+      // 1. Buscar propostas do cliente
+      const { data: proposals } = await supabase
+        .from('proposals')
+        .select('id')
+        .eq('client_id', clientId);
+
+      // 2. Para cada proposta, excluir contratos e dados relacionados
+      if (proposals && proposals.length > 0) {
+        for (const proposal of proposals) {
+          // Buscar contratos da proposta
+          const { data: contracts } = await supabase
+            .from('contracts')
+            .select('id')
+            .eq('proposal_id', proposal.id);
+
+          if (contracts && contracts.length > 0) {
+            for (const contract of contracts) {
+              await supabase.from('contract_payments').delete().eq('contract_id', contract.id);
+              await supabase.from('contract_items').delete().eq('contract_id', contract.id);
+              await supabase.from('contract_financial').delete().eq('contract_id', contract.id);
+            }
+            await supabase.from('contracts').delete().eq('proposal_id', proposal.id);
+          }
+
+          // Excluir imports e itens da proposta
+          await supabase.from('proposal_imports').delete().eq('proposal_id', proposal.id);
+          await supabase.from('proposal_items').delete().eq('proposal_id', proposal.id);
+        }
+        // Excluir propostas
+        await supabase.from('proposals').delete().eq('client_id', clientId);
+      }
+
+      // 3. Buscar projetos do cliente
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('client_id', clientId);
+
+      if (projects && projects.length > 0) {
+        for (const project of projects) {
+          // Buscar etapas do projeto
+          const { data: stages } = await supabase
+            .from('stages')
+            .select('id')
+            .eq('project_id', project.id);
+
+          if (stages && stages.length > 0) {
+            for (const stage of stages) {
+              await supabase.from('stage_photos').delete().eq('stage_id', stage.id);
+            }
+            await supabase.from('stages').delete().eq('project_id', project.id);
+          }
+        }
+        await supabase.from('projects').delete().eq('client_id', clientId);
+      }
+
+      // 4. Excluir arquivos do cliente
+      await supabase.from('client_files').delete().eq('client_id', clientId);
+
+      // 5. Finalmente excluir o cliente
       const { error } = await supabase
         .from('clients')
         .delete()
         .eq('id', clientId);
 
-      if (error) {
-        if (error.message.includes('foreign key constraint')) {
-          toast.error('Este cliente não pode ser excluído pois possui projetos vinculados.');
-          return;
-        }
-        toast.error('Erro ao excluir cliente');
-        return;
-      }
+      if (error) throw error;
 
-      toast.success('Cliente excluído com sucesso!');
+      toast.success('Cliente e todos os dados vinculados excluídos com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    } catch (error: any) {
       console.error('Error deleting client:', error);
-      toast.error('Erro ao excluir cliente');
+      toast.error('Erro ao excluir cliente: ' + (error?.message || 'Erro desconhecido'));
     }
   };
 
