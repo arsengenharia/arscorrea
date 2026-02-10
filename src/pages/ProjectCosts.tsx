@@ -18,12 +18,21 @@ export default function ProjectCosts() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ cost_type: "Direto", description: "", expected_value: "", actual_value: "", record_date: "" });
+  const [form, setForm] = useState({ cost_type: "Direto", description: "", expected_value: "", actual_value: "", record_date: "", supplier_id: "" });
 
   const { data: costs, isLoading } = useQuery({
     queryKey: ["project-costs", projectId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("project_costs").select("*").eq("project_id", projectId!).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("project_costs").select("*, suppliers(trade_name)").eq("project_id", projectId!).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: suppliers } = useQuery({
+    queryKey: ["suppliers-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("suppliers").select("id, trade_name").order("trade_name");
       if (error) throw error;
       return data;
     },
@@ -38,6 +47,7 @@ export default function ProjectCosts() {
         expected_value: Number(form.expected_value) || 0,
         actual_value: Number(form.actual_value) || 0,
         record_date: form.record_date || null,
+        supplier_id: form.supplier_id || null,
       });
       if (error) throw error;
     },
@@ -45,7 +55,7 @@ export default function ProjectCosts() {
       toast.success("Custo adicionado!");
       queryClient.invalidateQueries({ queryKey: ["project-costs", projectId] });
       setOpen(false);
-      setForm({ cost_type: "Direto", description: "", expected_value: "", actual_value: "", record_date: "" });
+      setForm({ cost_type: "Direto", description: "", expected_value: "", actual_value: "", record_date: "", supplier_id: "" });
     },
     onError: () => toast.error("Erro ao adicionar custo"),
   });
@@ -91,6 +101,17 @@ export default function ProjectCosts() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Fornecedor</Label>
+                  <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um fornecedor" /></SelectTrigger>
+                    <SelectContent>
+                      {(suppliers || []).map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.trade_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
                 <div><Label>Valor Previsto</Label><Input type="number" step="0.01" value={form.expected_value} onChange={(e) => setForm({ ...form, expected_value: e.target.value })} /></div>
                 <div><Label>Valor Realizado</Label><Input type="number" step="0.01" value={form.actual_value} onChange={(e) => setForm({ ...form, actual_value: e.target.value })} /></div>
@@ -106,6 +127,7 @@ export default function ProjectCosts() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Fornecedor</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Previsto</TableHead>
                 <TableHead>Realizado</TableHead>
@@ -114,9 +136,10 @@ export default function ProjectCosts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(costs || []).map((c) => (
+              {(costs || []).map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell>{c.cost_type}</TableCell>
+                  <TableCell>{c.suppliers?.trade_name || "—"}</TableCell>
                   <TableCell>{c.description}</TableCell>
                   <TableCell>{fmt(Number(c.expected_value))}</TableCell>
                   <TableCell>{fmt(Number(c.actual_value))}</TableCell>
@@ -127,7 +150,7 @@ export default function ProjectCosts() {
                 </TableRow>
               ))}
               {(!costs || costs.length === 0) && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum custo cadastrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum custo cadastrado</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
