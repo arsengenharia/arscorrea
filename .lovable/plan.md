@@ -1,111 +1,87 @@
 
 
-# Plano: Exportacao PDF do Relatorio Gerencial por Obra
+# Plano: Graficos e Paineis de Analise no Relatorio Gerencial
 
 ## Resumo
-Criar um documento PDF completo usando `@react-pdf/renderer` (ja instalado no projeto) para o Relatorio Gerencial, seguindo o padrao existente nos PDFs de contratos e detalhes de obra. O PDF incluira informacoes da obra/cliente, tabelas de producao fisica, tabelas financeiras e KPIs. Como `@react-pdf/renderer` nao suporta graficos nativos, os graficos serao representados como tabelas formatadas no PDF. Um botao "Exportar PDF" sera adicionado na pagina do relatorio.
 
-## 1. Novos Arquivos
+Implementar graficos interativos (Recharts) na pagina web do relatorio e paineis de analise detalhados, alem de atualizar a edge function para calcular o IEC financeiro corretamente (Custo Real / Custo Previsto) com desdobramentos por tipo (direto/indireto). O PDF continuara usando tabelas formatadas (limitacao do react-pdf).
 
-### 1.1 `src/components/reports/pdf/ReportPDF.tsx`
-Componente principal do documento PDF usando `@react-pdf/renderer`:
-- **Pagina 1**: Header com logo ARS Correa + data, titulo do relatorio, secao de informacoes da obra (nome, gestor, inicio, previsao, prazo, status) e informacoes do cliente (nome, codigo, responsavel, telefone, endereco)
-- **Pagina 2**: Analise Fisica - Cards de IFEC e IEC com valores e descricoes, tabela de producao mensal (colunas: Mes/Ano, Previsto %, Real %, Variacao %), tabela de producao acumulada (mesmo formato)
-- **Pagina 3**: Analise Financeira - Tabela de custos (Direto Previsto/Real, Indireto Previsto/Real, Total), tabela de receitas (Prevista/Realizada), indicadores consolidados (Saldo, Margem de Lucro), observacoes gerenciais
+## Mudancas Necessarias
 
-### 1.2 `src/components/reports/pdf/reportStyles.ts`
-Estilos do PDF seguindo o padrao visual do `contractStyles.ts`:
-- Cores corporativas (azul #1e40af para titulos)
-- Header com logo e data
-- Tabelas com header cinza (#f3f4f6) e bordas sutis
-- Cards de KPI com destaque visual
-- Footer com dados da empresa
-- Tipografia Helvetica, tamanho 10-14
+### 1. Edge Function - Novos Calculos (Backend)
 
-### 1.3 `src/components/reports/ReportPDFButton.tsx`
-Componente com `PDFDownloadLink` do `@react-pdf/renderer`:
-- Recebe os dados do relatorio como prop (o mesmo JSON retornado pela edge function)
-- Renderiza um botao "Exportar PDF" com icone `FileDown`
-- Gera nome do arquivo: `relatorio-gerencial-{nome_obra}.pdf`
+**Arquivo**: `supabase/functions/project-management-report/index.ts`
 
-## 2. Arquivos Modificados
+O IEC atual esta calculado com base em pesos de etapas (progresso fisico). Segundo as formulas do usuario, o IEC deve ser baseado em **custos**: `IEC = Custo Real Acumulado / Custo Previsto Acumulado`.
 
-### 2.1 `src/pages/ProjectReport.tsx`
-- Importar e adicionar o componente `ReportPDFButton` ao lado do botao de voltar no header
-- Passar os dados (`data`) carregados da edge function como prop para o botao
-
-## 3. Estrutura do PDF (Secoes)
+Adicionar ao JSON de retorno:
 
 ```text
-+------------------------------------------+
-| [Logo ARS Correa]     [Data: dd/MM/yyyy] |
-| ---------------------------------------- |
-| RELATORIO GERENCIAL - {Nome da Obra}     |
-|                                          |
-| INFORMACOES DA OBRA                      |
-| Nome: ...  | Gestor: ...                 |
-| Inicio: .. | Previsao: ..               |
-| Prazo: ... | Status: ...                |
-|                                          |
-| INFORMACOES DO CLIENTE                   |
-| Nome: ...  | Codigo: ...                |
-| Responsavel: ... | Telefone: ...        |
-| Endereco: ...                            |
-+------------------------------------------+
-
-+------------------------------------------+
-| [Logo]                       [Data]      |
-| ---------------------------------------- |
-| ANALISE FISICA                           |
-|                                          |
-| IFEC: XX%  |  IEC: XX%                  |
-|                                          |
-| PRODUCAO MENSAL (%)                      |
-| Mes/Ano | Previsto | Real | Variacao    |
-| Jan/25  |   10.0   | 8.0  |  -2.0      |
-| ...                                      |
-|                                          |
-| PRODUCAO ACUMULADA (%)                   |
-| Mes/Ano | Previsto | Real | Variacao    |
-| Jan/25  |   10.0   | 8.0  |  -2.0      |
-| ...                                      |
-+------------------------------------------+
-
-+------------------------------------------+
-| [Logo]                       [Data]      |
-| ---------------------------------------- |
-| ANALISE FINANCEIRA                       |
-|                                          |
-| CUSTOS                                   |
-| Tipo     | Previsto      | Realizado     |
-| Direto   | R$ xxx        | R$ xxx        |
-| Indireto | R$ xxx        | R$ xxx        |
-| TOTAL    | R$ xxx        | R$ xxx        |
-|                                          |
-| RECEITAS                                 |
-| Prevista: R$ xxx | Realizada: R$ xxx    |
-|                                          |
-| RESULTADO                                |
-| Saldo da Obra: R$ xxx                   |
-| Margem de Lucro: XX%                    |
-|                                          |
-| [Footer: ARS Engenharia]                |
-+------------------------------------------+
+"analise_financeira": {
+  ... campos existentes ...,
+  "iec_total": { "valor": 1.000, "descricao": "acima/abaixo/conforme previsto" },
+  "iec_direto": { "valor": 0.950, "descricao": "..." },
+  "iec_indireto": { "valor": 1.050, "descricao": "..." },
+  "custo_previsto_revisado": 0,  // campo para revisao futura
+  "variacao_custo_abs": 0        // diferenca previsto revisado - real
+}
 ```
 
-## 4. Detalhes Tecnicos
+Tambem corrigir o IFEC para usar a formula correta: `IFEC = Producao Real Acumulada / Producao Prevista Acumulada` (baseado em pesos, nao em contagem de etapas). O IFEC atual divide contagem de etapas concluidas pelo total, mas a formula correta e a razao entre os pesos acumulados.
 
-- **Biblioteca**: `@react-pdf/renderer` (ja instalada, versao ^4.3.0)
-- **Padrao seguido**: Mesmo padrao de `ContractPDF.tsx` e `ProjectDetailsPDF.tsx`
-- **Graficos**: Representados como tabelas no PDF (react-pdf nao suporta SVG/canvas de graficos). As tabelas conterao os mesmos dados vistos nos graficos da interface
-- **Formatacao monetaria**: `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`
-- **Formatacao de datas**: `date-fns` com locale `ptBR`
-- **Paginacao**: Cada secao principal em pagina separada usando multiplos `<Page>` components
+Calculos a implementar:
+- **IFEC** = `completedWeight / totalWeight` (soma dos pesos de todas as etapas como denominador, nao contagem)
+- **IEC Total** = `custoTotalReal / custoTotalPrev` (1.000 = conforme previsto)
+- **IEC Direto** = `custoDiretoReal / custoDiretoPrev`
+- **IEC Indireto** = `custoIndiretoReal / custoIndiretoPrev`
+- Status: > 1.000 = "acima do previsto", < 1.000 = "abaixo do previsto", = 1.000 = "conforme previsto"
 
-## 5. Sequencia de Implementacao
+### 2. Pagina Web - Graficos e Paineis Laterais
 
-1. Criar `reportStyles.ts` com estilos do PDF
-2. Criar `ReportPDF.tsx` com o documento completo
-3. Criar `ReportPDFButton.tsx` com o botao de download
-4. Modificar `ProjectReport.tsx` para incluir o botao
+**Arquivo**: `src/pages/ProjectReport.tsx`
+
+Reorganizar o layout para incluir graficos e paineis laterais conforme o modelo:
+
+**Layout proposto** (2 colunas em desktop):
+- **Coluna esquerda (8/12)**: Graficos
+  - Grafico 1: Producao Acumulada Prevista x Real (LineChart com marcadores)
+  - Grafico 2: Producao Mensal (BarChart com apenas a coluna "real/produzido")
+- **Coluna direita (4/12)**: 3 Paineis de Analise
+  - Painel 1 - ANALISE FISICA: IFEC com valor e status
+  - Painel 2 - ANALISE FINANCEIRA: IEC total, IEC direto, IEC indireto com status
+  - Painel 3 - ANALISE DO CUSTO GERAL: Valores em R$ (custo previsto, previsto revisado, real, variacao) desdobrados em total/direto/indireto
+
+**Graficos (Recharts - ja importado)**:
+- LineChart: duas linhas (previsto e real), eixo Y de 0% a 100%, com marcadores na linha Real
+- BarChart: barras verticais apenas com "Produzido no Mes", eixo Y percentual mensal
+
+### 3. PDF - Paineis de Analise Adicionais
+
+**Arquivo**: `src/components/reports/pdf/ReportPDF.tsx`
+
+Adicionar os paineis de analise financeira (IEC total/direto/indireto) e o painel de custo geral ao PDF, mantendo as tabelas de producao ja existentes. Os graficos continuam como tabelas no PDF.
+
+Adicionar na Pagina 3 (Analise Financeira):
+- Painel IEC: IEC total, direto e indireto com status
+- Painel Custo Geral: Custo previsto total/direto/indireto, custo real total/direto/indireto, variacao
+
+### 4. Estilos do PDF
+
+**Arquivo**: `src/components/reports/pdf/reportStyles.ts`
+
+Adicionar estilos para os novos paineis de analise (3 cards lado a lado para IEC).
+
+## Sequencia de Implementacao
+
+1. Atualizar edge function com calculos corretos de IFEC e IEC financeiro (+ deploy)
+2. Atualizar `ProjectReport.tsx` com layout de 2 colunas, graficos e paineis laterais
+3. Atualizar `ReportPDF.tsx` com paineis de analise financeira e custo geral
+4. Atualizar `reportStyles.ts` com estilos dos novos paineis
+
+## Arquivos a Criar/Modificar
+
+1. **`supabase/functions/project-management-report/index.ts`** (editar - novos calculos IEC)
+2. **`src/pages/ProjectReport.tsx`** (editar - layout com graficos e paineis)
+3. **`src/components/reports/pdf/ReportPDF.tsx`** (editar - paineis de analise)
+4. **`src/components/reports/pdf/reportStyles.ts`** (editar - novos estilos)
 
