@@ -17,7 +17,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+
+const CLIENT_TYPES = [
+  { value: "pessoa_fisica", label: "Pessoa Física" },
+  { value: "pessoa_juridica", label: "Pessoa Jurídica" },
+  { value: "condominio", label: "Condomínio" },
+];
+
+const SEGMENTS = [
+  { value: "residencial", label: "Residencial" },
+  { value: "comercial", label: "Comercial" },
+  { value: "industrial", label: "Industrial" },
+];
 
 const clientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -32,6 +45,8 @@ const clientSchema = z.object({
   state: z.string().optional(),
   zip_code: z.string().optional(),
   observations: z.string().optional(),
+  client_type: z.string().optional(),
+  segment: z.string().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -62,6 +77,8 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
       state: client.state || "",
       zip_code: client.zip_code || "",
       observations: client.observations || "",
+      client_type: client.client_type || "",
+      segment: client.segment || "",
     },
   });
 
@@ -70,7 +87,7 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
     try {
       const { error } = await supabase
         .from("clients")
-        .update(values)
+        .update(values as any)
         .eq('id', client.id);
       
       if (error) throw error;
@@ -150,6 +167,58 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="client_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Cliente</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CLIENT_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="segment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Segmento</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o segmento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SEGMENTS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

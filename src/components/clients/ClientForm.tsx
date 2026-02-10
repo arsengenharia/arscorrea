@@ -28,6 +28,18 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { Loader2, Search } from "lucide-react";
 
+const CLIENT_TYPES = [
+  { value: "pessoa_fisica", label: "Pessoa Física" },
+  { value: "pessoa_juridica", label: "Pessoa Jurídica" },
+  { value: "condominio", label: "Condomínio" },
+];
+
+const SEGMENTS = [
+  { value: "residencial", label: "Residencial" },
+  { value: "comercial", label: "Comercial" },
+  { value: "industrial", label: "Industrial" },
+];
+
 const SERVICE_REPS = [
   "Ana Andrade",
   "Ana Corrêa",
@@ -62,6 +74,8 @@ const clientSchema = z.object({
   lead_channel: z.string().min(1, "Canal do lead é obrigatório"),
   lead_referral: z.string().optional(),
   lead_date: z.string().min(1, "Data do lead é obrigatória"),
+  client_type: z.string().optional(),
+  segment: z.string().optional(),
 }).refine((data) => {
   if (data.service_rep === "Outro" && (!data.service_rep_other || data.service_rep_other.trim() === "")) {
     return false;
@@ -117,6 +131,8 @@ export function ClientForm() {
       lead_channel: "",
       lead_referral: "",
       lead_date: new Date().toISOString().split('T')[0],
+      client_type: "",
+      segment: "",
     },
   });
 
@@ -185,7 +201,9 @@ export function ClientForm() {
         lead_channel: values.lead_channel || null,
         lead_referral: values.lead_referral || null,
         lead_date: values.lead_date || null,
-      };
+        client_type: values.client_type || null,
+        segment: values.segment || null,
+      } as any;
 
       const { data, error } = await supabase
         .from("clients")
@@ -277,6 +295,58 @@ export function ClientForm() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="client_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CLIENT_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="segment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Segmento</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o segmento" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {SEGMENTS.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField

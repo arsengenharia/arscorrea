@@ -154,7 +154,7 @@ export function ProjectDetails() {
                   </div>
                   <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
                     <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
-                      ID: {project.code || projectId?.slice(0, 8)}
+                      ID: {projectId?.slice(0, 8)}
                     </span>
                     <span className="w-1 h-1 rounded-full bg-slate-300" />
                     <span>{project.client?.name}</span>

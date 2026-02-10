@@ -1,4 +1,4 @@
-import { Building, Calendar, FileText, Home, LogOut, PanelLeftClose, PanelLeftOpen, Users } from "lucide-react";
+import { Building, Calendar, FileText, Home, LogOut, PanelLeftClose, PanelLeftOpen, Users, Truck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +43,11 @@ const menuItems = [
     title: "Agenda",
     icon: Calendar,
     path: "/agenda",
+  },
+  {
+    title: "Fornecedores",
+    icon: Truck,
+    path: "/fornecedores",
   },
 ];
 

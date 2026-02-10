@@ -23,6 +23,7 @@ import Agenda from "./pages/Agenda";
 import ProjectReport from "./pages/ProjectReport";
 import ProjectCosts from "./pages/ProjectCosts";
 import ProjectRevenues from "./pages/ProjectRevenues";
+import Suppliers from "./pages/Suppliers";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -180,6 +181,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Agenda />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fornecedores"
+            element={
+              <ProtectedRoute>
+                <Suppliers />
               </ProtectedRoute>
             }
           />
