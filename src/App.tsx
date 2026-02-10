@@ -24,6 +24,7 @@ import ProjectReport from "./pages/ProjectReport";
 import ProjectCosts from "./pages/ProjectCosts";
 import ProjectRevenues from "./pages/ProjectRevenues";
 import Suppliers from "./pages/Suppliers";
+import ClientDetails from "./pages/ClientDetails";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -61,6 +62,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ClientsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clientes/:clientId"
+            element={
+              <ProtectedRoute>
+                <ClientDetails />
               </ProtectedRoute>
             }
           />
