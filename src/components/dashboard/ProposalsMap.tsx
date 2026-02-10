@@ -2,11 +2,12 @@ import { useMemo, useState, useEffect } from "react";
 import { APIProvider, Map, AdvancedMarker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
+// Checkbox removido visualmente em favor de botões estilo "Chip" para design mais limpo
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MapPin, Flame } from "lucide-react";
+import { MapPin, Flame, Filter, Layers } from "lucide-react";
 import { useGeocoding, type ProposalLocation } from "@/hooks/use-geocoding";
+import { cn } from "@/lib/utils"; // Assumindo que você tem o utilitário cn, caso não, use string template padrão
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
 
@@ -26,9 +27,7 @@ const STAGES = [
   { key: "proposta aprovada", name: "Proposta aprovada", color: "#22C55E" },
 ] as const;
 
-const STAGE_COLORS: Record<string, string> = Object.fromEntries(
-  STAGES.map((s) => [s.key, s.color])
-);
+const STAGE_COLORS: Record<string, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.color]));
 
 const DEFAULT_COLOR = "#6B7280";
 
@@ -108,7 +107,7 @@ function HeatmapLayer({ proposals }: { proposals: ProposalLocation[] }) {
     };
 
     const cleanup = loadHeatmap();
-    
+
     return () => {
       cleanup.then((fn) => fn?.());
     };
@@ -122,7 +121,7 @@ function MapContent({ proposals, showHeatmap }: MapContentProps) {
 
   const proposalsWithCoords = useMemo(
     () => proposals.filter((p) => p.lat !== undefined && p.lng !== undefined),
-    [proposals]
+    [proposals],
   );
 
   const center = BELO_HORIZONTE_CENTER;
@@ -137,38 +136,39 @@ function MapContent({ proposals, showHeatmap }: MapContentProps) {
       className="w-full h-full rounded-lg"
     >
       {showHeatmap && <HeatmapLayer proposals={proposalsWithCoords} />}
-      
-      {!showHeatmap && proposalsWithCoords.map((proposal) => (
-        <AdvancedMarker
-          key={proposal.id}
-          position={{ lat: proposal.lat!, lng: proposal.lng! }}
-          onMouseEnter={() => setHoveredProposal(proposal)}
-          onMouseLeave={() => setHoveredProposal(null)}
-        >
-          <div className="relative group cursor-pointer">
-            {/* Pulse animation ring */}
-            <div
-              className="absolute inset-0 w-10 h-10 rounded-full opacity-30 animate-ping"
-              style={{ backgroundColor: getStageColor(proposal.stageName) }}
-            />
-            {/* Main pin */}
-            <div
-              className="relative w-10 h-10 rounded-full border-3 border-white shadow-xl flex items-center justify-center transition-all duration-200 group-hover:scale-125 group-hover:shadow-2xl"
-              style={{ 
-                backgroundColor: getStageColor(proposal.stageName),
-                boxShadow: `0 4px 14px -2px ${getStageColor(proposal.stageName)}80, 0 2px 6px -1px rgba(0,0,0,0.3)`
-              }}
-            >
-              <MapPin className="w-5 h-5 text-white drop-shadow-sm" />
+
+      {!showHeatmap &&
+        proposalsWithCoords.map((proposal) => (
+          <AdvancedMarker
+            key={proposal.id}
+            position={{ lat: proposal.lat!, lng: proposal.lng! }}
+            onMouseEnter={() => setHoveredProposal(proposal)}
+            onMouseLeave={() => setHoveredProposal(null)}
+          >
+            <div className="relative group cursor-pointer">
+              {/* Pulse animation ring */}
+              <div
+                className="absolute inset-0 w-10 h-10 rounded-full opacity-30 animate-ping"
+                style={{ backgroundColor: getStageColor(proposal.stageName) }}
+              />
+              {/* Main pin */}
+              <div
+                className="relative w-10 h-10 rounded-full border-3 border-white shadow-xl flex items-center justify-center transition-all duration-200 group-hover:scale-125 group-hover:shadow-2xl"
+                style={{
+                  backgroundColor: getStageColor(proposal.stageName),
+                  boxShadow: `0 4px 14px -2px ${getStageColor(proposal.stageName)}80, 0 2px 6px -1px rgba(0,0,0,0.3)`,
+                }}
+              >
+                <MapPin className="w-5 h-5 text-white drop-shadow-sm" />
+              </div>
+              {/* Bottom pointer */}
+              <div
+                className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent"
+                style={{ borderTopColor: getStageColor(proposal.stageName) }}
+              />
             </div>
-            {/* Bottom pointer */}
-            <div
-              className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent"
-              style={{ borderTopColor: getStageColor(proposal.stageName) }}
-            />
-          </div>
-        </AdvancedMarker>
-      ))}
+          </AdvancedMarker>
+        ))}
 
       {!showHeatmap && hoveredProposal && hoveredProposal.lat && hoveredProposal.lng && (
         <InfoWindow
@@ -177,9 +177,7 @@ function MapContent({ proposals, showHeatmap }: MapContentProps) {
           headerDisabled
         >
           <div className="p-2 min-w-[200px]">
-            <div className="font-semibold text-gray-900 mb-1">
-              {hoveredProposal.number || "Sem número"}
-            </div>
+            <div className="font-semibold text-gray-900 mb-1">{hoveredProposal.number || "Sem número"}</div>
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Cliente:</span>
@@ -199,9 +197,7 @@ function MapContent({ proposals, showHeatmap }: MapContentProps) {
                 </span>
               </div>
               {hoveredProposal.address && (
-                <div className="text-xs text-gray-500 mt-1 pt-1 border-t">
-                  {hoveredProposal.address}
-                </div>
+                <div className="text-xs text-gray-500 mt-1 pt-1 border-t">{hoveredProposal.address}</div>
               )}
             </div>
           </div>
@@ -220,40 +216,68 @@ interface MapFiltersProps {
 
 function MapFilters({ selectedStages, onStageToggle, showHeatmap, onHeatmapToggle }: MapFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-      {/* Stage filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <span className="text-sm font-medium text-muted-foreground">Filtrar:</span>
-        {STAGES.map((stage) => (
-          <label
-            key={stage.key}
-            className="flex items-center gap-2 cursor-pointer select-none"
+    <div className="flex flex-col gap-4 mb-4">
+      {/* Top Bar: Title/Context + View Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Filter className="h-4 w-4" />
+          <span>Filtrar etapas ativas</span>
+        </div>
+
+        {/* Heatmap Toggle with cleaner styling */}
+        <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+          <Label
+            htmlFor="heatmap-toggle"
+            className={`text-xs font-medium cursor-pointer transition-colors ${showHeatmap ? "text-slate-400" : "text-slate-700"}`}
           >
-            <Checkbox
-              checked={selectedStages.has(stage.key)}
-              onCheckedChange={() => onStageToggle(stage.key)}
-              className="border-2"
-              style={{ 
-                borderColor: stage.color,
-                backgroundColor: selectedStages.has(stage.key) ? stage.color : 'transparent'
-              }}
-            />
-            <span className="text-sm">{stage.name}</span>
-          </label>
-        ))}
+            Pinos
+          </Label>
+          <Switch
+            id="heatmap-toggle"
+            checked={showHeatmap}
+            onCheckedChange={onHeatmapToggle}
+            className="scale-75 data-[state=checked]:bg-orange-500"
+          />
+          <Label
+            htmlFor="heatmap-toggle"
+            className={`flex items-center gap-1 text-xs font-medium cursor-pointer transition-colors ${showHeatmap ? "text-orange-600" : "text-slate-400"}`}
+          >
+            <Flame className="h-3 w-3" />
+            Mapa de Calor
+          </Label>
+        </div>
       </div>
 
-      {/* Heatmap toggle */}
-      <div className="flex items-center gap-2">
-        <Switch
-          id="heatmap-toggle"
-          checked={showHeatmap}
-          onCheckedChange={onHeatmapToggle}
-        />
-        <Label htmlFor="heatmap-toggle" className="flex items-center gap-1.5 cursor-pointer">
-          <Flame className="h-4 w-4 text-orange-500" />
-          <span className="text-sm">Heat Zone</span>
-        </Label>
+      {/* Chips/Pills Container - Substitui os Checkboxes tradicionais */}
+      <div className="flex flex-wrap gap-2">
+        {STAGES.map((stage) => {
+          const isSelected = selectedStages.has(stage.key);
+          return (
+            <button
+              key={stage.key}
+              onClick={() => onStageToggle(stage.key)}
+              className={`
+                group relative flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border
+                ${
+                  isSelected ? "bg-white shadow-sm" : "bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100"
+                }
+              `}
+              style={{
+                borderColor: isSelected ? stage.color : "transparent",
+                color: isSelected ? "#334155" : "", // Slate-700 when active
+              }}
+            >
+              {/* Dot Indicator */}
+              <span
+                className={`w-2 h-2 rounded-full transition-all ${isSelected ? "scale-100" : "scale-75 opacity-50 grayscale"}`}
+                style={{ backgroundColor: stage.color }}
+              />
+              {stage.name}
+
+              {/* Check icon placeholder removed for cleaner look, relying on color/border state */}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -262,37 +286,44 @@ function MapFilters({ selectedStages, onStageToggle, showHeatmap, onHeatmapToggl
 function MapLegend({ showHeatmap }: { showHeatmap: boolean }) {
   if (showHeatmap) {
     return (
-      <div className="flex items-center justify-center gap-2 mt-3">
-        <span className="text-xs text-muted-foreground">Menor concentração</span>
-        <div className="h-3 w-32 rounded-full bg-gradient-to-r from-cyan-400 via-blue-600 to-red-500" />
-        <span className="text-xs text-muted-foreground">Maior concentração</span>
+      <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-slate-50">
+        <div className="flex items-center justify-between w-full max-w-xs text-xs text-slate-400 font-medium uppercase tracking-wide">
+          <span>Menor Volume</span>
+          <span>Maior Volume</span>
+        </div>
+        <div className="h-2 w-full max-w-xs rounded-full bg-gradient-to-r from-cyan-400 via-blue-600 to-red-500 shadow-inner opacity-80" />
       </div>
     );
   }
 
+  // Grid Layout for cleaner legend
   return (
-    <div className="flex flex-wrap gap-4 mt-3 justify-center">
-      {STAGES.map((stage) => (
-        <div key={stage.name} className="flex items-center gap-1.5">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: stage.color }}
-          />
-          <span className="text-xs text-muted-foreground">{stage.name}</span>
-        </div>
-      ))}
+    <div className="mt-4 pt-4 border-t border-slate-50">
+      <div className="flex items-center gap-2 mb-3 text-xs text-slate-400 font-medium uppercase tracking-wider">
+        <Layers className="h-3 w-3" />
+        Legenda
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
+        {STAGES.map((stage) => (
+          <div key={stage.name} className="flex items-center gap-2">
+            <div
+              className="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0"
+              style={{ backgroundColor: stage.color }}
+            />
+            <span className="text-xs text-slate-600 truncate">{stage.name}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
   const { geocodedProposals, isGeocoding, progress } = useGeocoding(data);
-  
+
   // Filter state - all stages selected by default
-  const [selectedStages, setSelectedStages] = useState<Set<string>>(
-    new Set(STAGES.map((s) => s.key))
-  );
-  
+  const [selectedStages, setSelectedStages] = useState<Set<string>>(new Set(STAGES.map((s) => s.key)));
+
   // Heatmap toggle state
   const [showHeatmap, setShowHeatmap] = useState(false);
 
@@ -316,9 +347,7 @@ export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
     });
   }, [geocodedProposals, selectedStages]);
 
-  const geocodedCount = filteredProposals.filter(
-    (p) => p.lat !== undefined && p.lng !== undefined
-  ).length;
+  const geocodedCount = filteredProposals.filter((p) => p.lat !== undefined && p.lng !== undefined).length;
 
   if (isLoading) {
     return (
@@ -337,18 +366,24 @@ export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
   }
 
   return (
-    <Card>
+    <Card className="shadow-sm border-slate-100">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Mapa de Propostas
-          </CardTitle>
-          <div className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <MapPin className="h-5 w-5 text-blue-500" />
+            </div>
+            <CardTitle className="text-lg font-medium text-slate-700">Mapa de Propostas</CardTitle>
+          </div>
+          <div className="text-sm text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
             {isGeocoding ? (
-              <span>Carregando localizações... ({progress.geocoded}/{progress.total})</span>
+              <span className="animate-pulse">
+                Carregando... ({progress.geocoded}/{progress.total})
+              </span>
             ) : (
-              <span>{geocodedCount} de {data.length} propostas mapeadas</span>
+              <span>
+                <span className="font-semibold text-slate-700">{geocodedCount}</span> de {data.length} visíveis
+              </span>
             )}
           </div>
         </div>
@@ -360,7 +395,7 @@ export function ProposalsMap({ data, isLoading }: ProposalsMapProps) {
           showHeatmap={showHeatmap}
           onHeatmapToggle={setShowHeatmap}
         />
-        <div className="w-full h-[400px] rounded-lg overflow-hidden border">
+        <div className="w-full h-[450px] rounded-xl overflow-hidden border border-slate-100 shadow-inner relative">
           <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
             <MapContent proposals={filteredProposals} showHeatmap={showHeatmap} />
           </APIProvider>
