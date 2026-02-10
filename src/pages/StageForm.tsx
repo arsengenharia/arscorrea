@@ -25,6 +25,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const addStageFormSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   status: z.string().optional(),
+  stage_weight: z.string().optional(),
   report: z.string().optional(),
   report_start_date: z.date().optional(),
   report_end_date: z.date().optional(),
@@ -44,6 +45,7 @@ export default function StageForm() {
     resolver: zodResolver(addStageFormSchema),
     defaultValues: {
       status: "pendente",
+      stage_weight: "0",
       report_start_date: undefined,
       report_end_date: undefined,
     },
@@ -66,6 +68,7 @@ export default function StageForm() {
         const formattedData = {
           name: values.name,
           status: values.status || "pendente",
+          stage_weight: Number(values.stage_weight) || 0,
           report: values.report,
           project_id: projectId,
           report_start_date: values.report_start_date ? values.report_start_date.toISOString().split('T')[0] : null,
@@ -185,6 +188,20 @@ export default function StageForm() {
               )}
             />
             
+            <FormField
+              control={form.control}
+              name="stage_weight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso da Etapa (ex: 0.10 = 10%)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="0" max="1" placeholder="0.00" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="report_start_date"

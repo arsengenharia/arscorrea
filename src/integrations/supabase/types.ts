@@ -447,6 +447,135 @@ export type Database = {
           },
         ]
       }
+      project_costs: {
+        Row: {
+          actual_value: number
+          cost_type: string
+          created_at: string
+          description: string | null
+          expected_value: number
+          id: string
+          project_id: string
+          record_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_value?: number
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          expected_value?: number
+          id?: string
+          project_id: string
+          record_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_value?: number
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          expected_value?: number
+          id?: string
+          project_id?: string
+          record_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_reports: {
+        Row: {
+          created_at: string
+          generated_at: string
+          id: string
+          observations: string | null
+          pdf_path: string | null
+          project_id: string
+          report_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          observations?: string | null
+          pdf_path?: string | null
+          project_id: string
+          report_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          observations?: string | null
+          pdf_path?: string | null
+          project_id?: string
+          report_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_revenues: {
+        Row: {
+          actual_value: number
+          created_at: string
+          description: string | null
+          expected_value: number
+          id: string
+          project_id: string
+          record_date: string | null
+          revenue_type: string
+          updated_at: string
+        }
+        Insert: {
+          actual_value?: number
+          created_at?: string
+          description?: string | null
+          expected_value?: number
+          id?: string
+          project_id: string
+          record_date?: string | null
+          revenue_type?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_value?: number
+          created_at?: string
+          description?: string | null
+          expected_value?: number
+          id?: string
+          project_id?: string
+          record_date?: string | null
+          revenue_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_revenues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_id: string
@@ -759,6 +888,7 @@ export type Database = {
           report: string | null
           report_end_date: string | null
           report_start_date: string | null
+          stage_weight: number
           status: string
           updated_at: string
         }
@@ -770,6 +900,7 @@ export type Database = {
           report?: string | null
           report_end_date?: string | null
           report_start_date?: string | null
+          stage_weight?: number
           status?: string
           updated_at?: string
         }
@@ -781,6 +912,7 @@ export type Database = {
           report?: string | null
           report_end_date?: string | null
           report_start_date?: string | null
+          stage_weight?: number
           status?: string
           updated_at?: string
         }
