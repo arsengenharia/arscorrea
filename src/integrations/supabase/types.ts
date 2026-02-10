@@ -132,6 +132,7 @@ export type Database = {
       clients: {
         Row: {
           city: string | null
+          client_type: string | null
           code: string
           complement: string | null
           created_at: string
@@ -147,6 +148,7 @@ export type Database = {
           observations: string | null
           phone: string | null
           responsible: string | null
+          segment: string | null
           service_rep: string | null
           state: string | null
           street: string | null
@@ -155,6 +157,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          client_type?: string | null
           code: string
           complement?: string | null
           created_at?: string
@@ -170,6 +173,7 @@ export type Database = {
           observations?: string | null
           phone?: string | null
           responsible?: string | null
+          segment?: string | null
           service_rep?: string | null
           state?: string | null
           street?: string | null
@@ -178,6 +182,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          client_type?: string | null
           code?: string
           complement?: string | null
           created_at?: string
@@ -193,6 +198,7 @@ export type Database = {
           observations?: string | null
           phone?: string | null
           responsible?: string | null
+          segment?: string | null
           service_rep?: string | null
           state?: string | null
           street?: string | null
@@ -356,6 +362,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          additive_value: number | null
           client_id: string
           commission_expected_date: string | null
           commission_expected_value: number | null
@@ -366,12 +373,14 @@ export type Database = {
           created_by: string | null
           discount_type: string | null
           discount_value: number | null
+          due_date: string | null
           id: string
           payment_entry_value: number | null
           payment_installment_value: number | null
           payment_installments_count: number | null
           payment_notes: string | null
           pdf_path: string | null
+          project_id: string | null
           proposal_id: string
           scope_text: string | null
           status: string | null
@@ -381,6 +390,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          additive_value?: number | null
           client_id: string
           commission_expected_date?: string | null
           commission_expected_value?: number | null
@@ -391,12 +401,14 @@ export type Database = {
           created_by?: string | null
           discount_type?: string | null
           discount_value?: number | null
+          due_date?: string | null
           id?: string
           payment_entry_value?: number | null
           payment_installment_value?: number | null
           payment_installments_count?: number | null
           payment_notes?: string | null
           pdf_path?: string | null
+          project_id?: string | null
           proposal_id: string
           scope_text?: string | null
           status?: string | null
@@ -406,6 +418,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          additive_value?: number | null
           client_id?: string
           commission_expected_date?: string | null
           commission_expected_value?: number | null
@@ -416,12 +429,14 @@ export type Database = {
           created_by?: string | null
           discount_type?: string | null
           discount_value?: number | null
+          due_date?: string | null
           id?: string
           payment_entry_value?: number | null
           payment_installment_value?: number | null
           payment_installments_count?: number | null
           payment_notes?: string | null
           pdf_path?: string | null
+          project_id?: string | null
           proposal_id?: string
           scope_text?: string | null
           status?: string | null
@@ -436,6 +451,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -457,6 +479,7 @@ export type Database = {
           id: string
           project_id: string
           record_date: string | null
+          supplier_id: string | null
           updated_at: string
         }
         Insert: {
@@ -468,6 +491,7 @@ export type Database = {
           id?: string
           project_id: string
           record_date?: string | null
+          supplier_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -479,6 +503,7 @@ export type Database = {
           id?: string
           project_id?: string
           record_date?: string | null
+          supplier_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -487,6 +512,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_costs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -762,11 +794,14 @@ export type Database = {
           discount_value: number | null
           exclusions: string | null
           execution_days: number | null
+          expected_close_date: string | null
           id: string
+          loss_reason: string | null
           notes: string | null
           number: string | null
           payment_terms: string | null
           pdf_path: string | null
+          project_id: string | null
           scope_text: string | null
           stage_id: string | null
           state: string | null
@@ -789,11 +824,14 @@ export type Database = {
           discount_value?: number | null
           exclusions?: string | null
           execution_days?: number | null
+          expected_close_date?: string | null
           id?: string
+          loss_reason?: string | null
           notes?: string | null
           number?: string | null
           payment_terms?: string | null
           pdf_path?: string | null
+          project_id?: string | null
           scope_text?: string | null
           stage_id?: string | null
           state?: string | null
@@ -816,11 +854,14 @@ export type Database = {
           discount_value?: number | null
           exclusions?: string | null
           execution_days?: number | null
+          expected_close_date?: string | null
           id?: string
+          loss_reason?: string | null
           notes?: string | null
           number?: string | null
           payment_terms?: string | null
           pdf_path?: string | null
+          project_id?: string | null
           scope_text?: string | null
           stage_id?: string | null
           state?: string | null
@@ -839,6 +880,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -925,6 +973,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          document: string | null
+          email: string | null
+          id: string
+          legal_name: string | null
+          phone: string | null
+          trade_name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          phone?: string | null
+          trade_name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          phone?: string | null
+          trade_name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

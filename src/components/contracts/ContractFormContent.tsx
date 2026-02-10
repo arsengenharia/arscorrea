@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save, FileText, Building2, FileSignature, ListTodo, Wallet, Loader2 } from "lucide-react";
+import { ProjectSelect } from "@/components/shared/ProjectSelect";
 
 import { ContractProposalSelect } from "@/components/contracts/ContractProposalSelect";
 import { ContractClientSection } from "@/components/contracts/ContractClientSection";
@@ -61,6 +62,9 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
   const [status, setStatus] = useState("ativo");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [additiveValue, setAdditiveValue] = useState(0);
 
   // Calculated values
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
@@ -96,6 +100,9 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
       setDiscountValue(contract.discount_value || 0);
       setStatus(contract.status || "ativo");
       setPaymentNotes(contract.payment_notes || "");
+      setProjectId((contract as any).project_id || "");
+      setDueDate((contract as any).due_date || "");
+      setAdditiveValue((contract as any).additive_value || 0);
 
       // Load items
       const { data: contractItems } = await supabase
@@ -198,7 +205,7 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
       const entryLine = paymentLines.find((l) => l.kind === "entrada");
       const installmentLines = paymentLines.filter((l) => l.kind === "parcela");
 
-      const contractData = {
+      const contractData: any = {
         proposal_id: proposalId,
         client_id: client.id,
         title,
@@ -209,6 +216,9 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
         total,
         status,
         payment_notes: paymentNotes,
+        project_id: projectId || null,
+        due_date: dueDate || null,
+        additive_value: additiveValue || 0,
         // Legacy fields - synced for compatibility
         payment_entry_value: entryLine?.expected_value || 0,
         payment_installments_count: installmentLines.length,
@@ -480,6 +490,28 @@ export function ContractFormContent({ contractId }: ContractFormContentProps) {
                         <SelectItem value="cancelado">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">Obra Vinculada</Label>
+                    <ProjectSelect value={projectId} onChange={setProjectId} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">Data de Vencimento</Label>
+                    <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">Valor de Aditivos (R$)</Label>
+                    <Input 
+                      type="number" 
+                      value={additiveValue || ""} 
+                      onChange={(e) => setAdditiveValue(Number(e.target.value))} 
+                      placeholder="0,00"
+                    />
                   </div>
                 </CardContent>
               </Card>

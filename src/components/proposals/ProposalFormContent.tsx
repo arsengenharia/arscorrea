@@ -4,9 +4,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Importando Input do UI kit para melhor estilo
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale } from "lucide-react";
+import { ProjectSelect } from "@/components/shared/ProjectSelect";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalClientSection } from "./ProposalClientSection";
 import { ProposalWorkSection } from "./ProposalWorkSection";
@@ -73,6 +75,9 @@ export type ProposalFormData = {
   discountType: "percent" | "fixed";
   discountValue: number;
   status: string;
+  projectId: string;
+  lossReason: string;
+  expectedCloseDate: string;
 };
 
 export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormContentProps) => {
@@ -96,6 +101,9 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
     discountType: "fixed",
     discountValue: 0,
     status: "draft",
+    projectId: "",
+    lossReason: "",
+    expectedCloseDate: "",
   });
 
   const [items, setItems] = useState<ProposalItem[]>([]);
@@ -161,6 +169,9 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
         discountType: (existingProposal.discount_type as "percent" | "fixed") || "fixed",
         discountValue: existingProposal.discount_value || 0,
         status: existingProposal.status || "draft",
+        projectId: (existingProposal as any).project_id || "",
+        lossReason: (existingProposal as any).loss_reason || "",
+        expectedCloseDate: (existingProposal as any).expected_close_date || "",
       });
 
       if (existingProposal.proposal_items) {
@@ -230,7 +241,7 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
     setIsSaving(true);
 
     try {
-      const proposalData = {
+      const proposalData: any = {
         client_id: formData.clientId,
         title: formData.title,
         condo_name: formData.condoName,
@@ -249,6 +260,9 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
         subtotal,
         total,
         status: newStatus || formData.status,
+        project_id: formData.projectId || null,
+        loss_reason: formData.lossReason || null,
+        expected_close_date: formData.expectedCloseDate || null,
       };
 
       let savedProposalId = proposalId;
@@ -479,6 +493,33 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
               onClientUpdated={handleClientUpdated}
             />
           </div>
+        </section>
+
+        {/* Extra CRM fields */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Obra Vinculada</label>
+            <ProjectSelect value={formData.projectId} onChange={(v) => updateFormData("projectId", v)} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Data Prevista de Fechamento</label>
+            <Input
+              type="date"
+              value={formData.expectedCloseDate}
+              onChange={(e) => updateFormData("expectedCloseDate", e.target.value)}
+            />
+          </div>
+          {formData.status === "perdida" && (
+            <div className="space-y-2 lg:col-span-1">
+              <label className="text-sm font-medium text-slate-700">Motivo de Perda</label>
+              <Textarea
+                value={formData.lossReason}
+                onChange={(e) => updateFormData("lossReason", e.target.value)}
+                placeholder="Descreva o motivo da perda..."
+                className="min-h-[80px]"
+              />
+            </div>
+          )}
         </section>
 
         {/* 4. Scope & Items Section */}
