@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
+import { ReportPDFButton } from "@/components/reports/ReportPDFButton";
 
 export default function ProjectReport() {
   const { projectId } = useParams();
@@ -48,6 +49,7 @@ export default function ProjectReport() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-3xl font-bold tracking-tight">Relatório Gerencial</h2>
+          {data && <ReportPDFButton data={data} />}
         </div>
 
         {/* Project & Client Info */}
