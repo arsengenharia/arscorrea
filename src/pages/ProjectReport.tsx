@@ -5,7 +5,10 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, Line,
+} from "recharts";
 import { ReportPDFButton } from "@/components/reports/ReportPDFButton";
 
 export default function ProjectReport() {
@@ -34,12 +37,13 @@ export default function ProjectReport() {
   });
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const iecColor = (v: number) => v > 1 ? "text-red-600" : v < 1 ? "text-green-600" : "text-foreground";
+  const ifecColor = (v: number) => v >= 1 ? "text-green-600" : "text-amber-600";
 
   if (isLoading) return <Layout><div className="container mx-auto p-6">Carregando relatório...</div></Layout>;
   if (error || !data) return <Layout><div className="container mx-auto p-6">Erro ao carregar relatório</div></Layout>;
 
-  const { obra, cliente, analise_fisica, analise_financeira } = data;
-  const af = analise_financeira;
+  const { obra, cliente, analise_fisica, analise_financeira: af } = data;
 
   return (
     <Layout>
@@ -77,85 +81,125 @@ export default function ProjectReport() {
           </Card>
         </div>
 
-        {/* Physical KPIs */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle>IFEC</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">{analise_fisica.ifec.valor}%</p>
-              <p className="text-sm text-muted-foreground">{analise_fisica.ifec.descricao}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>IEC</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">{analise_fisica.iec.valor}%</p>
-              <p className="text-sm text-muted-foreground">{analise_fisica.iec.descricao}</p>
-            </CardContent>
-          </Card>
+        {/* Charts + Side Panels */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Left: Charts (2/3) */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Line Chart - Accumulated Production */}
+            {analise_fisica.producao_acumulada.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Produção Prevista x Produção Real (Acumulada)</CardTitle></CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analise_fisica.producao_acumulada}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="mes_ano" fontSize={11} />
+                      <YAxis domain={[0, 100]} unit="%" fontSize={11} />
+                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+                      <Legend />
+                      <Line type="monotone" dataKey="previsto" name="Previsto" stroke="hsl(var(--primary))" strokeWidth={2} />
+                      <Line type="monotone" dataKey="real" name="Real" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Bar Chart - Monthly Production */}
+            {analise_fisica.producao_mensal.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Produção Mensal (%)</CardTitle></CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analise_fisica.producao_mensal}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="mes_ano" fontSize={11} />
+                      <YAxis unit="%" fontSize={11} />
+                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+                      <Legend />
+                      <Bar dataKey="real" name="Produzido no Mês" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right: Analysis Panels (1/3) */}
+          <div className="space-y-4">
+            {/* Panel 1 - Physical Analysis */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Análise Física</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">IFEC</p>
+                  <p className={`text-2xl font-bold ${ifecColor(analise_fisica.ifec.valor)}`}>
+                    {analise_fisica.ifec.valor.toFixed(3)}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize">{analise_fisica.ifec.descricao}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Panel 2 - Financial Analysis (IEC) */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Análise Financeira</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { label: "IEC Total", data: af.iec_total },
+                  { label: "IEC Direto", data: af.iec_direto },
+                  { label: "IEC Indireto", data: af.iec_indireto },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className={`text-lg font-bold ${item.data ? iecColor(item.data.valor) : ""}`}>
+                      {item.data?.valor?.toFixed(3) ?? "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">{item.data?.descricao ?? ""}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Panel 3 - General Cost Analysis */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Análise do Custo Geral</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="space-y-1">
+                  <p className="font-semibold text-xs text-muted-foreground">Custo Previsto</p>
+                  <p>Total: {fmt(af.custo_total_previsto)}</p>
+                  <p>Direto: {fmt(af.custo_direto_previsto)}</p>
+                  <p>Indireto: {fmt(af.custo_indireto_previsto)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-semibold text-xs text-muted-foreground">Custo Real</p>
+                  <p>Total: {fmt(af.custo_total_real)}</p>
+                  <p>Direto: {fmt(af.custo_direto_real)}</p>
+                  <p>Indireto: {fmt(af.custo_indireto_real)}</p>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="font-semibold text-xs text-muted-foreground">Variação</p>
+                  <p className={`font-bold ${af.variacao_custo > 0 ? "text-red-600" : "text-green-600"}`}>
+                    {fmt(af.variacao_custo)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Monthly Production Chart */}
-        {analise_fisica.producao_mensal.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle>Produção Mensal (%)</CardTitle></CardHeader>
-            <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analise_fisica.producao_mensal}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes_ano" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="previsto" name="Previsto" fill="hsl(var(--primary))" />
-                  <Bar dataKey="real" name="Real" fill="hsl(var(--accent))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Accumulated Production Chart */}
-        {analise_fisica.producao_acumulada.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle>Produção Acumulada (%)</CardTitle></CardHeader>
-            <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analise_fisica.producao_acumulada}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes_ano" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="previsto" name="Previsto" stroke="hsl(var(--primary))" strokeWidth={2} />
-                  <Line type="monotone" dataKey="real" name="Real" stroke="hsl(var(--accent))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Financial Analysis */}
+        {/* Financial Summary */}
         <Card>
-          <CardHeader><CardTitle>Análise Financeira</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Resultado Financeiro</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <h4 className="font-semibold">Custos Previstos</h4>
-                <p className="text-sm">Direto: {fmt(af.custo_direto_previsto)}</p>
-                <p className="text-sm">Indireto: {fmt(af.custo_indireto_previsto)}</p>
-                <p className="text-sm font-bold">Total: {fmt(af.custo_total_previsto)}</p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold">Custos Realizados</h4>
-                <p className="text-sm">Direto: {fmt(af.custo_direto_real)}</p>
-                <p className="text-sm">Indireto: {fmt(af.custo_indireto_real)}</p>
-                <p className="text-sm font-bold">Total: {fmt(af.custo_total_real)}</p>
+                <h4 className="font-semibold">Receitas</h4>
+                <p className="text-sm">Prevista: {fmt(af.receita_total_prevista)}</p>
+                <p className="text-sm">Realizada: {fmt(af.receita_total_realizada)}</p>
               </div>
               <div className="space-y-2">
                 <h4 className="font-semibold">Resultado</h4>
-                <p className="text-sm">Receita Prevista: {fmt(af.receita_total_prevista)}</p>
-                <p className="text-sm">Receita Realizada: {fmt(af.receita_total_realizada)}</p>
                 <p className="text-sm">Saldo: {fmt(af.saldo_obra)}</p>
                 <p className="text-sm font-bold">Margem: {af.margem_lucro}%</p>
               </div>

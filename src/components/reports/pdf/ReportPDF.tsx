@@ -6,13 +6,15 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
 const n = (v: number | null | undefined) => (v != null ? v.toFixed(1) : "—");
+const n3 = (v: number | null | undefined) => (v != null ? v.toFixed(3) : "—");
+
+interface IecData { valor: number; descricao: string }
 
 interface ReportData {
   obra: { nome: string; gestor?: string; data_inicio?: string; data_conclusao_prevista?: string; prazo_dias?: number; status: string };
   cliente: { nome: string; codigo: string; responsavel?: string; telefone?: string; endereco?: string };
   analise_fisica: {
     ifec: { valor: number; descricao: string };
-    iec: { valor: number; descricao: string };
     producao_mensal: { mes_ano: string; previsto: number; real: number }[];
     producao_acumulada: { mes_ano: string; previsto: number; real: number }[];
   };
@@ -22,6 +24,8 @@ interface ReportData {
     custo_total_previsto: number; custo_total_real: number;
     receita_total_prevista: number; receita_total_realizada: number;
     saldo_obra: number; margem_lucro: number;
+    variacao_custo: number;
+    iec_total?: IecData; iec_direto?: IecData; iec_indireto?: IecData;
   };
   observacoes_gerenciais?: string;
 }
@@ -67,6 +71,17 @@ function ProductionTable({ title, data }: { title: string; data: { mes_ano: stri
   );
 }
 
+function IecPanel({ label, data }: { label: string; data?: IecData }) {
+  if (!data) return null;
+  return (
+    <View style={s.kpiCard}>
+      <Text style={s.kpiLabel}>{label}</Text>
+      <Text style={s.kpiValue}>{n3(data.valor)}</Text>
+      <Text style={s.kpiDesc}>{data.descricao}</Text>
+    </View>
+  );
+}
+
 export function ReportPDF({ data }: { data: ReportData }) {
   const { obra, cliente, analise_fisica: af, analise_financeira: fin } = data;
 
@@ -106,13 +121,8 @@ export function ReportPDF({ data }: { data: ReportData }) {
         <View style={s.kpiRow}>
           <View style={s.kpiCard}>
             <Text style={s.kpiLabel}>IFEC</Text>
-            <Text style={s.kpiValue}>{af.ifec.valor}%</Text>
+            <Text style={s.kpiValue}>{n3(af.ifec.valor)}</Text>
             <Text style={s.kpiDesc}>{af.ifec.descricao}</Text>
-          </View>
-          <View style={s.kpiCard}>
-            <Text style={s.kpiLabel}>IEC</Text>
-            <Text style={s.kpiValue}>{af.iec.valor}%</Text>
-            <Text style={s.kpiDesc}>{af.iec.descricao}</Text>
           </View>
         </View>
 
@@ -129,6 +139,13 @@ export function ReportPDF({ data }: { data: ReportData }) {
       <Page size="A4" style={s.page}>
         <Header />
         <Text style={s.sectionTitle}>Análise Financeira</Text>
+
+        {/* IEC Panels */}
+        <View style={s.kpiRow}>
+          <IecPanel label="IEC Total" data={fin.iec_total} />
+          <IecPanel label="IEC Direto" data={fin.iec_direto} />
+          <IecPanel label="IEC Indireto" data={fin.iec_indireto} />
+        </View>
 
         <View style={s.section}>
           <Text style={{ ...s.sectionTitle, fontSize: 11 }}>Custos</Text>
