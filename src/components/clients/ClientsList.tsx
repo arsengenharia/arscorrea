@@ -67,6 +67,8 @@ export default function ClientsList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [sortBy, setSortBy] = useState("name");
+  const [clientTypeFilter, setClientTypeFilter] = useState("todos");
+  const [segmentFilter, setSegmentFilter] = useState("todos");
 
   const {
     data: clients,
@@ -170,16 +172,18 @@ export default function ClientsList() {
   };
 
   const filteredClients =
-    clients?.filter(
-      (client) =>
+    clients?.filter((client) => {
+      const matchesSearch =
         client.name.toLowerCase().includes(search.toLowerCase()) ||
         client.code?.toLowerCase().includes(search.toLowerCase()) ||
-        client.document?.toLowerCase().includes(search.toLowerCase()),
-    ) || [];
+        client.document?.toLowerCase().includes(search.toLowerCase());
+      const matchesType = clientTypeFilter === "todos" || client.client_type === clientTypeFilter;
+      const matchesSegment = segmentFilter === "todos" || client.segment === segmentFilter;
+      return matchesSearch && matchesType && matchesSegment;
+    }) || [];
 
   const handleView = (client: any) => {
-    setSelectedClient(client);
-    setViewDialogOpen(true);
+    navigate(`/clientes/${client.id}`);
   };
 
   // --- Loading State ---
@@ -253,14 +257,40 @@ export default function ClientsList() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-white border-b border-slate-100 pb-4">
-              <ProjectsSearch
-                search={search}
-                onSearchChange={setSearch}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-              />
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <div className="flex-1">
+                  <ProjectsSearch
+                    search={search}
+                    onSearchChange={setSearch}
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={setStatusFilter}
+                    sortBy={sortBy}
+                    onSortChange={setSortBy}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={clientTypeFilter}
+                    onChange={(e) => setClientTypeFilter(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="todos">Tipo: Todos</option>
+                    <option value="Pessoa Física">Pessoa Física</option>
+                    <option value="Pessoa Jurídica">Pessoa Jurídica</option>
+                    <option value="Condomínio">Condomínio</option>
+                  </select>
+                  <select
+                    value={segmentFilter}
+                    onChange={(e) => setSegmentFilter(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="todos">Segmento: Todos</option>
+                    <option value="Residencial">Residencial</option>
+                    <option value="Comercial">Comercial</option>
+                    <option value="Industrial">Industrial</option>
+                  </select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               {!clients || clients.length === 0 ? (
