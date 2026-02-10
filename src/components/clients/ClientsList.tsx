@@ -1,16 +1,3 @@
-Para melhorar o design mantendo a segurança do sistema e sem alterar a lógica de negócios complexa (como a exclusão em cascata), adotei uma abordagem de **Dashboard Moderno**.
-
-As principais melhorias visuais foram:
-
-1. **Card Container:** A lista agora vive dentro de um `Card`, separando visualmente o conteúdo do fundo da página.
-2. **Identidade Visual:** Adicionei **Avatares** (com as iniciais do cliente) para humanizar a lista.
-3. **Tipografia e Espaçamento:** Melhorei o peso das fontes e o espaçamento das células para facilitar a leitura.
-4. **Ações Contextuais:** Os botões de WhatsApp e Maps agora são visualmente distintos e mais elegantes.
-5. **Empty States e Loading:** Estados de carregamento e lista vazia mais profissionais e informativos.
-
-Aqui está o código refatorado:
-
-```tsx
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,9 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  ArrowLeft, Eye, Pencil, Trash2, MessageCircle, MapPin, 
-  Users, UserPlus, SearchX, Phone, FileText 
+import {
+  ArrowLeft,
+  Eye,
+  Pencil,
+  Trash2,
+  MessageCircle,
+  MapPin,
+  Users,
+  UserPlus,
+  SearchX,
+  Phone,
+  FileText,
 } from "lucide-react";
 import { ViewClientDialog } from "./ViewClientDialog";
 import { EditClientDialog } from "./EditClientDialog";
@@ -49,10 +45,7 @@ const openWhatsApp = (phone: string) => {
 
 const openGoogleMaps = (address: string) => {
   const encodedAddress = encodeURIComponent(address);
-  window.open(
-    `https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`,
-    "_blank"
-  );
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`, "_blank");
 };
 
 // Helper para iniciais do nome
@@ -75,23 +68,24 @@ export default function ClientsList() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [sortBy, setSortBy] = useState("name");
 
-  const { data: clients, isLoading, error } = useQuery({
-    queryKey: ['clients'],
+  const {
+    data: clients,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["clients"],
     queryFn: async () => {
-      console.log('Fetching clients...');
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('name', { ascending: true });
-      
+      console.log("Fetching clients...");
+      const { data, error } = await supabase.from("clients").select("*").order("name", { ascending: true });
+
       if (error) {
-        console.error('Error fetching clients:', error);
+        console.error("Error fetching clients:", error);
         throw error;
       }
 
-      console.log('Clients fetched:', data);
+      console.log("Clients fetched:", data);
       return data;
-    }
+    },
   });
 
   const handleEdit = (client: any) => {
@@ -100,96 +94,88 @@ export default function ClientsList() {
   };
 
   const handleDelete = async (clientId: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este cliente e TODOS os dados vinculados (propostas, contratos, projetos)?')) return;
+    if (
+      !window.confirm(
+        "Tem certeza que deseja excluir este cliente e TODOS os dados vinculados (propostas, contratos, projetos)?",
+      )
+    )
+      return;
 
     try {
       // 1. Buscar propostas do cliente
-      const { data: proposals } = await supabase
-        .from('proposals')
-        .select('id')
-        .eq('client_id', clientId);
+      const { data: proposals } = await supabase.from("proposals").select("id").eq("client_id", clientId);
 
       // 2. Para cada proposta, excluir contratos e dados relacionados
       if (proposals && proposals.length > 0) {
         for (const proposal of proposals) {
           // Buscar contratos da proposta
-          const { data: contracts } = await supabase
-            .from('contracts')
-            .select('id')
-            .eq('proposal_id', proposal.id);
+          const { data: contracts } = await supabase.from("contracts").select("id").eq("proposal_id", proposal.id);
 
           if (contracts && contracts.length > 0) {
             for (const contract of contracts) {
-              await supabase.from('contract_payments').delete().eq('contract_id', contract.id);
-              await supabase.from('contract_items').delete().eq('contract_id', contract.id);
-              await supabase.from('contract_financial').delete().eq('contract_id', contract.id);
+              await supabase.from("contract_payments").delete().eq("contract_id", contract.id);
+              await supabase.from("contract_items").delete().eq("contract_id", contract.id);
+              await supabase.from("contract_financial").delete().eq("contract_id", contract.id);
             }
-            await supabase.from('contracts').delete().eq('proposal_id', proposal.id);
+            await supabase.from("contracts").delete().eq("proposal_id", proposal.id);
           }
 
           // Excluir imports e itens da proposta
-          await supabase.from('proposal_imports').delete().eq('proposal_id', proposal.id);
-          await supabase.from('proposal_items').delete().eq('proposal_id', proposal.id);
+          await supabase.from("proposal_imports").delete().eq("proposal_id", proposal.id);
+          await supabase.from("proposal_items").delete().eq("proposal_id", proposal.id);
         }
         // Excluir propostas
-        await supabase.from('proposals').delete().eq('client_id', clientId);
+        await supabase.from("proposals").delete().eq("client_id", clientId);
       }
 
       // 3. Buscar projetos do cliente
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', clientId);
+      const { data: projects } = await supabase.from("projects").select("id").eq("client_id", clientId);
 
       if (projects && projects.length > 0) {
         for (const project of projects) {
           // Buscar etapas do projeto
-          const { data: stages } = await supabase
-            .from('stages')
-            .select('id')
-            .eq('project_id', project.id);
+          const { data: stages } = await supabase.from("stages").select("id").eq("project_id", project.id);
 
           if (stages && stages.length > 0) {
             for (const stage of stages) {
-              await supabase.from('stage_photos').delete().eq('stage_id', stage.id);
+              await supabase.from("stage_photos").delete().eq("stage_id", stage.id);
             }
-            await supabase.from('stages').delete().eq('project_id', project.id);
+            await supabase.from("stages").delete().eq("project_id", project.id);
           }
         }
-        await supabase.from('projects').delete().eq('client_id', clientId);
+        await supabase.from("projects").delete().eq("client_id", clientId);
       }
 
       // 4. Excluir arquivos do cliente
-      await supabase.from('client_files').delete().eq('client_id', clientId);
+      await supabase.from("client_files").delete().eq("client_id", clientId);
 
       // 5. Finalmente excluir o cliente
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', clientId);
+      const { error } = await supabase.from("clients").delete().eq("id", clientId);
 
       if (error) throw error;
 
-      toast.success('Cliente e todos os dados vinculados excluídos com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success("Cliente e todos os dados vinculados excluídos com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     } catch (error: any) {
-      console.error('Error deleting client:', error);
-      toast.error('Erro ao excluir cliente: ' + (error?.message || 'Erro desconhecido'));
+      console.error("Error deleting client:", error);
+      toast.error("Erro ao excluir cliente: " + (error?.message || "Erro desconhecido"));
     }
   };
 
   const handleClientUpdated = () => {
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    queryClient.invalidateQueries({ queryKey: ["clients"] });
   };
 
-  const filteredClients = clients?.filter(client => 
-    client.name.toLowerCase().includes(search.toLowerCase()) ||
-    client.code?.toLowerCase().includes(search.toLowerCase()) ||
-    client.document?.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  const filteredClients =
+    clients?.filter(
+      (client) =>
+        client.name.toLowerCase().includes(search.toLowerCase()) ||
+        client.code?.toLowerCase().includes(search.toLowerCase()) ||
+        client.document?.toLowerCase().includes(search.toLowerCase()),
+    ) || [];
 
   const handleView = (client: any) => {
     setSelectedClient(client);
@@ -201,23 +187,23 @@ export default function ClientsList() {
     return (
       <Layout>
         <div className="container mx-auto p-6 space-y-6">
-           <div className="flex justify-between items-center">
-             <Skeleton className="h-10 w-48" />
-             <Skeleton className="h-10 w-32" />
-           </div>
-           <Card>
-             <CardHeader>
-               <Skeleton className="h-6 w-1/4 mb-2" />
-               <Skeleton className="h-10 w-full" />
-             </CardHeader>
-             <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
-                  ))}
-                </div>
-             </CardContent>
-           </Card>
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-1/4 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -230,7 +216,7 @@ export default function ClientsList() {
         <div className="container mx-auto p-6 flex items-center justify-center h-[50vh]">
           <div className="text-center">
             <div className="bg-red-50 text-red-500 p-4 rounded-full inline-block mb-4">
-               <SearchX className="h-8 w-8" />
+              <SearchX className="h-8 w-8" />
             </div>
             <h3 className="text-lg font-medium text-destructive">Erro ao carregar clientes</h3>
             <p className="text-muted-foreground mt-2">Por favor, tente novamente mais tarde.</p>
@@ -244,7 +230,6 @@ export default function ClientsList() {
     <Layout>
       <div className="min-h-screen bg-slate-50/50 pb-20 animate-in fade-in duration-500">
         <div className="container mx-auto p-6 space-y-8">
-          
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -252,16 +237,12 @@ export default function ClientsList() {
               <p className="text-muted-foreground">Cadastre e gerencie sua base de clientes.</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/clientes')}
-                className="gap-2"
-              >
+              <Button variant="outline" onClick={() => navigate("/clientes")} className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Voltar
               </Button>
-              <Button 
-                onClick={() => window.location.href = "/clientes/cadastro"}
+              <Button
+                onClick={() => (window.location.href = "/clientes/cadastro")}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
               >
                 <UserPlus className="h-4 w-4" />
@@ -272,8 +253,8 @@ export default function ClientsList() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-white border-b border-slate-100 pb-4">
-               <ProjectsSearch 
-                search={search} 
+              <ProjectsSearch
+                search={search}
                 onSearchChange={setSearch}
                 statusFilter={statusFilter}
                 onStatusFilterChange={setStatusFilter}
@@ -282,9 +263,8 @@ export default function ClientsList() {
               />
             </CardHeader>
             <CardContent className="p-0">
-              
-              {(!clients || clients.length === 0) ? (
-                 <div className="flex flex-col items-center justify-center py-16 text-center">
+              {!clients || clients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="bg-slate-50 p-4 rounded-full mb-4">
                     <Users className="h-10 w-10 text-slate-400" />
                   </div>
@@ -292,7 +272,7 @@ export default function ClientsList() {
                   <p className="text-muted-foreground mt-2 max-w-sm">
                     Sua base de clientes está vazia. Adicione o primeiro cliente para começar a gerar propostas.
                   </p>
-                  <Button onClick={() => window.location.href = "/clientes/cadastro"} className="mt-6">
+                  <Button onClick={() => (window.location.href = "/clientes/cadastro")} className="mt-6">
                     Cadastrar Primeiro Cliente
                   </Button>
                 </div>
@@ -302,14 +282,8 @@ export default function ClientsList() {
                     <SearchX className="h-6 w-6 text-slate-400" />
                   </div>
                   <h3 className="text-base font-medium text-slate-900">Nenhum resultado encontrado</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Não encontramos clientes com os termos pesquisados.
-                  </p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => setSearch("")}
-                    className="mt-2 text-blue-600"
-                  >
+                  <p className="text-sm text-slate-500 mt-1">Não encontramos clientes com os termos pesquisados.</p>
+                  <Button variant="link" onClick={() => setSearch("")} className="mt-2 text-blue-600">
                     Limpar busca
                   </Button>
                 </div>
@@ -333,7 +307,9 @@ export default function ClientsList() {
                           client.neighborhood,
                           client.city,
                           client.state,
-                        ].filter(Boolean).join(", ");
+                        ]
+                          .filter(Boolean)
+                          .join(", ");
 
                         return (
                           <TableRow key={client.id} className="hover:bg-slate-50/60 transition-colors">
@@ -346,9 +322,7 @@ export default function ClientsList() {
                                 </Avatar>
                                 <div className="flex flex-col">
                                   <span className="font-medium text-slate-900">{client.name}</span>
-                                  {client.code && (
-                                    <span className="text-xs text-slate-500">Cód: {client.code}</span>
-                                  )}
+                                  {client.code && <span className="text-xs text-slate-500">Cód: {client.code}</span>}
                                 </div>
                               </div>
                             </TableCell>
@@ -385,7 +359,7 @@ export default function ClientsList() {
                             <TableCell>
                               {fullAddress ? (
                                 <div className="flex items-center gap-2 max-w-[200px]">
-                                   <Button
+                                  <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 shrink-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
@@ -466,11 +440,7 @@ export default function ClientsList() {
 
         {selectedClient && (
           <>
-            <ViewClientDialog
-              client={selectedClient}
-              open={viewDialogOpen}
-              onOpenChange={setViewDialogOpen}
-            />
+            <ViewClientDialog client={selectedClient} open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
             <EditClientDialog
               client={selectedClient}
               open={editDialogOpen}
@@ -483,5 +453,3 @@ export default function ClientsList() {
     </Layout>
   );
 }
-
-```
