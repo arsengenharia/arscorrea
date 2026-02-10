@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, FileText, Send, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input"; // Importando Input do UI kit para melhor estilo
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale } from "lucide-react";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalClientSection } from "./ProposalClientSection";
 import { ProposalWorkSection } from "./ProposalWorkSection";
@@ -17,6 +18,7 @@ import { pdf } from "@react-pdf/renderer";
 import { ProposalPDF } from "./pdf/ProposalPDF";
 import { ImportProposalSection, ParsedProposalData } from "./import";
 import { normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
+
 const DEFAULT_SCOPE = `SERVIÇOS DE REFORMA DE FACHADA
 
 1. SERVIÇOS PRELIMINARES
@@ -73,10 +75,7 @@ export type ProposalFormData = {
   status: string;
 };
 
-export const ProposalFormContent = ({
-  proposalId,
-  isEditing,
-}: ProposalFormContentProps) => {
+export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormContentProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -121,19 +120,15 @@ export const ProposalFormContent = ({
   });
 
   // Fetch selected client data
-  const { 
-    data: selectedClient, 
+  const {
+    data: selectedClient,
     isLoading: isLoadingClient,
-    refetch: refetchClient 
+    refetch: refetchClient,
   } = useQuery({
     queryKey: ["client", formData.clientId],
     queryFn: async () => {
       if (!formData.clientId) return null;
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", formData.clientId)
-        .single();
+      const { data, error } = await supabase.from("clients").select("*").eq("id", formData.clientId).single();
 
       if (error) throw error;
       return data;
@@ -170,7 +165,7 @@ export const ProposalFormContent = ({
 
       if (existingProposal.proposal_items) {
         const sortedItems = [...existingProposal.proposal_items].sort(
-          (a, b) => (a.order_index || 0) - (b.order_index || 0)
+          (a, b) => (a.order_index || 0) - (b.order_index || 0),
         );
         setItems(
           sortedItems.map((item) => ({
@@ -182,7 +177,7 @@ export const ProposalFormContent = ({
             unitPrice: item.unit_price || 0,
             total: item.total || 0,
             notes: item.notes || "",
-          }))
+          })),
         );
       }
     }
@@ -191,21 +186,15 @@ export const ProposalFormContent = ({
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
   const discount =
-    formData.discountType === "percent"
-      ? subtotal * (formData.discountValue / 100)
-      : formData.discountValue;
+    formData.discountType === "percent" ? subtotal * (formData.discountValue / 100) : formData.discountValue;
   const total = Math.max(0, subtotal - discount);
 
-  const updateFormData = useCallback(
-    (field: keyof ProposalFormData, value: string | number) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    },
-    []
-  );
+  const updateFormData = useCallback((field: keyof ProposalFormData, value: string | number) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
   // Handle import data from PDF
   const handleApplyImport = useCallback((data: ParsedProposalData) => {
-    // Update form fields
     setFormData((prev) => ({
       ...prev,
       scopeText: data.scope_text || prev.scopeText,
@@ -217,7 +206,6 @@ export const ProposalFormContent = ({
       discountValue: data.totals?.discount_value || prev.discountValue,
     }));
 
-    // Convert imported items to ProposalItem format
     if (data.items && data.items.length > 0) {
       const importedItems: ProposalItem[] = data.items.map((item) => ({
         id: crypto.randomUUID(),
@@ -266,27 +254,18 @@ export const ProposalFormContent = ({
       let savedProposalId = proposalId;
 
       if (isEditing && proposalId) {
-        const { error } = await supabase
-          .from("proposals")
-          .update(proposalData)
-          .eq("id", proposalId);
+        const { error } = await supabase.from("proposals").update(proposalData).eq("id", proposalId);
 
         if (error) throw error;
 
-        // Delete existing items and re-insert
         await supabase.from("proposal_items").delete().eq("proposal_id", proposalId);
       } else {
-        const { data, error } = await supabase
-          .from("proposals")
-          .insert(proposalData)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("proposals").insert(proposalData).select("id").single();
 
         if (error) throw error;
         savedProposalId = data.id;
       }
 
-      // Insert items
       if (items.length > 0 && savedProposalId) {
         const itemsToInsert = items.map((item, index) => ({
           proposal_id: savedProposalId,
@@ -300,9 +279,7 @@ export const ProposalFormContent = ({
           notes: item.notes,
         }));
 
-        const { error: itemsError } = await supabase
-          .from("proposal_items")
-          .insert(itemsToInsert);
+        const { error: itemsError } = await supabase.from("proposal_items").insert(itemsToInsert);
 
         if (itemsError) throw itemsError;
       }
@@ -333,7 +310,6 @@ export const ProposalFormContent = ({
     setIsGeneratingPDF(true);
 
     try {
-      // Fetch fresh proposal data
       const { data: proposal, error } = await supabase
         .from("proposals")
         .select(`*, client:clients(*), proposal_items(*)`)
@@ -342,12 +318,8 @@ export const ProposalFormContent = ({
 
       if (error || !proposal) throw error;
 
-      // Generate PDF blob
-      const pdfBlob = await pdf(
-        <ProposalPDF proposal={proposal} items={proposal.proposal_items || []} />
-      ).toBlob();
+      const pdfBlob = await pdf(<ProposalPDF proposal={proposal} items={proposal.proposal_items || []} />).toBlob();
 
-      // Upload to storage
       const pdfPath = `${savedId}/proposta.pdf`;
       const { error: uploadError } = await supabase.storage
         .from("proposals")
@@ -355,16 +327,9 @@ export const ProposalFormContent = ({
 
       if (uploadError) throw uploadError;
 
-      // Update proposal with pdf_path
-      await supabase
-        .from("proposals")
-        .update({ pdf_path: pdfPath })
-        .eq("id", savedId);
+      await supabase.from("proposals").update({ pdf_path: pdfPath }).eq("id", savedId);
 
-      // Get signed URL and open
-      const { data: signedUrlData } = await supabase.storage
-        .from("proposals")
-        .createSignedUrl(pdfPath, 60);
+      const { data: signedUrlData } = await supabase.storage.from("proposals").createSignedUrl(pdfPath, 60);
 
       if (signedUrlData?.signedUrl) {
         window.open(signedUrlData.signedUrl, "_blank");
@@ -386,147 +351,189 @@ export const ProposalFormContent = ({
 
   if (isLoadingProposal) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex h-[80vh] justify-center items-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/propostas")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">
-                {isEditing ? "Editar Proposta" : "Nova Proposta"}
-              </h1>
-              <ProposalStatusBadge status={formData.status} />
+    <div className="min-h-screen bg-slate-50/50 pb-20">
+      {/* 1. Sticky Header with Glassmorphism */}
+      <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/propostas")} className="rounded-full">
+              <ArrowLeft className="h-5 w-5 text-slate-500" />
+            </Button>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold text-slate-900">
+                  {isEditing ? "Editar Proposta" : "Nova Proposta"}
+                </h1>
+                <ProposalStatusBadge status={formData.status} />
+              </div>
+              {isEditing && existingProposal?.number && (
+                <span className="text-xs font-mono text-slate-500">{existingProposal.number}</span>
+              )}
             </div>
-            {isEditing && existingProposal?.number && (
-              <p className="text-muted-foreground">{existingProposal.number}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => saveProposal()}
+              disabled={isSaving}
+              className="hidden sm:flex bg-white hover:bg-slate-50 border-slate-200"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2 text-slate-500" />
+              )}
+              Salvar
+            </Button>
+
+            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={generatePDF}
+              disabled={isGeneratingPDF || isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            >
+              {isGeneratingPDF ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FileText className="h-4 w-4 mr-2" />
+              )}
+              Gerar PDF
+            </Button>
+
+            {formData.status === "draft" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={markAsSent}
+                disabled={isSaving}
+                className="hidden md:flex border-slate-200 text-slate-600"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Marcar Enviada
+              </Button>
             )}
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            onClick={() => saveProposal()}
-            disabled={isSaving}
-            className="gap-2"
-          >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Salvar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={generatePDF}
-            disabled={isGeneratingPDF || isSaving}
-            className="gap-2"
-          >
-            {isGeneratingPDF ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="h-4 w-4" />
-            )}
-            Gerar PDF
-          </Button>
-          {formData.status === "draft" && (
-            <Button onClick={markAsSent} disabled={isSaving} className="gap-2">
-              <Send className="h-4 w-4" />
-              Marcar como Enviada
-            </Button>
-          )}
-        </div>
-      </div>
+      </header>
 
-      {/* Client Section */}
-      <ProposalClientSection
-        clientId={formData.clientId}
-        onClientChange={(id) => updateFormData("clientId", id)}
-      />
-
-      {/* Work Section */}
-      <ProposalWorkSection
-        condoName={formData.condoName}
-        workAddress={formData.workAddress}
-        city={formData.city}
-        state={formData.state}
-        selectedClient={selectedClient}
-        isLoadingClient={isLoadingClient && !!formData.clientId}
-        onCondoNameChange={(v) => updateFormData("condoName", v)}
-        onWorkAddressChange={(v) => updateFormData("workAddress", v)}
-        onCityChange={(v) => updateFormData("city", v)}
-        onStateChange={(v) => updateFormData("state", v)}
-        onClientUpdated={handleClientUpdated}
-      />
-
-      {/* Import from PDF Section - only show for new proposals after client is selected */}
-      {!isEditing && formData.clientId && (
-        <ImportProposalSection
-          clientId={formData.clientId}
-          onApplyImport={handleApplyImport}
-        />
-      )}
-
-      {/* Title */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Título da Proposta</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <input
+      <main className="container mx-auto px-4 max-w-5xl mt-8 space-y-10">
+        {/* 2. Main Title Input (Highlighted) */}
+        <section className="space-y-2">
+          <Input
             type="text"
             value={formData.title}
             onChange={(e) => updateFormData("title", e.target.value)}
-            placeholder="Ex: Proposta Reforma de Fachada – Condomínio X"
-            className="w-full px-3 py-2 border rounded-md bg-background"
+            placeholder="Título da Proposta (Ex: Reforma de Fachada - Condomínio X)"
+            className="text-2xl font-bold border-none shadow-none bg-transparent px-0 h-auto placeholder:text-slate-300 focus-visible:ring-0"
           />
-        </CardContent>
-      </Card>
+          <Separator className="bg-slate-200" />
+        </section>
 
-      {/* Scope Section */}
-      <ProposalScopeSection
-        scopeText={formData.scopeText}
-        onScopeChange={(v) => updateFormData("scopeText", v)}
-      />
+        {/* 3. Client & Work Info Grid */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
+              <Building2 className="h-4 w-4 text-blue-500" />
+              <h3>Dados do Cliente</h3>
+            </div>
+            <ProposalClientSection
+              clientId={formData.clientId}
+              onClientChange={(id) => updateFormData("clientId", id)}
+            />
+            {/* Import visible only here for context */}
+            {!isEditing && formData.clientId && (
+              <div className="pt-2">
+                <ImportProposalSection clientId={formData.clientId} onApplyImport={handleApplyImport} />
+              </div>
+            )}
+          </div>
 
-      {/* Items Section */}
-      <ProposalItemsSection items={items} onItemsChange={setItems} />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
+              <Building2 className="h-4 w-4 text-orange-500" />
+              <h3>Local e Obra</h3>
+            </div>
+            <ProposalWorkSection
+              condoName={formData.condoName}
+              workAddress={formData.workAddress}
+              city={formData.city}
+              state={formData.state}
+              selectedClient={selectedClient}
+              isLoadingClient={isLoadingClient && !!formData.clientId}
+              onCondoNameChange={(v) => updateFormData("condoName", v)}
+              onWorkAddressChange={(v) => updateFormData("workAddress", v)}
+              onCityChange={(v) => updateFormData("city", v)}
+              onStateChange={(v) => updateFormData("state", v)}
+              onClientUpdated={handleClientUpdated}
+            />
+          </div>
+        </section>
 
-      {/* Totals Section */}
-      <ProposalTotalsSection
-        subtotal={subtotal}
-        discountType={formData.discountType}
-        discountValue={formData.discountValue}
-        total={total}
-        onDiscountTypeChange={(v) => updateFormData("discountType", v)}
-        onDiscountValueChange={(v) => updateFormData("discountValue", v)}
-      />
+        {/* 4. Scope & Items Section */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
+            <FileSpreadsheet className="h-4 w-4 text-purple-500" />
+            <h3>Escopo e Valores</h3>
+          </div>
 
-      {/* Terms Section */}
-      <ProposalTermsSection
-        validityDays={formData.validityDays}
-        executionDays={formData.executionDays}
-        paymentTerms={formData.paymentTerms}
-        warrantyTerms={formData.warrantyTerms}
-        exclusions={formData.exclusions}
-        notes={formData.notes}
-        onValidityDaysChange={(v) => updateFormData("validityDays", v)}
-        onExecutionDaysChange={(v) => updateFormData("executionDays", v)}
-        onPaymentTermsChange={(v) => updateFormData("paymentTerms", v)}
-        onWarrantyTermsChange={(v) => updateFormData("warrantyTerms", v)}
-        onExclusionsChange={(v) => updateFormData("exclusions", v)}
-        onNotesChange={(v) => updateFormData("notes", v)}
-      />
+          <div className="grid gap-8">
+            <ProposalScopeSection
+              scopeText={formData.scopeText}
+              onScopeChange={(v) => updateFormData("scopeText", v)}
+            />
+
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <ProposalItemsSection items={items} onItemsChange={setItems} />
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <ProposalTotalsSection
+                subtotal={subtotal}
+                discountType={formData.discountType}
+                discountValue={formData.discountValue}
+                total={total}
+                onDiscountTypeChange={(v) => updateFormData("discountType", v)}
+                onDiscountValueChange={(v) => updateFormData("discountValue", v)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 5. Terms & Conditions */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
+            <Scale className="h-4 w-4 text-green-500" />
+            <h3>Termos e Condições</h3>
+          </div>
+
+          <ProposalTermsSection
+            validityDays={formData.validityDays}
+            executionDays={formData.executionDays}
+            paymentTerms={formData.paymentTerms}
+            warrantyTerms={formData.warrantyTerms}
+            exclusions={formData.exclusions}
+            notes={formData.notes}
+            onValidityDaysChange={(v) => updateFormData("validityDays", v)}
+            onExecutionDaysChange={(v) => updateFormData("executionDays", v)}
+            onPaymentTermsChange={(v) => updateFormData("paymentTerms", v)}
+            onWarrantyTermsChange={(v) => updateFormData("warrantyTerms", v)}
+            onExclusionsChange={(v) => updateFormData("exclusions", v)}
+            onNotesChange={(v) => updateFormData("notes", v)}
+          />
+        </section>
+      </main>
     </div>
   );
 };
