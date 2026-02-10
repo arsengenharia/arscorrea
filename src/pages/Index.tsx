@@ -13,6 +13,10 @@ import { ProposalsFunnel } from "@/components/dashboard/ProposalsFunnel";
 import { ProposalsAgingChart } from "@/components/dashboard/ProposalsAgingChart";
 import { OldestProposalsTable } from "@/components/dashboard/OldestProposalsTable";
 import { ProposalsMap } from "@/components/dashboard/ProposalsMap";
+import { ProjectsKPIs } from "@/components/dashboard/ProjectsKPIs";
+import { CriticalProjectsTable } from "@/components/dashboard/CriticalProjectsTable";
+import { RevenueCostChart } from "@/components/dashboard/RevenueCostChart";
+import { ProfitMarginChart } from "@/components/dashboard/ProfitMarginChart";
 
 import { 
   useDashboardMetrics, 
@@ -27,6 +31,9 @@ const Index = () => {
     start: subDays(new Date(), 30),
     end: new Date(),
   });
+  const [activeTab, setActiveTab] = useState("commercial");
+  const [managerFilter, setManagerFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const dateRange = getDateRange(period, customRange);
   
@@ -43,7 +50,16 @@ const Index = () => {
     lossRate,
     allStages,
     proposalsForMap,
+    projectMetrics,
+    criticalProjects,
+    revenueCostByMonth,
+    profitMarginByProject,
+    projectManagers,
+    projectStatuses,
   } = useDashboardMetrics(dateRange);
+
+  const mgr = managerFilter || undefined;
+  const sts = statusFilter || undefined;
 
   return (
     <Layout>
@@ -56,55 +72,53 @@ const Index = () => {
             onPeriodChange={setPeriod}
             customRange={customRange}
             onCustomRangeChange={setCustomRange}
+            activeTab={activeTab}
+            managerFilter={managerFilter}
+            onManagerFilterChange={setManagerFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            projectManagers={projectManagers}
+            projectStatuses={projectStatuses}
           />
         </div>
 
-        {/* Tabs: Comercial (left) and Financeiro (right) */}
-        <Tabs defaultValue="commercial" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="commercial">Comercial</TabsTrigger>
             <TabsTrigger value="financial">Financeiro</TabsTrigger>
+            <TabsTrigger value="projects">Obras</TabsTrigger>
           </TabsList>
 
           {/* Commercial Tab */}
           <TabsContent value="commercial" className="space-y-6 mt-6">
-            {/* KPIs Comerciais */}
             <CommercialKPIs data={commercial} isLoading={isLoading} />
-
-            {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProposalsFunnel 
-                data={proposalsByStage} 
-                lossRate={lossRate} 
-                isLoading={isLoading} 
-              />
-              <ProposalsAgingChart 
-                data={proposalsAging} 
-                allStages={allStages} 
-                isLoading={isLoading} 
-              />
+              <ProposalsFunnel data={proposalsByStage} lossRate={lossRate} isLoading={isLoading} />
+              <ProposalsAgingChart data={proposalsAging} allStages={allStages} isLoading={isLoading} />
             </div>
-
-            {/* Proposals Map */}
             <ProposalsMap data={proposalsForMap} isLoading={isLoading} />
-
-            {/* Table */}
             <OldestProposalsTable data={oldestOpenProposals} isLoading={isLoading} />
           </TabsContent>
 
           {/* Financial Tab */}
           <TabsContent value="financial" className="space-y-6 mt-6">
-            {/* KPIs */}
             <FinancialKPIs data={financial} isLoading={isLoading} />
-
-            {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <CashFlowChart data={cashFlowSeries} isLoading={isLoading} />
               <OverdueAgingChart data={overdueAging} isLoading={isLoading} />
             </div>
-
-            {/* Table */}
             <NextPaymentsTable data={nextPayments} isLoading={isLoading} />
+          </TabsContent>
+
+          {/* Projects Tab */}
+          <TabsContent value="projects" className="space-y-6 mt-6">
+            <ProjectsKPIs data={projectMetrics(mgr, sts)} isLoading={isLoading} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <RevenueCostChart data={revenueCostByMonth} isLoading={isLoading} />
+              <ProfitMarginChart data={profitMarginByProject(mgr, sts)} isLoading={isLoading} />
+            </div>
+            <CriticalProjectsTable data={criticalProjects(mgr, sts)} isLoading={isLoading} />
           </TabsContent>
         </Tabs>
       </div>

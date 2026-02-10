@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
@@ -12,6 +13,13 @@ interface DashboardFiltersProps {
   onPeriodChange: (period: PeriodType) => void;
   customRange: DateRange;
   onCustomRangeChange: (range: DateRange) => void;
+  activeTab?: string;
+  managerFilter?: string;
+  onManagerFilterChange?: (value: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (value: string) => void;
+  projectManagers?: string[];
+  projectStatuses?: string[];
 }
 
 const periodOptions: { label: string; value: PeriodType }[] = [
@@ -22,11 +30,26 @@ const periodOptions: { label: string; value: PeriodType }[] = [
   { label: "Personalizado", value: "custom" },
 ];
 
+const statusLabels: Record<string, string> = {
+  pending: "Pendente",
+  em_andamento: "Em Andamento",
+  concluida: "Concluída",
+  concluded: "Concluída",
+  paused: "Pausada",
+};
+
 export function DashboardFilters({
   period,
   onPeriodChange,
   customRange,
   onCustomRangeChange,
+  activeTab,
+  managerFilter,
+  onManagerFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  projectManagers = [],
+  projectStatuses = [],
 }: DashboardFiltersProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -102,6 +125,37 @@ export function DashboardFilters({
               />
             </PopoverContent>
           </Popover>
+        </div>
+      )}
+
+      {activeTab === "projects" && (
+        <div className="flex items-center gap-2 ml-2">
+          {projectManagers.length > 0 && (
+            <Select value={managerFilter || "all"} onValueChange={(v) => onManagerFilterChange?.(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectValue placeholder="Gestor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Gestores</SelectItem>
+                {projectManagers.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {projectStatuses.length > 0 && (
+            <Select value={statusFilter || "all"} onValueChange={(v) => onStatusFilterChange?.(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                {projectStatuses.map((s) => (
+                  <SelectItem key={s} value={s}>{statusLabels[s] || s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       )}
     </div>
