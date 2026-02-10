@@ -59,19 +59,15 @@ Deno.serve(async (req) => {
     const allRevenues = revenues || [];
     const today = new Date().toISOString().split("T")[0];
 
-    // IFEC
-    const totalStages = allStages.length;
-    const completedStages = allStages.filter((s) => s.status === "concluido").length;
-    const ifecValue = totalStages > 0 ? (completedStages / totalStages) * 100 : 0;
-
-    // IEC
+    // IFEC = Producao Real Acumulada / Producao Prevista Acumulada (baseado em pesos)
+    const totalWeight = allStages.reduce((sum, s) => sum + (Number(s.stage_weight) || 0), 0);
     const completedWeight = allStages
       .filter((s) => s.status === "concluido")
       .reduce((sum, s) => sum + (Number(s.stage_weight) || 0), 0);
-    const plannedWeight = allStages
-      .filter((s) => s.report_end_date && s.report_end_date <= today)
-      .reduce((sum, s) => sum + (Number(s.stage_weight) || 0), 0);
-    const iecValue = plannedWeight > 0 ? (completedWeight / plannedWeight) * 100 : 0;
+    const ifecValue = totalWeight > 0 ? completedWeight / totalWeight : 0;
+
+    const ifecStatus = ifecValue > 1.0 ? "acima do previsto" : ifecValue < 1.0 ? "abaixo do previsto" : "conforme previsto";
+    const ifecStatusFinal = totalWeight === 0 ? "sem etapas cadastradas" : (completedWeight === totalWeight ? "obra finalizada" : ifecStatus);
 
     // Monthly production
     const monthlyMap: Record<string, { previsto: number; real: number }> = {};
@@ -151,8 +147,7 @@ Deno.serve(async (req) => {
         endereco,
       },
       analise_fisica: {
-        ifec: { valor: +ifecValue.toFixed(2), descricao: `${completedStages}/${totalStages} etapas concluídas` },
-        iec: { valor: +iecValue.toFixed(2), descricao: plannedWeight > 0 ? `Eficiência: ${iecValue.toFixed(1)}%` : "Sem etapas planejadas até hoje" },
+        ifec: { valor: +ifecValue.toFixed(3), descricao: ifecStatusFinal },
         producao_mensal: producaoMensal,
         producao_acumulada: producaoAcumulada,
       },
@@ -169,6 +164,9 @@ Deno.serve(async (req) => {
         variacao_receita: receitaReal - receitaPrev,
         saldo_obra: saldo,
         margem_lucro: +margem.toFixed(2),
+        iec_total: { valor: custoTotalPrev > 0 ? +(custoTotalReal / custoTotalPrev).toFixed(3) : 0, descricao: custoTotalPrev > 0 ? (custoTotalReal / custoTotalPrev > 1 ? "acima do previsto" : custoTotalReal / custoTotalPrev < 1 ? "abaixo do previsto" : "conforme previsto") : "sem custos previstos" },
+        iec_direto: { valor: custoDiretoPrev > 0 ? +(custoDiretoReal / custoDiretoPrev).toFixed(3) : 0, descricao: custoDiretoPrev > 0 ? (custoDiretoReal / custoDiretoPrev > 1 ? "acima do previsto" : custoDiretoReal / custoDiretoPrev < 1 ? "abaixo do previsto" : "conforme previsto") : "sem custos previstos" },
+        iec_indireto: { valor: custoIndiretoPrev > 0 ? +(custoIndiretoReal / custoIndiretoPrev).toFixed(3) : 0, descricao: custoIndiretoPrev > 0 ? (custoIndiretoReal / custoIndiretoPrev > 1 ? "acima do previsto" : custoIndiretoReal / custoIndiretoPrev < 1 ? "abaixo do previsto" : "conforme previsto") : "sem custos previstos" },
       },
       observacoes_gerenciais: "",
     };
