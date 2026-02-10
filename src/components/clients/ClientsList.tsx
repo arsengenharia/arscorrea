@@ -1,16 +1,36 @@
+Para melhorar o design mantendo a segurança do sistema e sem alterar a lógica de negócios complexa (como a exclusão em cascata), adotei uma abordagem de **Dashboard Moderno**.
 
+As principais melhorias visuais foram:
+
+1. **Card Container:** A lista agora vive dentro de um `Card`, separando visualmente o conteúdo do fundo da página.
+2. **Identidade Visual:** Adicionei **Avatares** (com as iniciais do cliente) para humanizar a lista.
+3. **Tipografia e Espaçamento:** Melhorei o peso das fontes e o espaçamento das células para facilitar a leitura.
+4. **Ações Contextuais:** Os botões de WhatsApp e Maps agora são visualmente distintos e mais elegantes.
+5. **Empty States e Loading:** Estados de carregamento e lista vazia mais profissionais e informativos.
+
+Aqui está o código refatorado:
+
+```tsx
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Pencil, Trash2, MessageCircle, MapPin } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  ArrowLeft, Eye, Pencil, Trash2, MessageCircle, MapPin, 
+  Users, UserPlus, SearchX, Phone, FileText 
+} from "lucide-react";
 import { ViewClientDialog } from "./ViewClientDialog";
 import { EditClientDialog } from "./EditClientDialog";
 import { toast } from "sonner";
 import { ProjectsSearch } from "../projects/ProjectsSearch";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBEZQ3dPHqho8u6nfKSVWlAVIXzG7Yawck";
 
@@ -33,6 +53,16 @@ const openGoogleMaps = (address: string) => {
     `https://www.google.com/maps/search/?api=1&query=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`,
     "_blank"
   );
+};
+
+// Helper para iniciais do nome
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 };
 
 export default function ClientsList() {
@@ -161,11 +191,47 @@ export default function ClientsList() {
     client.document?.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
+  const handleView = (client: any) => {
+    setSelectedClient(client);
+    setViewDialogOpen(true);
+  };
+
+  // --- Loading State ---
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-6 space-y-6">
+           <div className="flex justify-between items-center">
+             <Skeleton className="h-10 w-48" />
+             <Skeleton className="h-10 w-32" />
+           </div>
+           <Card>
+             <CardHeader>
+               <Skeleton className="h-6 w-1/4 mb-2" />
+               <Skeleton className="h-10 w-full" />
+             </CardHeader>
+             <CardContent>
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+             </CardContent>
+           </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // --- Error State ---
   if (error) {
     return (
       <Layout>
-        <div className="container mx-auto p-6">
-          <div className="text-center py-10">
+        <div className="container mx-auto p-6 flex items-center justify-center h-[50vh]">
+          <div className="text-center">
+            <div className="bg-red-50 text-red-500 p-4 rounded-full inline-block mb-4">
+               <SearchX className="h-8 w-8" />
+            </div>
             <h3 className="text-lg font-medium text-destructive">Erro ao carregar clientes</h3>
             <p className="text-muted-foreground mt-2">Por favor, tente novamente mais tarde.</p>
           </div>
@@ -174,215 +240,248 @@ export default function ClientsList() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto p-6">
-          <div className="space-y-4">
-            <div className="w-full h-12 bg-muted animate-pulse rounded-md" />
-            <div className="w-full h-64 bg-muted animate-pulse rounded-md" />
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  const handleView = (client: any) => {
-    setSelectedClient(client);
-    setViewDialogOpen(true);
-  };
-
-  const handleRowClick = (client: any) => {
-    setSelectedClient(client);
-    setEditDialogOpen(true);
-  };
-
-  if (!clients || clients.length === 0) {
-    return (
-      <Layout>
-        <div className="container mx-auto p-6">
-          <div className="text-center py-10">
-            <h3 className="text-lg font-medium">Nenhum cliente cadastrado</h3>
-            <p className="text-muted-foreground mt-2">Comece cadastrando um novo cliente.</p>
-            <Button onClick={() => window.location.href = "/clientes/cadastro"} className="mt-4">
-              Cadastrar Cliente
-            </Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold tracking-tight">Lista de Clientes</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/clientes')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          <ProjectsSearch 
-            search={search} 
-            onSearchChange={setSearch}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
+      <div className="min-h-screen bg-slate-50/50 pb-20 animate-in fade-in duration-500">
+        <div className="container mx-auto p-6 space-y-8">
           
-          {filteredClients?.length === 0 ? (
-            <div className="text-center py-10">
-              <h3 className="text-lg font-medium">Nenhum cliente encontrado</h3>
-              <p className="text-muted-foreground mt-2">Tente buscar com outros termos.</p>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Gerenciamento de Clientes</h2>
+              <p className="text-muted-foreground">Cadastre e gerencie sua base de clientes.</p>
             </div>
-          ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
-                      Nome
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
-                      Código
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
-                      CPF/CNPJ
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
-                      Telefone
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold text-muted-foreground">
-                      Endereço
-                    </TableHead>
-                    <TableHead className="text-right whitespace-nowrap font-semibold text-muted-foreground">
-                      Ações
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClients.map((client) => {
-                    const fullAddress = [
-                      client.street,
-                      client.number,
-                      client.neighborhood,
-                      client.city,
-                      client.state,
-                    ].filter(Boolean).join(", ");
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/clientes')}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+              <Button 
+                onClick={() => window.location.href = "/clientes/cadastro"}
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <UserPlus className="h-4 w-4" />
+                Novo Cliente
+              </Button>
+            </div>
+          </div>
 
-                    return (
-                      <TableRow 
-                        key={client.id} 
-                        className="hover:bg-muted/50"
-                      >
-                        <TableCell className="font-medium whitespace-nowrap">
-                          {client.name}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {client.code || '-'}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {client.document || '-'}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {client.phone ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{client.phone}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => openWhatsApp(client.phone!)}
-                                title="Abrir WhatsApp"
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {fullAddress ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm truncate max-w-[150px]" title={fullAddress}>
-                                {fullAddress}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                onClick={() => openGoogleMaps(fullAddress)}
-                                title="Abrir no Google Maps"
-                              >
-                                <MapPin className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleView(client)}
-                              title="Visualizar"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(client)}
-                              title="Editar"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(client.id)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="bg-white border-b border-slate-100 pb-4">
+               <ProjectsSearch 
+                search={search} 
+                onSearchChange={setSearch}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+              />
+            </CardHeader>
+            <CardContent className="p-0">
+              
+              {(!clients || clients.length === 0) ? (
+                 <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="bg-slate-50 p-4 rounded-full mb-4">
+                    <Users className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900">Nenhum cliente cadastrado</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm">
+                    Sua base de clientes está vazia. Adicione o primeiro cliente para começar a gerar propostas.
+                  </p>
+                  <Button onClick={() => window.location.href = "/clientes/cadastro"} className="mt-6">
+                    Cadastrar Primeiro Cliente
+                  </Button>
+                </div>
+              ) : filteredClients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="bg-slate-50 p-3 rounded-full mb-3">
+                    <SearchX className="h-6 w-6 text-slate-400" />
+                  </div>
+                  <h3 className="text-base font-medium text-slate-900">Nenhum resultado encontrado</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Não encontramos clientes com os termos pesquisados.
+                  </p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => setSearch("")}
+                    className="mt-2 text-blue-600"
+                  >
+                    Limpar busca
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                        <TableHead className="w-[300px]">Nome / Empresa</TableHead>
+                        <TableHead>Documento</TableHead>
+                        <TableHead>Contato</TableHead>
+                        <TableHead>Localização</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
-      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => {
+                        const fullAddress = [
+                          client.street,
+                          client.number,
+                          client.neighborhood,
+                          client.city,
+                          client.state,
+                        ].filter(Boolean).join(", ");
 
-      {selectedClient && (
-        <>
-          <ViewClientDialog
-            client={selectedClient}
-            open={viewDialogOpen}
-            onOpenChange={setViewDialogOpen}
-          />
-          <EditClientDialog
-            client={selectedClient}
-            open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
-            onClientUpdated={handleClientUpdated}
-          />
-        </>
-      )}
+                        return (
+                          <TableRow key={client.id} className="hover:bg-slate-50/60 transition-colors">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9 border border-slate-200 bg-white">
+                                  <AvatarFallback className="text-xs font-medium text-blue-600 bg-blue-50">
+                                    {getInitials(client.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-slate-900">{client.name}</span>
+                                  {client.code && (
+                                    <span className="text-xs text-slate-500">Cód: {client.code}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="text-sm text-slate-600 font-mono">
+                                  {client.document || <span className="text-slate-300">-</span>}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {client.phone ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 gap-2 text-slate-600 hover:text-green-700 hover:bg-green-50 px-2"
+                                        onClick={() => openWhatsApp(client.phone!)}
+                                      >
+                                        <MessageCircle className="h-4 w-4 text-green-600" />
+                                        <span>{client.phone}</span>
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Conversar no WhatsApp</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className="text-slate-400 text-sm pl-2">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {fullAddress ? (
+                                <div className="flex items-center gap-2 max-w-[200px]">
+                                   <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                                    onClick={() => openGoogleMaps(fullAddress)}
+                                    title="Ver no Maps"
+                                  >
+                                    <MapPin className="h-4 w-4" />
+                                  </Button>
+                                  <span className="text-sm text-slate-600 truncate" title={fullAddress}>
+                                    {client.neighborhood || client.city || "Ver endereço"}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-sm pl-2">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end items-center gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                                        onClick={() => handleView(client)}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Detalhes</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                                        onClick={() => handleEdit(client)}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Editar</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                                        onClick={() => handleDelete(client.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Excluir</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {selectedClient && (
+          <>
+            <ViewClientDialog
+              client={selectedClient}
+              open={viewDialogOpen}
+              onOpenChange={setViewDialogOpen}
+            />
+            <EditClientDialog
+              client={selectedClient}
+              open={editDialogOpen}
+              onOpenChange={setEditDialogOpen}
+              onClientUpdated={handleClientUpdated}
+            />
+          </>
+        )}
+      </div>
     </Layout>
   );
 }
+
+```
