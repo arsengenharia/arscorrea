@@ -1,151 +1,111 @@
 
 
-# Plano: Relatorio Gerencial por Obra (Backend + Banco de Dados)
+# Plano: Exportacao PDF do Relatorio Gerencial por Obra
 
 ## Resumo
-Criar as tabelas de custos, receitas e relatorios gerenciais no banco de dados, adicionar coluna `peso_etapa` na tabela `stages`, e desenvolver uma edge function que consolida todos os dados do relatorio gerencial de uma obra.
+Criar um documento PDF completo usando `@react-pdf/renderer` (ja instalado no projeto) para o Relatorio Gerencial, seguindo o padrao existente nos PDFs de contratos e detalhes de obra. O PDF incluira informacoes da obra/cliente, tabelas de producao fisica, tabelas financeiras e KPIs. Como `@react-pdf/renderer` nao suporta graficos nativos, os graficos serao representados como tabelas formatadas no PDF. Um botao "Exportar PDF" sera adicionado na pagina do relatorio.
 
-## 1. Modificacoes no Banco de Dados (Migration SQL)
+## 1. Novos Arquivos
 
-### 1.1 Nova tabela: `project_costs` (obras_custos)
-| Coluna | Tipo | Observacoes |
-|--------|------|-------------|
-| id | UUID PK | gen_random_uuid() |
-| project_id | UUID FK -> projects.id | NOT NULL |
-| cost_type | text | 'Direto' ou 'Indireto' |
-| description | text | Opcional |
-| expected_value | numeric | DEFAULT 0 |
-| actual_value | numeric | DEFAULT 0 |
-| record_date | date | Opcional |
-| created_at | timestamptz | DEFAULT now() |
-| updated_at | timestamptz | DEFAULT now() |
+### 1.1 `src/components/reports/pdf/ReportPDF.tsx`
+Componente principal do documento PDF usando `@react-pdf/renderer`:
+- **Pagina 1**: Header com logo ARS Correa + data, titulo do relatorio, secao de informacoes da obra (nome, gestor, inicio, previsao, prazo, status) e informacoes do cliente (nome, codigo, responsavel, telefone, endereco)
+- **Pagina 2**: Analise Fisica - Cards de IFEC e IEC com valores e descricoes, tabela de producao mensal (colunas: Mes/Ano, Previsto %, Real %, Variacao %), tabela de producao acumulada (mesmo formato)
+- **Pagina 3**: Analise Financeira - Tabela de custos (Direto Previsto/Real, Indireto Previsto/Real, Total), tabela de receitas (Prevista/Realizada), indicadores consolidados (Saldo, Margem de Lucro), observacoes gerenciais
 
-### 1.2 Nova tabela: `project_revenues` (obras_receitas)
-| Coluna | Tipo | Observacoes |
-|--------|------|-------------|
-| id | UUID PK | gen_random_uuid() |
-| project_id | UUID FK -> projects.id | NOT NULL |
-| revenue_type | text | 'Contrato', 'Aditivo', etc. |
-| description | text | Opcional |
-| expected_value | numeric | DEFAULT 0 |
-| actual_value | numeric | DEFAULT 0 |
-| record_date | date | Opcional |
-| created_at | timestamptz | DEFAULT now() |
-| updated_at | timestamptz | DEFAULT now() |
+### 1.2 `src/components/reports/pdf/reportStyles.ts`
+Estilos do PDF seguindo o padrao visual do `contractStyles.ts`:
+- Cores corporativas (azul #1e40af para titulos)
+- Header com logo e data
+- Tabelas com header cinza (#f3f4f6) e bordas sutis
+- Cards de KPI com destaque visual
+- Footer com dados da empresa
+- Tipografia Helvetica, tamanho 10-14
 
-### 1.3 Nova tabela: `project_reports` (obras_relatorios_gerenciais)
-| Coluna | Tipo | Observacoes |
-|--------|------|-------------|
-| id | UUID PK | gen_random_uuid() |
-| project_id | UUID FK -> projects.id | NOT NULL |
-| generated_at | timestamptz | DEFAULT now() |
-| observations | text | Opcional |
-| pdf_path | text | Opcional |
-| report_data | jsonb | Dados consolidados |
-| created_at | timestamptz | DEFAULT now() |
-| updated_at | timestamptz | DEFAULT now() |
+### 1.3 `src/components/reports/ReportPDFButton.tsx`
+Componente com `PDFDownloadLink` do `@react-pdf/renderer`:
+- Recebe os dados do relatorio como prop (o mesmo JSON retornado pela edge function)
+- Renderiza um botao "Exportar PDF" com icone `FileDown`
+- Gera nome do arquivo: `relatorio-gerencial-{nome_obra}.pdf`
 
-### 1.4 Alteracao na tabela `stages`
-- Adicionar coluna `stage_weight` (numeric, NOT NULL, DEFAULT 0) - peso percentual da etapa (ex: 0.10 = 10%)
+## 2. Arquivos Modificados
 
-### 1.5 RLS
-Todas as 3 novas tabelas terao RLS habilitado com politicas para usuarios autenticados (SELECT, INSERT, UPDATE, DELETE), seguindo o padrao existente no projeto.
+### 2.1 `src/pages/ProjectReport.tsx`
+- Importar e adicionar o componente `ReportPDFButton` ao lado do botao de voltar no header
+- Passar os dados (`data`) carregados da edge function como prop para o botao
 
-### 1.6 Trigger updated_at
-As 3 novas tabelas usarao o trigger `update_updated_at_column()` ja existente.
+## 3. Estrutura do PDF (Secoes)
 
-## 2. Edge Function: `project-management-report`
-
-### Endpoint
-`POST /functions/v1/project-management-report`
-- Body: `{ "project_id": "uuid" }`
-- Retorna o JSON consolidado do relatorio
-
-### Logica de Calculo
-
-**IFEC (Indice Fisico de Etapas Concluidas)**
-- Etapas concluidas (status = 'concluido') / Total de etapas * 100
-
-**IEC (Indice de Eficiencia de Cronograma)**
-- Soma de `stage_weight` das etapas concluidas / Soma de `stage_weight` das etapas que deveriam estar concluidas ate hoje (baseado em `report_end_date <= hoje`) * 100
-
-**Producao Fisica Mensal/Acumulada**
-- Agrupa etapas por mes usando `report_end_date` e calcula previsto vs real com base no `stage_weight`
-
-**Analise Financeira**
-- Custos: soma de `expected_value` e `actual_value` da tabela `project_costs`, agrupados por `cost_type`
-- Receitas: soma de `expected_value` e `actual_value` da tabela `project_revenues`
-- Saldo = Receita Real - Custo Real
-- Margem = (Saldo / Receita Real) * 100
-
-### Estrutura do JSON de Retorno
 ```text
-{
-  "obra": { id, nome, gestor, data_inicio, data_conclusao_prevista, prazo_dias, status },
-  "cliente": { nome, codigo, responsavel, telefone, endereco },
-  "analise_fisica": {
-    "ifec": { valor, descricao },
-    "iec": { valor, descricao },
-    "producao_mensal": [...],
-    "producao_acumulada": [...]
-  },
-  "analise_financeira": {
-    "custo_total_previsto", "custo_direto_previsto", "custo_indireto_previsto",
-    "custo_total_real", "custo_direto_real", "custo_indireto_real",
-    "variacao_custo", "receita_total_prevista", "receita_total_realizada",
-    "variacao_receita", "saldo_obra", "margem_lucro"
-  },
-  "observacoes_gerenciais": ""
-}
++------------------------------------------+
+| [Logo ARS Correa]     [Data: dd/MM/yyyy] |
+| ---------------------------------------- |
+| RELATORIO GERENCIAL - {Nome da Obra}     |
+|                                          |
+| INFORMACOES DA OBRA                      |
+| Nome: ...  | Gestor: ...                 |
+| Inicio: .. | Previsao: ..               |
+| Prazo: ... | Status: ...                |
+|                                          |
+| INFORMACOES DO CLIENTE                   |
+| Nome: ...  | Codigo: ...                |
+| Responsavel: ... | Telefone: ...        |
+| Endereco: ...                            |
++------------------------------------------+
+
++------------------------------------------+
+| [Logo]                       [Data]      |
+| ---------------------------------------- |
+| ANALISE FISICA                           |
+|                                          |
+| IFEC: XX%  |  IEC: XX%                  |
+|                                          |
+| PRODUCAO MENSAL (%)                      |
+| Mes/Ano | Previsto | Real | Variacao    |
+| Jan/25  |   10.0   | 8.0  |  -2.0      |
+| ...                                      |
+|                                          |
+| PRODUCAO ACUMULADA (%)                   |
+| Mes/Ano | Previsto | Real | Variacao    |
+| Jan/25  |   10.0   | 8.0  |  -2.0      |
+| ...                                      |
++------------------------------------------+
+
++------------------------------------------+
+| [Logo]                       [Data]      |
+| ---------------------------------------- |
+| ANALISE FINANCEIRA                       |
+|                                          |
+| CUSTOS                                   |
+| Tipo     | Previsto      | Realizado     |
+| Direto   | R$ xxx        | R$ xxx        |
+| Indireto | R$ xxx        | R$ xxx        |
+| TOTAL    | R$ xxx        | R$ xxx        |
+|                                          |
+| RECEITAS                                 |
+| Prevista: R$ xxx | Realizada: R$ xxx    |
+|                                          |
+| RESULTADO                                |
+| Saldo da Obra: R$ xxx                   |
+| Margem de Lucro: XX%                    |
+|                                          |
+| [Footer: ARS Engenharia]                |
++------------------------------------------+
 ```
 
-## 3. Frontend (pagina de visualizacao)
+## 4. Detalhes Tecnicos
 
-### Nova pagina: `src/pages/ProjectReport.tsx`
-- Rota: `/obras/:projectId/relatorio`
-- Busca dados chamando a edge function
-- Exibe cards com KPIs fisicos (IFEC, IEC)
-- Exibe graficos de producao mensal/acumulada (Recharts)
-- Exibe cards financeiros (custos, receitas, saldo, margem)
-- Campo de observacoes gerenciais
+- **Biblioteca**: `@react-pdf/renderer` (ja instalada, versao ^4.3.0)
+- **Padrao seguido**: Mesmo padrao de `ContractPDF.tsx` e `ProjectDetailsPDF.tsx`
+- **Graficos**: Representados como tabelas no PDF (react-pdf nao suporta SVG/canvas de graficos). As tabelas conterao os mesmos dados vistos nos graficos da interface
+- **Formatacao monetaria**: `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`
+- **Formatacao de datas**: `date-fns` com locale `ptBR`
+- **Paginacao**: Cada secao principal em pagina separada usando multiplos `<Page>` components
 
-### Nova pagina: `src/pages/ProjectCosts.tsx`
-- Rota: `/obras/:projectId/custos`
-- CRUD de custos da obra (tabela `project_costs`)
-- Formulario para adicionar/editar custos com tipo, descricao, valores
+## 5. Sequencia de Implementacao
 
-### Nova pagina: `src/pages/ProjectRevenues.tsx`
-- Rota: `/obras/:projectId/receitas`
-- CRUD de receitas da obra (tabela `project_revenues`)
-
-### Alteracoes em `src/pages/ProjectDetails.tsx`
-- Adicionar botoes de navegacao para "Relatorio Gerencial", "Custos" e "Receitas"
-
-### Alteracoes em `src/components/projects/ProjectForm.tsx` e `EditStageForm.tsx` / `StageForm.tsx`
-- Adicionar campo `stage_weight` (peso da etapa) no formulario de etapas
-
-### Rotas em `src/App.tsx`
-- `/obras/:projectId/relatorio`
-- `/obras/:projectId/custos`
-- `/obras/:projectId/receitas`
-
-## 4. Sequencia de Implementacao
-
-1. Migration SQL (3 tabelas + coluna `stage_weight` + RLS + triggers)
-2. Edge function `project-management-report`
-3. Formularios de custos e receitas (CRUD)
-4. Campo `stage_weight` nos formularios de etapas
-5. Pagina do relatorio gerencial com graficos e KPIs
-6. Rotas no App.tsx e botoes de navegacao no ProjectDetails
-
-## Arquivos a Criar/Modificar
-1. **Migration SQL** (nova)
-2. **`supabase/functions/project-management-report/index.ts`** (novo)
-3. **`src/pages/ProjectReport.tsx`** (novo)
-4. **`src/pages/ProjectCosts.tsx`** (novo)
-5. **`src/pages/ProjectRevenues.tsx`** (novo)
-6. **`src/pages/StageForm.tsx`** (editar - campo peso)
-7. **`src/pages/EditStageForm.tsx`** (editar - campo peso)
-8. **`src/pages/ProjectDetails.tsx`** (editar - botoes navegacao)
-9. **`src/App.tsx`** (editar - novas rotas)
+1. Criar `reportStyles.ts` com estilos do PDF
+2. Criar `ReportPDF.tsx` com o documento completo
+3. Criar `ReportPDFButton.tsx` com o botao de download
+4. Modificar `ProjectReport.tsx` para incluir o botao
 
