@@ -1,87 +1,114 @@
 
 
-# Plano: Graficos e Paineis de Analise no Relatorio Gerencial
+# Plano: Fornecedores, Novos Campos em Clients/Proposals/Contracts + Fix Build Error
 
 ## Resumo
 
-Implementar graficos interativos (Recharts) na pagina web do relatorio e paineis de analise detalhados, alem de atualizar a edge function para calcular o IEC financeiro corretamente (Custo Real / Custo Previsto) com desdobramentos por tipo (direto/indireto). O PDF continuara usando tabelas formatadas (limitacao do react-pdf).
+Criar a tabela `fornecedores` (suppliers), adicionar campos CRM em `clients`, `proposals` e `contracts`, e corrigir o erro de build em `ProjectDetails.tsx`.
 
-## Mudancas Necessarias
+## 1. Migracao de Banco de Dados
 
-### 1. Edge Function - Novos Calculos (Backend)
+### 1.1 Nova tabela: `suppliers` (fornecedores)
 
-**Arquivo**: `supabase/functions/project-management-report/index.ts`
-
-O IEC atual esta calculado com base em pesos de etapas (progresso fisico). Segundo as formulas do usuario, o IEC deve ser baseado em **custos**: `IEC = Custo Real Acumulado / Custo Previsto Acumulado`.
-
-Adicionar ao JSON de retorno:
+Manter o padrao de nomes em ingles do projeto existente.
 
 ```text
-"analise_financeira": {
-  ... campos existentes ...,
-  "iec_total": { "valor": 1.000, "descricao": "acima/abaixo/conforme previsto" },
-  "iec_direto": { "valor": 0.950, "descricao": "..." },
-  "iec_indireto": { "valor": 1.050, "descricao": "..." },
-  "custo_previsto_revisado": 0,  // campo para revisao futura
-  "variacao_custo_abs": 0        // diferenca previsto revisado - real
-}
+suppliers
+  - id (uuid, PK, default gen_random_uuid())
+  - trade_name (text, NOT NULL) -- nome fantasia
+  - legal_name (text) -- razao social
+  - document (text) -- CNPJ
+  - contact_name (text) -- contato principal
+  - phone (text)
+  - email (text)
+  - address (text)
+  - created_at (timestamptz, default now())
+  - updated_at (timestamptz, default now())
 ```
 
-Tambem corrigir o IFEC para usar a formula correta: `IFEC = Producao Real Acumulada / Producao Prevista Acumulada` (baseado em pesos, nao em contagem de etapas). O IFEC atual divide contagem de etapas concluidas pelo total, mas a formula correta e a razao entre os pesos acumulados.
+RLS: SELECT/INSERT/UPDATE/DELETE para `auth.role() = 'authenticated'`.
+Trigger `update_updated_at_column` no UPDATE.
 
-Calculos a implementar:
-- **IFEC** = `completedWeight / totalWeight` (soma dos pesos de todas as etapas como denominador, nao contagem)
-- **IEC Total** = `custoTotalReal / custoTotalPrev` (1.000 = conforme previsto)
-- **IEC Direto** = `custoDiretoReal / custoDiretoPrev`
-- **IEC Indireto** = `custoIndiretoReal / custoIndiretoPrev`
-- Status: > 1.000 = "acima do previsto", < 1.000 = "abaixo do previsto", = 1.000 = "conforme previsto"
+### 1.2 Novos campos em `clients`
 
-### 2. Pagina Web - Graficos e Paineis Laterais
+- `client_type` (text, nullable) -- Pessoa Fisica / Pessoa Juridica / Condominio
+- `segment` (text, nullable) -- Residencial / Comercial / Industrial
 
-**Arquivo**: `src/pages/ProjectReport.tsx`
+### 1.3 Novos campos em `proposals`
 
-Reorganizar o layout para incluir graficos e paineis laterais conforme o modelo:
+- `project_id` (uuid, nullable, FK para projects.id) -- vincular proposta a obra
+- `loss_reason` (text, nullable) -- motivo de perda
+- `expected_close_date` (date, nullable) -- data prevista de fechamento
 
-**Layout proposto** (2 colunas em desktop):
-- **Coluna esquerda (8/12)**: Graficos
-  - Grafico 1: Producao Acumulada Prevista x Real (LineChart com marcadores)
-  - Grafico 2: Producao Mensal (BarChart com apenas a coluna "real/produzido")
-- **Coluna direita (4/12)**: 3 Paineis de Analise
-  - Painel 1 - ANALISE FISICA: IFEC com valor e status
-  - Painel 2 - ANALISE FINANCEIRA: IEC total, IEC direto, IEC indireto com status
-  - Painel 3 - ANALISE DO CUSTO GERAL: Valores em R$ (custo previsto, previsto revisado, real, variacao) desdobrados em total/direto/indireto
+### 1.4 Novos campos em `contracts`
 
-**Graficos (Recharts - ja importado)**:
-- LineChart: duas linhas (previsto e real), eixo Y de 0% a 100%, com marcadores na linha Real
-- BarChart: barras verticais apenas com "Produzido no Mes", eixo Y percentual mensal
+- `project_id` (uuid, nullable, FK para projects.id) -- vincular contrato a obra
+- `due_date` (date, nullable) -- data de vencimento
+- `additive_value` (numeric, default 0) -- valor de aditivos
 
-### 3. PDF - Paineis de Analise Adicionais
+### 1.5 Novo campo em `project_costs`
 
-**Arquivo**: `src/components/reports/pdf/ReportPDF.tsx`
+- `supplier_id` (uuid, nullable, FK para suppliers.id) -- vincular custo a fornecedor
 
-Adicionar os paineis de analise financeira (IEC total/direto/indireto) e o painel de custo geral ao PDF, mantendo as tabelas de producao ja existentes. Os graficos continuam como tabelas no PDF.
+## 2. Alteracoes no Frontend
 
-Adicionar na Pagina 3 (Analise Financeira):
-- Painel IEC: IEC total, direto e indireto com status
-- Painel Custo Geral: Custo previsto total/direto/indireto, custo real total/direto/indireto, variacao
+### 2.1 Fix build error: `ProjectDetails.tsx` (linha 157)
 
-### 4. Estilos do PDF
+Substituir `project.code` por `projectId?.slice(0, 8)` -- a tabela `projects` nao tem campo `code`.
 
-**Arquivo**: `src/components/reports/pdf/reportStyles.ts`
+### 2.2 Formularios de Cliente (ClientForm.tsx + EditClientDialog.tsx)
 
-Adicionar estilos para os novos paineis de analise (3 cards lado a lado para IEC).
+Adicionar dois campos no bloco "Dados Basicos":
+- **Tipo de Cliente**: Select com opcoes "Pessoa Fisica", "Pessoa Juridica", "Condominio"
+- **Segmento**: Select com opcoes "Residencial", "Comercial", "Industrial"
 
-## Sequencia de Implementacao
+Atualizar o schema zod e o submit para incluir `client_type` e `segment`.
 
-1. Atualizar edge function com calculos corretos de IFEC e IEC financeiro (+ deploy)
-2. Atualizar `ProjectReport.tsx` com layout de 2 colunas, graficos e paineis laterais
-3. Atualizar `ReportPDF.tsx` com paineis de analise financeira e custo geral
-4. Atualizar `reportStyles.ts` com estilos dos novos paineis
+### 2.3 Formulario de Proposta (ProposalFormContent.tsx)
 
-## Arquivos a Criar/Modificar
+Adicionar campos ao formData e ao `saveProposal`:
+- **Motivo de Perda** (textarea, visivel apenas quando status = "perdida")
+- **Data Prevista de Fechamento** (input date)
+- **Obra Vinculada** (select opcional, lista de projects)
 
-1. **`supabase/functions/project-management-report/index.ts`** (editar - novos calculos IEC)
-2. **`src/pages/ProjectReport.tsx`** (editar - layout com graficos e paineis)
-3. **`src/components/reports/pdf/ReportPDF.tsx`** (editar - paineis de analise)
-4. **`src/components/reports/pdf/reportStyles.ts`** (editar - novos estilos)
+### 2.4 Formulario de Contrato (ContractFormContent.tsx)
+
+Adicionar campos ao state e ao `saveMutation`:
+- **Obra Vinculada** (select opcional, lista de projects)
+- **Data de Vencimento** (input date)
+- **Valor de Aditivos** (input numerico)
+
+### 2.5 Pagina de Fornecedores (nova)
+
+- **`src/pages/Suppliers.tsx`**: Listagem com tabela (nome fantasia, CNPJ, contato, telefone, email) + botao "Novo Fornecedor"
+- **`src/components/suppliers/SuppliersList.tsx`**: Componente de listagem com busca
+- **`src/components/suppliers/SupplierForm.tsx`**: Formulario de cadastro/edicao em dialog
+- **Rota**: `/fornecedores` adicionada ao `App.tsx`
+- **Menu lateral**: Adicionar item "Fornecedores" no `AppSidebar.tsx`
+
+## 3. Arquivos Criados
+
+1. `src/pages/Suppliers.tsx`
+2. `src/components/suppliers/SuppliersList.tsx`
+3. `src/components/suppliers/SupplierForm.tsx`
+
+## 4. Arquivos Modificados
+
+1. `src/pages/ProjectDetails.tsx` -- fix `project.code`
+2. `src/components/clients/ClientForm.tsx` -- campos `client_type`, `segment`
+3. `src/components/clients/EditClientDialog.tsx` -- campos `client_type`, `segment`
+4. `src/components/proposals/ProposalFormContent.tsx` -- campos `loss_reason`, `expected_close_date`, `project_id`
+5. `src/components/contracts/ContractFormContent.tsx` -- campos `project_id`, `due_date`, `additive_value`
+6. `src/App.tsx` -- rota `/fornecedores`
+7. `src/components/layout/AppSidebar.tsx` -- item de menu "Fornecedores"
+
+## 5. Sequencia de Implementacao
+
+1. Executar migracao SQL (nova tabela + novos campos + RLS + trigger)
+2. Corrigir build error em ProjectDetails.tsx
+3. Atualizar formularios de clientes com novos campos
+4. Atualizar formulario de propostas com novos campos
+5. Atualizar formulario de contratos com novos campos
+6. Criar pagina e componentes de fornecedores
+7. Adicionar rota e menu lateral
 
