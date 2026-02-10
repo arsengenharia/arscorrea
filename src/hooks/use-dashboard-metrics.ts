@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, addDays, differenceInDays } from "date-fns";
+import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, addDays, differenceInDays, format, subMonths } from "date-fns";
 
 export type DateRange = {
   start: Date;
@@ -61,6 +61,42 @@ export function useDashboardMetrics(dateRange: DateRange) {
       }
 
       return payments || [];
+    },
+  });
+
+  // Projects data
+  const { data: projectsData, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ["dashboard-projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, status, start_date, end_date, project_manager, client_id, clients(name)");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Project costs
+  const { data: projectCostsData } = useQuery({
+    queryKey: ["dashboard-project-costs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_costs")
+        .select("id, project_id, actual_value, expected_value, record_date");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Project revenues
+  const { data: projectRevenuesData } = useQuery({
+    queryKey: ["dashboard-project-revenues"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_revenues")
+        .select("id, project_id, actual_value, expected_value, record_date");
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -436,8 +472,132 @@ export function useDashboardMetrics(dateRange: DateRange) {
     }));
   };
 
+  // Project KPIs
+  const calculateProjectMetrics = (managerFilter?: string, statusFilter?: string) => {
+    if (!projectsData) return null;
+
+    let filtered = projectsData;
+    if (managerFilter) filtered = filtered.filter(p => p.project_manager === managerFilter);
+    if (statusFilter) filtered = filtered.filter(p => p.status === statusFilter);
+
+    const obrasEmAndamento = filtered.filter(p => p.status === "em_andamento").length;
+    
+    const obrasCriticas = filtered.filter(p => {
+      if (p.status === "concluida" || p.status === "concluded") return false;
+      if (!p.end_date) return false;
+      return new Date(p.end_date) < today;
+    }).length;
+
+    // Margem de lucro média
+    const costs = projectCostsData || [];
+    const revenues = projectRevenuesData || [];
+    
+    let totalRevenue = 0;
+    let totalCost = 0;
+    
+    filtered.forEach(proj => {
+      const projCosts = costs.filter(c => c.project_id === proj.id).reduce((s, c) => s + (c.actual_value || 0), 0);
+      const projRevenues = revenues.filter(r => r.project_id === proj.id).reduce((s, r) => s + (r.actual_value || 0), 0);
+      totalCost += projCosts;
+      totalRevenue += projRevenues;
+    });
+
+    const margemMedia = totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue) * 100 : 0;
+
+    // Custo realizado no período
+    const custoNoPeriodo = costs
+      .filter(c => {
+        if (!c.record_date) return false;
+        const d = new Date(c.record_date);
+        return d >= start && d <= end && filtered.some(p => p.id === c.project_id);
+      })
+      .reduce((s, c) => s + (c.actual_value || 0), 0);
+
+    return { obrasEmAndamento, obrasCriticas, margemMedia, custoNoPeriodo };
+  };
+
+  // Critical projects table
+  const getCriticalProjects = (managerFilter?: string, statusFilter?: string) => {
+    if (!projectsData) return [];
+
+    let filtered = projectsData;
+    if (managerFilter) filtered = filtered.filter(p => p.project_manager === managerFilter);
+    if (statusFilter) filtered = filtered.filter(p => p.status === statusFilter);
+
+    return filtered
+      .filter(p => {
+        if (p.status === "concluida" || p.status === "concluded") return false;
+        if (!p.end_date) return false;
+        return new Date(p.end_date) < today;
+      })
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        clientName: p.clients?.name || "-",
+        status: p.status,
+        endDate: p.end_date,
+        daysOverdue: differenceInDays(today, new Date(p.end_date!)),
+        manager: p.project_manager || "-",
+      }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  };
+
+  // Revenue vs Cost per month (last 12 months)
+  const calculateRevenueCostByMonth = () => {
+    const costs = projectCostsData || [];
+    const revenues = projectRevenuesData || [];
+    const months: { month: string; receita: number; custo: number }[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const d = subMonths(today, i);
+      const monthKey = format(d, "yyyy-MM");
+      const label = format(d, "MMM/yy");
+      
+      const monthCost = costs
+        .filter(c => c.record_date && c.record_date.startsWith(monthKey))
+        .reduce((s, c) => s + (c.actual_value || 0), 0);
+      
+      const monthRevenue = revenues
+        .filter(r => r.record_date && r.record_date.startsWith(monthKey))
+        .reduce((s, r) => s + (r.actual_value || 0), 0);
+
+      months.push({ month: label, receita: monthRevenue, custo: monthCost });
+    }
+    return months;
+  };
+
+  // Profit margin per project
+  const calculateProfitMarginByProject = (managerFilter?: string, statusFilter?: string) => {
+    if (!projectsData) return [];
+    const costs = projectCostsData || [];
+    const revenues = projectRevenuesData || [];
+
+    let filtered = projectsData;
+    if (managerFilter) filtered = filtered.filter(p => p.project_manager === managerFilter);
+    if (statusFilter) filtered = filtered.filter(p => p.status === statusFilter);
+
+    return filtered
+      .map(proj => {
+        const projCost = costs.filter(c => c.project_id === proj.id).reduce((s, c) => s + (c.actual_value || 0), 0);
+        const projRevenue = revenues.filter(r => r.project_id === proj.id).reduce((s, r) => s + (r.actual_value || 0), 0);
+        const margin = projRevenue > 0 ? ((projRevenue - projCost) / projRevenue) * 100 : 0;
+        return { name: proj.name, margem: Math.round(margin * 10) / 10, receita: projRevenue, custo: projCost };
+      })
+      .filter(p => p.receita > 0 || p.custo > 0)
+      .sort((a, b) => b.margem - a.margem);
+  };
+
+  // Distinct managers and statuses for filters
+  const projectManagers = projectsData
+    ? [...new Set(projectsData.map(p => p.project_manager).filter(Boolean) as string[])]
+    : [];
+
+  const projectStatuses = projectsData
+    ? [...new Set(projectsData.map(p => p.status))]
+    : [];
+
   return {
-    isLoading: isLoadingFinancial || isLoadingProposals,
+    isLoading: isLoadingFinancial || isLoadingProposals || isLoadingProjects,
     financial: calculateFinancialMetrics(),
     cashFlowSeries: calculateCashFlowSeries(),
     overdueAging: calculateOverdueAging(),
@@ -451,6 +611,13 @@ export function useDashboardMetrics(dateRange: DateRange) {
     allStages: proposalsData 
       ? [...new Set(proposalsData.map(p => p.proposal_stages?.name || "Sem etapa"))]
       : [],
+    // New project metrics
+    projectMetrics: calculateProjectMetrics,
+    criticalProjects: getCriticalProjects,
+    revenueCostByMonth: calculateRevenueCostByMonth(),
+    profitMarginByProject: calculateProfitMarginByProject,
+    projectManagers,
+    projectStatuses,
   };
 }
 
