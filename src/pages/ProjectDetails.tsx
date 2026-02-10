@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { PenSquare, Plus, ChevronLeft } from "lucide-react";
+import { PenSquare, Plus, ChevronLeft, BarChart3, DollarSign, TrendingUp } from "lucide-react";
 import { ProjectInfoCard } from "@/components/projects/ProjectInfoCard";
 import { ClientInfoCard } from "@/components/projects/ClientInfoCard";
 import { ProjectStagesList } from "@/components/projects/ProjectStagesList";
@@ -95,6 +95,33 @@ export function ProjectDetails() {
             <h2 className="text-3xl font-bold tracking-tight">Detalhes da Obra</h2>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(`/obras/${projectId}/relatorio`)}
+              title="Relatório Gerencial"
+              className="rounded-full"
+            >
+              <BarChart3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(`/obras/${projectId}/custos`)}
+              title="Custos"
+              className="rounded-full"
+            >
+              <DollarSign className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(`/obras/${projectId}/receitas`)}
+              title="Receitas"
+              className="rounded-full"
+            >
+              <TrendingUp className="w-4 h-4" />
+            </Button>
             <ProjectPDFViewer project={project} />
             <Link to={`/obras/${projectId}/etapas/adicionar`}>
               <Button 

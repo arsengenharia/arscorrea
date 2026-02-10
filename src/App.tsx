@@ -20,6 +20,9 @@ import Contracts from "./pages/Contracts";
 import ContractForm from "./pages/ContractForm";
 import ContractFinancial from "./pages/ContractFinancial";
 import Agenda from "./pages/Agenda";
+import ProjectReport from "./pages/ProjectReport";
+import ProjectCosts from "./pages/ProjectCosts";
+import ProjectRevenues from "./pages/ProjectRevenues";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -89,6 +92,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <EditStageForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/obras/:projectId/relatorio"
+            element={
+              <ProtectedRoute>
+                <ProjectReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/obras/:projectId/custos"
+            element={
+              <ProtectedRoute>
+                <ProjectCosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/obras/:projectId/receitas"
+            element={
+              <ProtectedRoute>
+                <ProjectRevenues />
               </ProtectedRoute>
             }
           />

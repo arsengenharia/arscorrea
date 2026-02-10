@@ -2,3 +2,6 @@ project_id = "qajzskxuvxsbvuyuvlnd"
 
 [functions.parse-proposal-pdf]
 verify_jwt = false
+
+[functions.project-management-report]
+verify_jwt = false

@@ -25,6 +25,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const editStageFormSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   status: z.string().optional(),
+  stage_weight: z.string().optional(),
   report: z.string().optional(),
   report_start_date: z.date().optional(),
   report_end_date: z.date().optional(),
@@ -60,6 +61,7 @@ export default function EditStageForm() {
     defaultValues: {
       name: "",
       status: "pendente",
+      stage_weight: "0",
       report: "",
     }
   });
@@ -78,6 +80,7 @@ export default function EditStageForm() {
       form.reset({
         name: stage.name || "",
         status: stage.status || "pendente",
+        stage_weight: String(stage.stage_weight ?? 0),
         report: stage.report || "",
         report_start_date: startDate,
         report_end_date: endDate,
@@ -102,6 +105,7 @@ export default function EditStageForm() {
         const formattedData = {
           name: values.name,
           status: values.status || "pendente",
+          stage_weight: Number(values.stage_weight) || 0,
           report: values.report,
           report_start_date: values.report_start_date ? values.report_start_date.toISOString().split('T')[0] : null,
           report_end_date: values.report_end_date ? values.report_end_date.toISOString().split('T')[0] : null,
@@ -223,6 +227,20 @@ export default function EditStageForm() {
                       <SelectItem value="concluido">Concluído</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="stage_weight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso da Etapa (ex: 0.10 = 10%)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="0" max="1" placeholder="0.00" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
