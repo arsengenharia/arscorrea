@@ -22,6 +22,7 @@ export function ProjectsKPIs({ data, isLoading }: ProjectsKPIsProps) {
     {
       label: "Obras em Andamento",
       value: data?.obrasEmAndamento ?? 0,
+      format: (v: number) => v.toString(),
       icon: Building2,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -29,47 +30,66 @@ export function ProjectsKPIs({ data, isLoading }: ProjectsKPIsProps) {
     {
       label: "Obras Críticas",
       value: data?.obrasCriticas ?? 0,
+      format: (v: number) => v.toString(),
       icon: AlertTriangle,
       color: "text-red-600",
       bgColor: "bg-red-50",
     },
     {
       label: "Margem Média",
-      value: `${(data?.margemMedia ?? 0).toFixed(1)}%`,
+      value: data?.margemMedia ?? 0,
+      format: (v: number) => `${v.toFixed(1)}%`,
       icon: TrendingUp,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
       label: "Custo no Período",
-      value: formatCurrency(data?.custoNoPeriodo ?? 0),
+      value: data?.custoNoPeriodo ?? 0,
+      format: formatCurrency,
       icon: DollarSign,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpis.map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-20" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {kpis.map((kpi) => (
-        <Card key={kpi.label}>
-          <CardContent className="pt-6">
-            {isLoading ? (
-              <Skeleton className="h-16 w-full" />
-            ) : (
-              <div className="flex items-start gap-4">
-                <div className={`p-3 rounded-lg ${kpi.bgColor}`}>
-                  <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {kpis.map((kpi) => {
+        const Icon = kpi.icon;
+        return (
+          <Card key={kpi.label} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-md ${kpi.bgColor}`}>
+                  <Icon className={`h-4 w-4 ${kpi.color}`} />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                  <p className="text-2xl font-bold">{kpi.value}</p>
-                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {kpi.label}
+                </span>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              <div className="text-xl font-bold text-foreground">
+                {kpi.format(kpi.value)}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
