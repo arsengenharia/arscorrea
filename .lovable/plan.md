@@ -1,132 +1,151 @@
 
-# Plano: Padronizar Status/Etapas de Propostas
+
+# Plano: Relatorio Gerencial por Obra (Backend + Banco de Dados)
 
 ## Resumo
-Substituir as 4 etapas atuais do funil de propostas (Em aberto, Fechada, Em analise, Perdida) por 8 novos estados, atualizando banco de dados, componentes visuais, dashboards e logica de negocios.
+Criar as tabelas de custos, receitas e relatorios gerenciais no banco de dados, adicionar coluna `peso_etapa` na tabela `stages`, e desenvolver uma edge function que consolida todos os dados do relatorio gerencial de uma obra.
 
-## Etapas Atuais vs Novas
+## 1. Modificacoes no Banco de Dados (Migration SQL)
 
-| Atual | Nova |
-|-------|------|
-| Em aberto | Proposta em aberto (inicial) |
-| - | Visita agendada |
-| - | Visita realizada |
-| - | Proposta enviada |
-| Em analise | Reuniao marcada para entrega |
-| - | Proposta em aberto |
-| Perdida | Proposta recusada |
-| Fechada | Proposta aprovada |
+### 1.1 Nova tabela: `project_costs` (obras_custos)
+| Coluna | Tipo | Observacoes |
+|--------|------|-------------|
+| id | UUID PK | gen_random_uuid() |
+| project_id | UUID FK -> projects.id | NOT NULL |
+| cost_type | text | 'Direto' ou 'Indireto' |
+| description | text | Opcional |
+| expected_value | numeric | DEFAULT 0 |
+| actual_value | numeric | DEFAULT 0 |
+| record_date | date | Opcional |
+| created_at | timestamptz | DEFAULT now() |
+| updated_at | timestamptz | DEFAULT now() |
 
-## Migracao de Dados (Supabase)
+### 1.2 Nova tabela: `project_revenues` (obras_receitas)
+| Coluna | Tipo | Observacoes |
+|--------|------|-------------|
+| id | UUID PK | gen_random_uuid() |
+| project_id | UUID FK -> projects.id | NOT NULL |
+| revenue_type | text | 'Contrato', 'Aditivo', etc. |
+| description | text | Opcional |
+| expected_value | numeric | DEFAULT 0 |
+| actual_value | numeric | DEFAULT 0 |
+| record_date | date | Opcional |
+| created_at | timestamptz | DEFAULT now() |
+| updated_at | timestamptz | DEFAULT now() |
 
-Executar migration SQL para:
-1. Desativar etapas antigas (`is_active = false`)
-2. Inserir 8 novas etapas com `order_index` sequencial
-3. Atualizar `stage_id` de propostas existentes para mapear para as novas etapas:
-   - "Em aberto" -> "Proposta em aberto (inicial)"
-   - "Em analise" -> "Reuniao marcada para entrega"
-   - "Perdida" -> "Proposta recusada"
-   - "Fechada" -> "Proposta aprovada"
+### 1.3 Nova tabela: `project_reports` (obras_relatorios_gerenciais)
+| Coluna | Tipo | Observacoes |
+|--------|------|-------------|
+| id | UUID PK | gen_random_uuid() |
+| project_id | UUID FK -> projects.id | NOT NULL |
+| generated_at | timestamptz | DEFAULT now() |
+| observations | text | Opcional |
+| pdf_path | text | Opcional |
+| report_data | jsonb | Dados consolidados |
+| created_at | timestamptz | DEFAULT now() |
+| updated_at | timestamptz | DEFAULT now() |
 
-## Arquivos a Modificar
+### 1.4 Alteracao na tabela `stages`
+- Adicionar coluna `stage_weight` (numeric, NOT NULL, DEFAULT 0) - peso percentual da etapa (ex: 0.10 = 10%)
 
-### 1. `src/components/proposals/ProposalStageBadge.tsx`
-Atualizar o mapa `stageColors` com cores para os 8 novos estados:
-- Proposta em aberto (inicial) - azul
-- Visita agendada - indigo
-- Visita realizada - purple
-- Proposta enviada - cyan
-- Reuniao marcada para entrega - amber
-- Proposta em aberto - blue
-- Proposta recusada - red
-- Proposta aprovada - green
+### 1.5 RLS
+Todas as 3 novas tabelas terao RLS habilitado com politicas para usuarios autenticados (SELECT, INSERT, UPDATE, DELETE), seguindo o padrao existente no projeto.
 
-### 2. `src/hooks/use-dashboard-metrics.ts`
-Atualizar toda a logica de filtragem que referencia nomes de etapas:
-- **Propostas "fechadas"**: substituir `"fechada"` por `"proposta aprovada"`
-- **Propostas "perdidas"**: substituir `"perdida"` por `"proposta recusada"`
-- **Propostas em aberto**: todas que nao sao "proposta aprovada" nem "proposta recusada"
-- Taxa de conversao, ticket medio, loss rate: mesma logica com novos nomes
+### 1.6 Trigger updated_at
+As 3 novas tabelas usarao o trigger `update_updated_at_column()` ja existente.
 
-### 3. `src/components/dashboard/ProposalsMap.tsx`
-Atualizar o array `STAGES` com os 8 novos estados e suas cores, e o mapa `STAGE_COLORS`.
+## 2. Edge Function: `project-management-report`
 
-### 4. `src/components/dashboard/ProposalsFunnel.tsx`
-Atualizar o mapa `COLORS` com os 8 novos nomes de etapas e cores correspondentes.
+### Endpoint
+`POST /functions/v1/project-management-report`
+- Body: `{ "project_id": "uuid" }`
+- Retorna o JSON consolidado do relatorio
 
-### 5. `src/components/dashboard/ProposalsAgingChart.tsx`
-Atualizar o mapa `COLORS` com os 8 novos nomes de etapas.
+### Logica de Calculo
 
-### 6. `src/components/proposals/ProposalStageSelect.tsx`
-Nenhuma alteracao necessaria - ja carrega etapas dinamicamente do banco via query.
+**IFEC (Indice Fisico de Etapas Concluidas)**
+- Etapas concluidas (status = 'concluido') / Total de etapas * 100
 
-### 7. `src/components/proposals/ProposalsList.tsx`
-Nenhuma alteracao necessaria - usa dados do banco de forma dinamica.
+**IEC (Indice de Eficiencia de Cronograma)**
+- Soma de `stage_weight` das etapas concluidas / Soma de `stage_weight` das etapas que deveriam estar concluidas ate hoje (baseado em `report_end_date <= hoje`) * 100
 
-## Detalhes Tecnicos
+**Producao Fisica Mensal/Acumulada**
+- Agrupa etapas por mes usando `report_end_date` e calcula previsto vs real com base no `stage_weight`
 
-### Migration SQL
-```sql
--- Inserir novas etapas
-INSERT INTO proposal_stages (name, order_index, is_active) VALUES
-  ('Proposta em aberto (inicial)', 10, true),
-  ('Visita agendada', 20, true),
-  ('Visita realizada', 30, true),
-  ('Proposta enviada', 40, true),
-  ('Reunião marcada para entrega', 50, true),
-  ('Proposta em aberto', 60, true),
-  ('Proposta recusada', 70, true),
-  ('Proposta aprovada', 80, true);
+**Analise Financeira**
+- Custos: soma de `expected_value` e `actual_value` da tabela `project_costs`, agrupados por `cost_type`
+- Receitas: soma de `expected_value` e `actual_value` da tabela `project_revenues`
+- Saldo = Receita Real - Custo Real
+- Margem = (Saldo / Receita Real) * 100
 
--- Migrar propostas existentes
-UPDATE proposals SET stage_id = (
-  SELECT id FROM proposal_stages WHERE name = 'Proposta em aberto (inicial)'
-) WHERE stage_id = '0177211f-0a9d-4285-b0ad-c2f378ed0d5a';
-
-UPDATE proposals SET stage_id = (
-  SELECT id FROM proposal_stages WHERE name = 'Reunião marcada para entrega'
-) WHERE stage_id = '4d2ed8b0-7ea2-4d61-97aa-8dc9f054a033';
-
-UPDATE proposals SET stage_id = (
-  SELECT id FROM proposal_stages WHERE name = 'Proposta recusada'
-) WHERE stage_id = '58872aa6-7908-43e8-b8b3-0ed3fa22d72f';
-
-UPDATE proposals SET stage_id = (
-  SELECT id FROM proposal_stages WHERE name = 'Proposta aprovada'
-) WHERE stage_id = 'd250f3f7-2f74-4956-a8dd-7f725f63669e';
-
--- Desativar etapas antigas
-UPDATE proposal_stages SET is_active = false
-WHERE id IN (
-  '0177211f-0a9d-4285-b0ad-c2f378ed0d5a',
-  'd250f3f7-2f74-4956-a8dd-7f725f63669e',
-  '4d2ed8b0-7ea2-4d61-97aa-8dc9f054a033',
-  '58872aa6-7908-43e8-b8b3-0ed3fa22d72f'
-);
+### Estrutura do JSON de Retorno
+```text
+{
+  "obra": { id, nome, gestor, data_inicio, data_conclusao_prevista, prazo_dias, status },
+  "cliente": { nome, codigo, responsavel, telefone, endereco },
+  "analise_fisica": {
+    "ifec": { valor, descricao },
+    "iec": { valor, descricao },
+    "producao_mensal": [...],
+    "producao_acumulada": [...]
+  },
+  "analise_financeira": {
+    "custo_total_previsto", "custo_direto_previsto", "custo_indireto_previsto",
+    "custo_total_real", "custo_direto_real", "custo_indireto_real",
+    "variacao_custo", "receita_total_prevista", "receita_total_realizada",
+    "variacao_receita", "saldo_obra", "margem_lucro"
+  },
+  "observacoes_gerenciais": ""
+}
 ```
 
-### Mapa de cores para os novos estados
-```typescript
-const stageColors = {
-  "Proposta em aberto (inicial)": "bg-blue-100 text-blue-700",
-  "Visita agendada": "bg-indigo-100 text-indigo-700",
-  "Visita realizada": "bg-purple-100 text-purple-700",
-  "Proposta enviada": "bg-cyan-100 text-cyan-700",
-  "Reunião marcada para entrega": "bg-amber-100 text-amber-700",
-  "Proposta em aberto": "bg-sky-100 text-sky-700",
-  "Proposta recusada": "bg-red-100 text-red-700",
-  "Proposta aprovada": "bg-green-100 text-green-700",
-};
-```
+## 3. Frontend (pagina de visualizacao)
 
-### Logica de negocios no dashboard
-A regra principal e:
-- **Aprovada** = `"proposta aprovada"` (equivale a antiga "Fechada")
-- **Recusada** = `"proposta recusada"` (equivale a antiga "Perdida")
-- **Em aberto** = qualquer outra etapa (6 estados intermediarios)
+### Nova pagina: `src/pages/ProjectReport.tsx`
+- Rota: `/obras/:projectId/relatorio`
+- Busca dados chamando a edge function
+- Exibe cards com KPIs fisicos (IFEC, IEC)
+- Exibe graficos de producao mensal/acumulada (Recharts)
+- Exibe cards financeiros (custos, receitas, saldo, margem)
+- Campo de observacoes gerenciais
 
-## Resumo de Impacto
-- 1 migration SQL (dados + schema)
-- 4 arquivos de componentes atualizados (badges, charts, map)
-- 1 hook de metricas atualizado (logica de negocios)
-- 0 alteracoes em ProposalStageSelect (ja e dinamico)
+### Nova pagina: `src/pages/ProjectCosts.tsx`
+- Rota: `/obras/:projectId/custos`
+- CRUD de custos da obra (tabela `project_costs`)
+- Formulario para adicionar/editar custos com tipo, descricao, valores
+
+### Nova pagina: `src/pages/ProjectRevenues.tsx`
+- Rota: `/obras/:projectId/receitas`
+- CRUD de receitas da obra (tabela `project_revenues`)
+
+### Alteracoes em `src/pages/ProjectDetails.tsx`
+- Adicionar botoes de navegacao para "Relatorio Gerencial", "Custos" e "Receitas"
+
+### Alteracoes em `src/components/projects/ProjectForm.tsx` e `EditStageForm.tsx` / `StageForm.tsx`
+- Adicionar campo `stage_weight` (peso da etapa) no formulario de etapas
+
+### Rotas em `src/App.tsx`
+- `/obras/:projectId/relatorio`
+- `/obras/:projectId/custos`
+- `/obras/:projectId/receitas`
+
+## 4. Sequencia de Implementacao
+
+1. Migration SQL (3 tabelas + coluna `stage_weight` + RLS + triggers)
+2. Edge function `project-management-report`
+3. Formularios de custos e receitas (CRUD)
+4. Campo `stage_weight` nos formularios de etapas
+5. Pagina do relatorio gerencial com graficos e KPIs
+6. Rotas no App.tsx e botoes de navegacao no ProjectDetails
+
+## Arquivos a Criar/Modificar
+1. **Migration SQL** (nova)
+2. **`supabase/functions/project-management-report/index.ts`** (novo)
+3. **`src/pages/ProjectReport.tsx`** (novo)
+4. **`src/pages/ProjectCosts.tsx`** (novo)
+5. **`src/pages/ProjectRevenues.tsx`** (novo)
+6. **`src/pages/StageForm.tsx`** (editar - campo peso)
+7. **`src/pages/EditStageForm.tsx`** (editar - campo peso)
+8. **`src/pages/ProjectDetails.tsx`** (editar - botoes navegacao)
+9. **`src/App.tsx`** (editar - novas rotas)
+
