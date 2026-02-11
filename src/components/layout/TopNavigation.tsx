@@ -14,6 +14,7 @@ const menuItems = [
   { title: "Contratos", icon: ScrollText, path: "/contratos" },
   { title: "Agenda", icon: Calendar, path: "/agenda" },
   { title: "Fornecedores", icon: Truck, path: "/fornecedores" },
+  { title: "Portal", icon: Users, path: "/portal/obras", external: true },
 ];
 
 export function TopNavigation() {
