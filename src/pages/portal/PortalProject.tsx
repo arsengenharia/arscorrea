@@ -8,7 +8,8 @@ import { PortalEventsList } from "@/components/portal/PortalEventsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CalendarDays, Building2, User, Activity, MessageSquare } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarDays, Building2, User, Activity, MessageSquare, MapPin, LayoutList, Eye } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function PortalProject() {
@@ -26,6 +27,9 @@ export default function PortalProject() {
           stages(
             *,
             stage_photos(*)
+          ),
+          contracts(
+            proposal:proposals(work_address)
           )
         `)
         .eq("id", projectId)
@@ -35,6 +39,21 @@ export default function PortalProject() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Count pending communications for badge
+  const { data: pendingCount } = useQuery({
+    queryKey: ["portal-events-pending", projectId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("portal_events")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId!)
+        .in("status", ["aberto", "em_analise"]);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!projectId,
   });
 
   if (isLoading) {
@@ -57,13 +76,17 @@ export default function PortalProject() {
     );
   }
 
-  // Calculate progress
   const stages = project.stages || [];
   const totalWeight = stages.reduce((sum: number, s: any) => sum + (s.stage_weight || 0), 0);
   const completedWeight = stages
     .filter((s: any) => s.status === "concluido")
     .reduce((sum: number, s: any) => sum + (s.stage_weight || 0), 0);
   const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+
+  // Extract work address from contract → proposal
+  const workAddress = (project as any).contracts
+    ?.map((c: any) => c.proposal?.work_address)
+    .find((addr: string | null) => !!addr) || null;
 
   const statusLabel: Record<string, string> = {
     pending: "Pendente",
@@ -83,7 +106,7 @@ export default function PortalProject() {
 
   return (
     <PortalLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4">
         {/* Project header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{project.name}</h1>
@@ -94,110 +117,148 @@ export default function PortalProject() {
           </div>
         </div>
 
-        {/* Overview cards */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Progresso Geral
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-end justify-between">
-                  <span className="text-3xl font-bold text-slate-800">{progress}%</span>
-                  <span className="text-xs text-muted-foreground">
-                    {stages.filter((s: any) => s.status === "concluido").length}/{stages.length} etapas
-                  </span>
-                </div>
-                <Progress value={progress} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" />
-                Datas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Início:</span>
-                  <span className="font-medium">
-                    {project.start_date
-                      ? new Date(project.start_date).toLocaleDateString("pt-BR")
-                      : "Não definido"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Previsão:</span>
-                  <span className="font-medium">
-                    {project.end_date
-                      ? new Date(project.end_date).toLocaleDateString("pt-BR")
-                      : "Não definido"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {project.project_manager && (
-            <Card className="border-slate-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Responsável
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <span className="font-medium text-slate-800">{project.project_manager}</span>
-              </CardContent>
-            </Card>
-          )}
-
-          {project.client && (
-            <Card className="border-slate-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Cliente
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <span className="font-medium text-slate-800">{project.client.name}</span>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Stages */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <div className="w-1 h-5 bg-primary rounded-full" />
-            Etapas da Obra
-          </h2>
-          <PortalStagesList stages={stages} />
-        </div>
-
-        {/* Comunicações */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <div className="w-1 h-5 bg-primary rounded-full" />
-              <MessageSquare className="h-5 w-5" />
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm">
+              <Eye className="h-4 w-4 hidden sm:inline" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="stages" className="gap-1.5 text-xs sm:text-sm">
+              <LayoutList className="h-4 w-4 hidden sm:inline" />
+              Etapas
+            </TabsTrigger>
+            <TabsTrigger value="communications" className="gap-1.5 text-xs sm:text-sm relative">
+              <MessageSquare className="h-4 w-4 hidden sm:inline" />
               Comunicações
-            </h2>
-            <PortalEventForm
-              projectId={projectId!}
-              onSuccess={() => queryClient.invalidateQueries({ queryKey: ["portal-events", projectId] })}
-            />
-          </div>
-          <PortalEventsList projectId={projectId!} />
-        </div>
+              {!!pendingCount && pendingCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-amber-500 text-white">
+                  {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+              <Card className="border-slate-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Progresso Geral
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-end justify-between">
+                      <span className="text-3xl font-bold text-slate-800">{progress}%</span>
+                      <span className="text-xs text-muted-foreground">
+                        {stages.filter((s: any) => s.status === "concluido").length}/{stages.length} etapas
+                      </span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Datas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Início:</span>
+                      <span className="font-medium">
+                        {project.start_date
+                          ? new Date(project.start_date).toLocaleDateString("pt-BR")
+                          : "Não definido"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Previsão:</span>
+                      <span className="font-medium">
+                        {project.end_date
+                          ? new Date(project.end_date).toLocaleDateString("pt-BR")
+                          : "Não definido"}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {workAddress && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Endereço
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <span className="font-medium text-slate-800">{workAddress}</span>
+                  </CardContent>
+                </Card>
+              )}
+
+              {project.project_manager && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Responsável
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <span className="font-medium text-slate-800">{project.project_manager}</span>
+                  </CardContent>
+                </Card>
+              )}
+
+              {project.client && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <span className="font-medium text-slate-800">{project.client.name}</span>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Stages Tab */}
+          <TabsContent value="stages">
+            <div className="mt-4">
+              <PortalStagesList stages={stages} />
+            </div>
+          </TabsContent>
+
+          {/* Communications Tab */}
+          <TabsContent value="communications">
+            <div className="space-y-4 mt-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800">Comunicações</h2>
+                <PortalEventForm
+                  projectId={projectId!}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["portal-events", projectId] });
+                    queryClient.invalidateQueries({ queryKey: ["portal-events-pending", projectId] });
+                  }}
+                />
+              </div>
+              <PortalEventsList projectId={projectId!} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </PortalLayout>
   );
