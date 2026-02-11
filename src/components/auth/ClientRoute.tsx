@@ -16,7 +16,7 @@ export function ClientRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/portal" replace />;
   }
 
-  if (role !== "client") {
+  if (role !== "client" && role !== "admin") {
     return <Navigate to="/" replace />;
   }
 

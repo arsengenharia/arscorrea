@@ -11,9 +11,24 @@ export default function PortalProjectsList() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const { role } = useAuth();
+
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["portal-projects", user?.id],
+    queryKey: ["portal-projects", user?.id, role],
     queryFn: async () => {
+      if (role === "admin") {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("id, name, status, start_date, end_date, clients:client_id(name)")
+          .order("name");
+        if (error) throw error;
+        return data.map((p: any) => ({
+          project_id: p.id,
+          projects: { id: p.id, name: p.name, status: p.status, start_date: p.start_date, end_date: p.end_date },
+          clients: p.clients,
+        }));
+      }
+
       const { data, error } = await supabase
         .from("client_portal_access")
         .select(`
