@@ -172,6 +172,7 @@ export function PortalEventsList({ projectId }: PortalEventsListProps) {
           const isOwner = user?.id === event.user_id;
           const isEditing = editingId === event.id;
           const canEdit = isOwner && event.status === "aberto";
+          const canDelete = isOwner;
 
           return (
             <Card key={event.id} className="border-slate-200">
@@ -217,14 +218,14 @@ export function PortalEventsList({ projectId }: PortalEventsListProps) {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {canEdit && (
-                          <>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(event)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(event.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(event)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(event.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         )}
                         <span className="text-xs text-muted-foreground ml-1">
                           {new Date(event.created_at).toLocaleDateString("pt-BR")}
