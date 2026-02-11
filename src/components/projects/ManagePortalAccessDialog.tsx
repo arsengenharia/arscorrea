@@ -160,8 +160,8 @@ export function ManagePortalAccessDialog({ projectId, clientId }: ManagePortalAc
                 key={access.id}
                 className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100"
               >
-                <span className="text-sm font-mono text-slate-600 truncate">
-                  {access.user_id.slice(0, 8)}...
+                <span className="text-sm text-slate-600 truncate">
+                  {access.email || `${access.user_id.slice(0, 8)}...`}
                 </span>
                 <Button
                   variant="ghost"
