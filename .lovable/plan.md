@@ -1,84 +1,145 @@
 
+# Analise de Viabilidade: Portal do Cliente
 
-# Analise de Viabilidade: Etapa 4 - Otimizacao Global de UI/UX
+## Resumo Executivo
 
-## Diagnostico do Estado Atual
+A proposta e viavel, mas a abordagem sugerida na Etapa 1 e **desnecessariamente complexa**. Ela propoe criar um sistema de autenticacao paralelo (tabela propria de senhas, tokens JWT customizados, endpoints de login/reset). Isso e redundante porque o Supabase **ja oferece tudo isso nativamente** via `auth.users` + RLS.
 
-O sistema ja possui:
-- **Design system consistente**: Cores com variáveis CSS (HSL), tipografia Inter, icones Lucide, componentes shadcn/ui padronizados
-- **Paleta de cores do Dashboard Comercial**: KPIs com icones coloridos em fundos pastel (blue-50/600, emerald-50/600, amber-50/600, purple-50/600, rose-50/600), graficos com tons suaves (#93C5FD, #86EFAC, #FCA5A5), tooltips com glassmorphism (bg-white/95 backdrop-blur)
-- **Navegacao superior fixa** com glassmorphism (bg-background/85 backdrop-blur-md), responsiva com drawer mobile
-- **Feedback visual**: Toasts via Sonner, skeletons de carregamento, validacao via react-hook-form + zod
-- **Responsividade**: Grids responsivos em todas as paginas, breakpoints mobile/tablet/desktop
+A abordagem correta e simples: usar o proprio Supabase Auth para criar contas de clientes, diferenciar admin vs cliente via tabela `user_roles`, e usar RLS para restringir o acesso.
 
 ---
 
-## O que ja existe e NAO precisa ser reimplementado
+## O que esta ERRADO na proposta original
 
-| Item solicitado | Status |
+| Item proposto | Problema |
 |---|---|
-| Paleta de cores com status (verde/amarelo/vermelho) | Ja existe nos KPIs e badges |
-| Tipografia padronizada (Inter) | Ja configurada no index.css |
-| Biblioteca de icones consistente (Lucide) | Ja em uso em todo sistema |
-| Componentes padronizados (botoes, forms, tabelas, modais) | Ja via shadcn/ui |
-| Feedback visual (toasts, skeletons, validacao) | Ja implementado |
-| Responsividade basica | Ja implementada em todas as paginas |
-| Microinteracoes (hover, transitions) | Ja existem (card-hover, page-transition, hover:shadow-md) |
+| Tabela `portal_clientes_usuarios` com `senha_hash` | Reinventa o Supabase Auth. Nunca armazene senhas manualmente |
+| `POST /portal/login` customizado | Supabase Auth ja faz isso com `signInWithPassword` |
+| `POST /portal/forgot-password` customizado | Supabase Auth ja tem `resetPasswordForEmail` |
+| Token JWT customizado | Supabase ja gera JWT automaticamente |
+| Coluna `url_portal_obra` na tabela projects | Desnecessario -- a URL e simplesmente `/portal/obras/:projectId` |
+| Coluna `responsavel_portal_id` na tabela clients | Complexidade desnecessaria para o caso de uso |
 
 ---
 
-## O que e VIAVEL implementar
+## Abordagem Recomendada (Simples e Segura)
 
-### 1. Harmonizar a aba "Obras" com o design do Dashboard Comercial
+### Arquitetura
 
-A aba Comercial tem um design mais refinado (icones com fundo pastel nos cards, headers com icones decorativos nos graficos, tooltips estilizados, cards com border-slate-100 e shadow-sm). A aba Obras usa um estilo mais basico. Alinhar:
+```text
++------------------+     +----------------+     +-----------+
+| auth.users       |---->| user_roles     |     | projects  |
+| (Supabase nativo)|     | user_id + role |     | client_id |
++------------------+     +----------------+     +-----------+
+         |                                            |
+         v                                            v
++------------------+                           +-----------+
+| client_portal    |                           | stages    |
+| _access          |                           | + photos  |
+| user_id          |                           +-----------+
+| client_id        |
++------------------+
+```
 
-**ProjectsKPIs.tsx**: Adotar o mesmo padrao visual do CommercialKPIs (icone + label na mesma linha, hover:shadow-md, mesma estrutura de CardContent)
+### 1. Banco de Dados (3 migracoes)
 
-**RevenueCostChart.tsx**: Adicionar header com icone decorativo (como no CashFlowChart e ProposalsFunnel), tooltip estilizado com glassmorphism, gradientes nas barras
+**Migracao 1: Tabela `user_roles`** (conforme instrucoes de seguranca do sistema)
+- Enum `app_role` com valores `admin` e `client`
+- Tabela `user_roles` com `user_id` (FK auth.users) e `role`
+- Funcao `has_role()` SECURITY DEFINER
+- Todos os usuarios admin existentes recebem role `admin`
 
-**ProfitMarginChart.tsx**: Mesmo tratamento -- header com icone, tooltip estilizado, cores da paleta pastel existente
+**Migracao 2: Tabela `client_portal_access`**
+- `id` UUID PK
+- `user_id` UUID FK auth.users -- conta Supabase do cliente
+- `client_id` UUID FK clients -- qual cliente ele representa
+- `project_id` UUID FK projects -- qual obra ele pode ver
+- `created_by` UUID -- admin que criou o acesso
+- `created_at` TIMESTAMP
+- Constraint UNIQUE(user_id, project_id)
 
-**CriticalProjectsTable.tsx**: Adicionar header com icone (como nos outros cards), melhorar badges com cores consistentes
+**Migracao 3: Politicas RLS atualizadas**
+- Tabela `projects`: adicionar politica SELECT para role `client` que so permite ver projetos listados em `client_portal_access`
+- Tabela `stages`: idem, via join com projects
+- Tabela `stage_photos`: idem
+- Manter todas as politicas admin existentes inalteradas
 
-### 2. Melhorar a legibilidade dos graficos da aba Obras
+### 2. Frontend -- Rotas do Portal
 
-- Usar a mesma paleta pastel do Comercial (#93C5FD para receita, #FCA5A5 para custo em vez de HSL puro)
-- Tooltips com o mesmo estilo glassmorphism (bg-white/95 backdrop-blur-sm, border-slate-100, shadow-xl, rounded-xl)
-- Gradientes nos graficos de barras (como o AreaChart do CashFlow usa)
+Adicionar rotas publicas (sem `ProtectedRoute` admin) dentro do mesmo app React:
+
+- `/portal` -- Login do cliente (pagina simples e limpa)
+- `/portal/obra/:projectId` -- Visualizacao da obra (read-only)
+
+O `AuthProvider` sera expandido para expor a `role` do usuario. O `ProtectedRoute` verificara se o usuario e admin. Um novo `ClientRoute` verificara se e cliente e se tem acesso aquela obra.
+
+### 3. Paginas do Portal do Cliente
+
+**Login (`/portal`)**
+- Formulario simples: email + senha
+- Usa `supabase.auth.signInWithPassword` (mesmo mecanismo)
+- Apos login, redireciona para `/portal/obra/:projectId` (se tiver apenas 1 obra) ou lista de obras
+
+**Visualizacao da Obra (`/portal/obra/:projectId`)**
+- Layout proprio (sem o menu admin)
+- Header com logo ARS + nome do cliente + botao sair
+- Cards com informacoes da obra: nome, status, datas, progresso geral
+- Lista de etapas com status (pendente/iniciado/concluido)
+- Fotos de cada etapa (galeria)
+- Tudo READ-ONLY -- cliente nao edita nada
+
+### 4. Gestao de Acesso (lado admin)
+
+Na pagina de detalhes do projeto (`/obras/:projectId`), adicionar um botao "Gerenciar Acesso Portal":
+- Dialog/Sheet com formulario para criar acesso
+- Campos: email do cliente, nome
+- Ao salvar: cria usuario no Supabase Auth (via edge function com service_role), atribui role `client`, cria registro em `client_portal_access`
+- O cliente recebe email de confirmacao do Supabase Auth (nativo)
 
 ---
 
-## O que NAO e viavel ou NAO faz sentido
+## Arquivos a Criar
 
-| Item solicitado | Motivo |
+1. `src/pages/portal/PortalLogin.tsx` -- Tela de login do cliente
+2. `src/pages/portal/PortalProject.tsx` -- Visualizacao da obra
+3. `src/components/portal/PortalLayout.tsx` -- Layout limpo sem menu admin
+4. `src/components/portal/PortalStagesList.tsx` -- Lista de etapas read-only
+5. `src/components/auth/ClientRoute.tsx` -- Protetor de rota para clientes
+6. `src/components/projects/ManagePortalAccessDialog.tsx` -- Dialog para admin gerenciar acessos
+7. `supabase/functions/create-portal-user/index.ts` -- Edge function para criar usuario cliente
+
+## Arquivos a Modificar
+
+1. `src/App.tsx` -- Adicionar rotas `/portal/*`
+2. `src/components/auth/AuthProvider.tsx` -- Expor role do usuario
+3. `src/pages/ProjectDetails.tsx` -- Botao "Gerenciar Acesso Portal"
+
+## Migracoes de Banco
+
+1. Criar enum `app_role`, tabela `user_roles`, funcao `has_role()`
+2. Criar tabela `client_portal_access`
+3. Adicionar politicas RLS para role `client` em `projects`, `stages`, `stage_photos`
+
+---
+
+## Sequencia de Implementacao
+
+1. Migracoes de banco (roles + client_portal_access + RLS)
+2. Edge function `create-portal-user`
+3. Expandir AuthProvider com role
+4. Criar ClientRoute
+5. Criar PortalLayout + PortalLogin + PortalProject
+6. Criar ManagePortalAccessDialog no admin
+7. Registrar rotas no App.tsx
+
+---
+
+## O que NAO sera implementado nesta etapa
+
+| Item | Motivo |
 |---|---|
-| Navegacao lateral fixa | O sistema usa navegacao superior com glassmorphism por decisao de design e memoria do projeto. Trocar seria uma regressao visual e de UX |
-| Barra de busca global | Requer componente complexo com busca em multiplas tabelas (obras, clientes, propostas, contratos) simultaneamente. Melhor como tarefa separada e dedicada |
-| Centro de notificacoes | Requer infraestrutura de backend (tabela de eventos/notificacoes, triggers no Supabase) que nao existe. Nao e uma tarefa de UI apenas |
-| Layout drag & drop configuravel | Complexidade desproporcional ao valor agregado |
-| Novo design system (Material-UI, Chakra, etc.) | O sistema ja usa shadcn/ui consistentemente. Trocar de biblioteca seria uma reescrita completa sem beneficio |
-| Acessibilidade WCAG completa | Tarefa continua e extensa, nao pontual. Os componentes shadcn/ui ja incluem atributos ARIA basicos |
-| Code splitting / lazy loading | Otimizacao prematura -- o app nao tem problemas de performance reportados |
-
----
-
-## Plano de Implementacao
-
-### Arquivos a modificar:
-
-1. **`src/components/dashboard/ProjectsKPIs.tsx`** -- Alinhar visual com CommercialKPIs (mesma estrutura de layout, hover, cores pastel)
-2. **`src/components/dashboard/RevenueCostChart.tsx`** -- Header com icone, tooltip glassmorphism, cores da paleta pastel, gradientes
-3. **`src/components/dashboard/ProfitMarginChart.tsx`** -- Header com icone, tooltip glassmorphism, cores pastel consistentes
-4. **`src/components/dashboard/CriticalProjectsTable.tsx`** -- Header com icone, badge colors alinhadas
-
-### Nenhum arquivo novo necessario
-
-### Sequencia:
-1. Atualizar ProjectsKPIs para espelhar CommercialKPIs
-2. Estilizar RevenueCostChart com gradientes e tooltip refinado
-3. Estilizar ProfitMarginChart
-4. Refinar CriticalProjectsTable
-
-### Resultado esperado:
-As tres abas do dashboard (Comercial, Financeiro, Obras) terao uma linguagem visual unificada, com a mesma paleta pastel, icones decorativos nos headers, tooltips com glassmorphism e transicoes suaves.
+| Redefinicao de senha customizada | Supabase Auth ja oferece nativamente |
+| Servico de email customizado | Supabase Auth envia emails de convite/reset automaticamente |
+| API REST separada (/portal/login, /portal/profile) | Desnecessario -- o Supabase client faz tudo |
+| Coluna `acesso_portal_cliente` em projects | Substituido pela tabela `client_portal_access` que e mais flexivel |
+| Edicao de perfil pelo cliente | Complexidade desnecessaria para MVP -- cliente so visualiza a obra |
