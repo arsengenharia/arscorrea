@@ -1,37 +1,56 @@
 
-# Corrigir Fluxo de Redefinicao de Senha do Portal
+# Corrigir Fluxo de Senha do Portal (Todos os Usuarios + "Esqueci Senha")
 
-## Problema
-Quando o cliente clica no link de recuperacao de senha no e-mail, o Supabase processa o token e redireciona de volta ao app. Porem, o redirecionamento esta caindo na pagina de login (`/portal`) em vez da pagina de redefinicao de senha (`/portal/redefinir-senha`). Isso acontece porque o Supabase pode nao estar respeitando o `redirectTo` configurado no `generateLink`, ou esta redirecionando para a Site URL padrao.
+## Problema Identificado
+Na edge function `create-portal-user`, o link de recuperacao de senha (`generateLink`) so e gerado para **novos usuarios** (linha 257). Quando o usuario ja existe, o e-mail enviado contem apenas um link direto para `/portal` (template `existingUserHtml`), sem nenhum token de recuperacao. Por isso o `PASSWORD_RECOVERY` nunca dispara e o usuario cai direto no login.
 
 ## Solucao
-Adicionar deteccao do evento `PASSWORD_RECOVERY` diretamente no `AuthProvider`, que e o componente central de autenticacao. Quando esse evento for detectado, o app redirecionara automaticamente para `/portal/redefinir-senha`, independentemente de onde o usuario tenha caido inicialmente.
 
-## Etapas
+### 1. Edge Function: Gerar recovery link para TODOS os convites
+**Arquivo:** `supabase/functions/create-portal-user/index.ts`
 
-### 1. Modificar `AuthProvider.tsx`
-No listener `onAuthStateChange`, adicionar tratamento para o evento `PASSWORD_RECOVERY`:
-- Quando detectar esse evento, navegar para `/portal/redefinir-senha`
-- Isso garante que, mesmo que o Supabase redirecione para `/portal` ou `/`, o app corrigira a rota automaticamente
+- Remover a condicao `if (!existingUser)` que envolve o `generateLink`
+- Gerar o recovery link sempre, independentemente de o usuario ser novo ou existente
+- Atualizar o template de e-mail para usuarios existentes (`existingUserHtml`) para usar o `recoveryLink` em vez do link direto ao portal
+- Alterar o texto do botao de "Acessar Portal" para "Definir Senha e Acessar" no template de existentes
+- Passar `recoveryLink` para `sendInviteEmail` em ambos os casos
 
-### 2. Ajustar `PortalResetPassword.tsx`
-- Garantir que a pagina funcione corretamente quando o usuario chega via redirecionamento do `AuthProvider`
-- A pagina ja detecta `PASSWORD_RECOVERY` e `SIGNED_IN` no seu proprio `useEffect`, entao deve funcionar sem alteracoes significativas
-
-## Detalhes Tecnicos
-
-### Arquivo: `src/components/auth/AuthProvider.tsx`
-Dentro do `onAuthStateChange`, adicionar antes do tratamento de `SIGNED_OUT`:
-
+Mudancas especificas:
 ```text
-if (event === 'PASSWORD_RECOVERY') {
-  navigate("/portal/redefinir-senha");
+// ANTES (linha 257):
+if (!existingUser) {
+  const { data: linkData } = await adminClient.auth.admin.generateLink(...)
+  ...
+}
+
+// DEPOIS:
+const { data: linkData } = await adminClient.auth.admin.generateLink({
+  type: "recovery",
+  email,
+  options: {
+    redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha",
+  },
+});
+if (linkData?.properties?.action_link) {
+  recoveryLink = linkData.properties.action_link;
 }
 ```
 
-Isso intercepta o evento de recuperacao de senha em qualquer ponto do app e redireciona para a pagina correta.
+E no template `existingUserHtml`, trocar o `href` do botao de `${portalUrl}` para `${recoveryLink || portalUrl}`.
 
-### Impacto
-- Nenhuma alteracao em rotas ou na edge function
-- Funciona tanto para novos usuarios quanto para redefinicoes de senha futuras
-- Nao afeta o fluxo de login normal (admin ou cliente)
+### 2. Portal Login: Adicionar "Esqueci minha senha"
+**Arquivo:** `src/pages/portal/PortalLogin.tsx`
+
+- Adicionar link "Esqueci minha senha" abaixo do botao de login
+- Ao clicar, exibir um campo de e-mail e enviar `supabase.auth.resetPasswordForEmail(email, { redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha" })`
+- Mostrar mensagem de confirmacao apos envio
+
+### 3. Nenhuma mudanca no AuthProvider
+O `PASSWORD_RECOVERY` redirect ja esta implementado corretamente. O problema era que o evento nunca disparava porque nao havia token de recuperacao no link.
+
+## Resumo do Fluxo Corrigido
+
+1. Admin convida email (novo ou existente) --> Edge function gera recovery link --> E-mail enviado com botao "Definir Senha"
+2. Cliente clica no link --> Supabase processa o token --> Redireciona ao app --> `AuthProvider` detecta `PASSWORD_RECOVERY` --> Navega para `/portal/redefinir-senha`
+3. Cliente define senha --> Clica "Acessar Portal" --> Login normal
+4. Se o cliente esquecer a senha: clica "Esqueci minha senha" no `/portal` --> Recebe e-mail de recuperacao --> Mesmo fluxo do passo 2
