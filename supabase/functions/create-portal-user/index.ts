@@ -96,7 +96,7 @@ async function sendInviteEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ARS Correa <onboarding@resend.dev>",
+        from: "ARS Correa <portal@mail.arscorrea.app.br>",
         to: [email],
         subject: isNewUser
           ? "Convite - Portal ARS Correa"
