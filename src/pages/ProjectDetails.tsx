@@ -14,6 +14,7 @@ import {
   Home,
   FileText,
 } from "lucide-react";
+import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -198,6 +199,10 @@ export function ProjectDetails() {
                     <DollarSign className="w-4 h-4 lg:mr-2" />
                     <span className="hidden lg:inline">Custos</span>
                   </Button>
+                  <ManagePortalAccessDialog
+                    projectId={projectId!}
+                    clientId={project.client_id}
+                  />
                 </div>
 
                 {/* Ações Principais Group */}

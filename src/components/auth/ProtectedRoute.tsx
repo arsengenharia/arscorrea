@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -16,6 +16,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // If user is a client (not admin), redirect to portal
+  if (role === "client") {
+    return <Navigate to="/portal/obras" replace />;
   }
 
   return <>{children}</>;
