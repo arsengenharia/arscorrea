@@ -39,6 +39,7 @@ export function StagePhoto({ photoPath }: StagePhotoProps) {
     <img
       src={imageUrl}
       alt="Foto da etapa"
+      loading="lazy"
       className="w-full h-32 object-cover rounded-md"
     />
   );

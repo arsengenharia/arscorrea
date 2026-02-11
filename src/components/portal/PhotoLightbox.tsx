@@ -83,6 +83,7 @@ export function PhotoLightbox({ photos, bucket, initialIndex, open, onOpenChange
               size="icon"
               className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
               onClick={goPrev}
+              aria-label="Foto anterior"
             >
               <ChevronLeft className="h-6 w-6" />
             </Button>
@@ -91,6 +92,7 @@ export function PhotoLightbox({ photos, bucket, initialIndex, open, onOpenChange
               size="icon"
               className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
               onClick={goNext}
+              aria-label="Próxima foto"
             >
               <ChevronRight className="h-6 w-6" />
             </Button>
