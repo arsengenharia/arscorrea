@@ -1,63 +1,59 @@
 
+# Simplificar Navegacao: Remover Paginas Intermediarias de Obras e Clientes
 
-# Etapa 5 - Documentos Compartilhados: Gestao Admin + Portal
+## Problema Atual
+As paginas `/obras` e `/clientes` mostram apenas dois botoes (novo + lista), o que e redundante porque as proprias paginas de lista ja possuem botao "Nova Obra" / "Novo Cliente".
 
-## Resumo
+## Solucao
+Fazer com que `/obras` e `/clientes` carreguem diretamente as listas, eliminando a etapa intermediaria.
 
-Criar uma secao administrativa para upload e gerenciamento de documentos na pagina de detalhes da obra (`/obras/{id}`), logo abaixo da secao de Ocorrencias. Os mesmos documentos aparecerao automaticamente na aba "Documentos" do portal do cliente que ja existe.
+## Alteracoes
 
-## Alteracoes Necessarias
+### 1. `src/pages/Projects.tsx` - Simplificar para mostrar lista diretamente
+- Remover a logica de `tab` (query param) e o menu intermediario
+- A rota `/obras` renderiza diretamente a `ProjectsList` dentro do `Layout`
+- Manter suporte ao query param `status` para filtros vindos do dashboard (usando `localStorage`)
 
-### 1. Migration: Adicionar campo `description` na tabela `project_documents`
+### 2. `src/pages/Clients.tsx` - Simplificar para mostrar lista diretamente
+- Remover o menu intermediario com dois botoes
+- A rota `/clientes` renderiza diretamente o conteudo da `ClientsList`
+- Remover a logica de `showList` redirect
 
-A tabela atual nao possui campo de descricao/observacoes. Sera adicionada uma coluna `description` (text, nullable) para armazenar as observacoes do documento.
+### 3. `src/components/projects/ProjectsList.tsx` - Ajustar navegacao
+- Remover o botao "Voltar" (nao ha mais pagina intermediaria)
+- Alterar os links "Nova Obra" de `/obras?tab=new` para `/obras/nova` (nova rota dedicada)
+- Manter o botao "Nova Obra" existente no header
 
-```sql
-ALTER TABLE project_documents ADD COLUMN description text;
-```
+### 4. `src/components/clients/ClientsList.tsx` - Ajustar navegacao
+- Remover o botao "Voltar" que aponta para `/clientes`
+- A pagina ja possui botao "Novo Cliente" apontando para `/clientes/cadastro`
 
-### 2. Novo componente: `ProjectDocumentsAdmin.tsx`
+### 5. `src/App.tsx` - Ajustar rotas
+- `/clientes` renderiza `ClientsList` diretamente (com Layout)
+- Remover rota `/clientes/lista` (redundante, redirecionar se necessario)
+- `/obras` renderiza `ProjectsList` (com Layout)
+- Criar rota `/obras/nova` para o formulario de nova obra
+- Remover `ProjectsContent.tsx` (nao sera mais necessario)
 
-Criar `src/components/projects/ProjectDocumentsAdmin.tsx` com:
+### 6. Atualizar referencias em outros arquivos
+- `src/pages/ProjectDetails.tsx`: trocar `/obras?tab=list` por `/obras`
+- `src/components/projects/ProjectForm.tsx`: trocar `/obras?tab=list` por `/obras`
+- `src/components/layout/TopNavigation.tsx` e `AppSidebar.tsx`: ja apontam para `/clientes` e `/obras` (sem mudanca necessaria)
+- `src/pages/ClientDetails.tsx`: trocar `/clientes/lista` por `/clientes`
+- `src/components/clients/ClientForm.tsx`: trocar `/clientes/lista` por `/clientes`
+- `src/components/proposals/ProposalClientSection.tsx`: ja aponta para `/clientes/cadastro` (sem mudanca)
+- Dashboard links que usam `showList=true` ou `status` params: ajustar para apontar diretamente para `/clientes` e `/obras?status=X`
 
-- **Formulario de upload** (dialog ou inline):
-  - Campo "Nome do Documento" (texto obrigatorio)
-  - Campo "Observacoes" (textarea opcional)
-  - Seletor de arquivo (input file)
-  - Botao "Enviar" que faz upload para o bucket `project_documents` e insere o registro na tabela
+### 7. Arquivos a remover
+- `src/components/projects/ProjectsContent.tsx` (componente intermediario obsoleto)
 
-- **Lista de documentos** exibindo:
-  - Icone por tipo de arquivo (PDF, imagem, etc.)
-  - Nome do documento
-  - Data de insercao (formatada pt-BR)
-  - Observacoes/descricao
-  - Acoes: Visualizar (abre em nova janela via signed URL), Download, Deletar (com confirmacao)
+## Resumo dos Impactos nas Rotas
 
-- Segue o mesmo padrao visual do `PortalEventsAdmin` (Cards com acoes)
-
-### 3. Integrar na pagina ProjectDetails.tsx
-
-Adicionar a secao "Documentos Compartilhados" logo abaixo da secao "Ocorrencias do Portal", com o mesmo estilo visual (icone colorido + titulo + card branco).
-
-### 4. Atualizar PortalDocumentsList.tsx (portal do cliente)
-
-Adicionar a exibicao do campo `description` (observacoes) na lista de documentos do portal, mantendo o layout existente.
-
-## Detalhes Tecnicos
-
-- Upload de arquivo vai para o bucket `project_documents` (ja existe, privado)
-- O `file_type` sera extraido da extensao do arquivo
-- Visualizacao usa `getSignedUrl` para gerar URL temporaria
-- Delete remove o registro da tabela E o arquivo do storage
-- RLS ja esta configurado: admins podem inserir/deletar, clientes do portal podem visualizar
-- Query key `["project-documents", projectId]` para invalidacao apos operacoes
-
-## Arquivos Afetados
-
-| Arquivo | Acao |
+| Antes | Depois |
 |---|---|
-| Migration SQL | Adicionar coluna `description` |
-| `src/components/projects/ProjectDocumentsAdmin.tsx` | Criar (novo) |
-| `src/pages/ProjectDetails.tsx` | Editar - adicionar secao de documentos |
-| `src/components/portal/PortalDocumentsList.tsx` | Editar - exibir observacoes |
-
+| `/obras` (menu) | `/obras` (lista direta) |
+| `/obras?tab=list` | `/obras` |
+| `/obras?tab=new` | `/obras/nova` |
+| `/clientes` (menu) | `/clientes` (lista direta) |
+| `/clientes/lista` | `/clientes` |
+| `/clientes/cadastro` | `/clientes/cadastro` (sem mudanca) |
