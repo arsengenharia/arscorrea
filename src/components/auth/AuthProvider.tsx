@@ -5,9 +5,12 @@ import type { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+type AppRole = "admin" | "client" | null;
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  role: AppRole;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -15,6 +18,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  role: null,
   signIn: async () => {},
   signOut: async () => {},
 });
@@ -22,9 +26,20 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<AppRole>(null);
   const navigate = useNavigate();
 
-  // Sign in function that will be passed through context
+  const fetchRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    
+    setRole((data?.role as AppRole) || null);
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -40,11 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign out function that will be passed through context
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setRole(null);
       navigate("/auth");
     } catch (error: any) {
       toast.error(error.message);
@@ -52,20 +67,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchRole(currentUser.id).then(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     });
 
-    // Listen for changes on auth state
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        fetchRole(currentUser.id);
+      } else {
+        setRole(null);
+      }
+      
       setLoading(false);
       
-      // Only redirect to auth on explicit sign out, not on every auth state change
       if (event === 'SIGNED_OUT') {
         navigate("/auth");
       }
@@ -75,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, role, signIn, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );

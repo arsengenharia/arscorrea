@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.project-management-report]
 verify_jwt = false
+
+[functions.create-portal-user]
+verify_jwt = false
