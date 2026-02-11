@@ -241,10 +241,6 @@ export default function ClientsList() {
               <p className="text-muted-foreground">Cadastre e gerencie sua base de clientes.</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => navigate("/clientes")} className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Voltar
-              </Button>
               <Button
                 onClick={() => (window.location.href = "/clientes/cadastro")}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"

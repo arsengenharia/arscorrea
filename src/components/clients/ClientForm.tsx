@@ -218,7 +218,7 @@ export function ClientForm() {
       }
       
       toast.success("Cliente cadastrado com sucesso!");
-      navigate("/clientes/lista");
+      navigate("/clientes");
     } catch (error) {
       console.error("Error adding client:", error);
       toast.error("Erro ao cadastrar cliente. Tente novamente.");

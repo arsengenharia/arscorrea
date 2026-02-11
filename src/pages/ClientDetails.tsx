@@ -129,7 +129,7 @@ export default function ClientDetails() {
       <Layout>
         <div className="container mx-auto p-6 text-center py-20">
           <p className="text-muted-foreground">Cliente não encontrado.</p>
-          <Button variant="link" onClick={() => navigate("/clientes/lista")}>
+          <Button variant="link" onClick={() => navigate("/clientes")}>
             Voltar à lista
           </Button>
         </div>
@@ -167,7 +167,7 @@ export default function ClientDetails() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => navigate("/clientes/lista")}>
+            <Button variant="outline" size="icon" onClick={() => navigate("/clientes")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>

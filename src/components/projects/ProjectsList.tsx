@@ -172,7 +172,7 @@ export function ProjectsList() {
         <p className="text-slate-500 max-w-sm mb-6">
           Comece criando sua primeira obra para gerenciar o progresso e as etapas.
         </p>
-        <Button onClick={() => navigate("/obras?tab=new")} className="gap-2">
+        <Button onClick={() => navigate("/obras/nova")} className="gap-2">
           <Plus className="h-4 w-4" />
           Cadastrar Primeira Obra
         </Button>
@@ -194,7 +194,7 @@ export function ProjectsList() {
             <span className="hidden sm:inline">Atualizar</span>
           </Button>
           <Button
-            onClick={() => navigate("/obras?tab=new")}
+            onClick={() => navigate("/obras/nova")}
             size="sm"
             className="h-9 gap-2 bg-blue-600 hover:bg-blue-700"
           >

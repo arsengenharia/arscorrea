@@ -92,18 +92,18 @@ export function ProjectDetails() {
       <Layout>
         <div className="container mx-auto p-6 flex flex-col items-center justify-center h-[50vh] gap-4">
           <h2 className="text-2xl font-bold text-slate-800">Obra não encontrada</h2>
-          <Button onClick={() => navigate("/obras?tab=list")}>Voltar para lista</Button>
+          <Button onClick={() => navigate("/obras")}>Voltar para lista</Button>
         </div>
       </Layout>
     );
   }
 
   const handleEditProject = () => {
-    navigate(`/obras/?tab=new&projectId=${projectId}`);
+    navigate(`/obras/nova?projectId=${projectId}`);
   };
 
   const handleGoBack = () => {
-    navigate("/obras?tab=list");
+    navigate("/obras");
   };
 
   // Helper para cor do badge de status (exemplo)
@@ -132,7 +132,7 @@ export function ProjectDetails() {
                 <Home className="w-3.5 h-3.5" />
               </Link>
               <span className="text-slate-300">/</span>
-              <Link to="/obras?tab=list" className="hover:text-primary transition-colors">
+              <Link to="/obras" className="hover:text-primary transition-colors">
                 Obras
               </Link>
               <span className="text-slate-300">/</span>
