@@ -303,12 +303,10 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo de Cliente</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                        </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
                         <SelectContent>
                           {CLIENT_TYPES.map((t) => (
                             <SelectItem key={t.value} value={t.value}>
@@ -328,12 +326,10 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Segmento</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o segmento" />
-                          </SelectTrigger>
-                        </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o segmento" />
+                        </SelectTrigger>
                         <SelectContent>
                           {SEGMENTS.map((s) => (
                             <SelectItem key={s.value} value={s.value}>
@@ -513,12 +509,10 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Responsável pelo Atendimento *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o responsável" />
-                          </SelectTrigger>
-                        </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o responsável" />
+                        </SelectTrigger>
                         <SelectContent>
                           {SERVICE_REPS.map((rep) => (
                             <SelectItem key={rep} value={rep}>
@@ -556,12 +550,10 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Canal do Lead *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o canal" />
-                          </SelectTrigger>
-                        </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o canal" />
+                        </SelectTrigger>
                         <SelectContent>
                           {LEAD_CHANNELS.map((channel) => (
                             <SelectItem key={channel.value} value={channel.value}>
