@@ -78,12 +78,15 @@ export function PortalDocumentsList({ projectId }: PortalDocumentsListProps) {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-slate-800 truncate">{doc.file_name}</h4>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                <span>{new Date(doc.created_at).toLocaleDateString("pt-BR")}</span>
-                {doc.file_type && (
-                  <span className="uppercase font-medium">{doc.file_type}</span>
-                )}
-              </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+              <span>{new Date(doc.created_at).toLocaleDateString("pt-BR")}</span>
+              {doc.file_type && (
+                <span className="uppercase font-medium">{doc.file_type}</span>
+              )}
+            </div>
+            {(doc as any).description && (
+              <p className="text-sm text-muted-foreground mt-1">{(doc as any).description}</p>
+            )}
             </div>
             <Button
               variant="outline"
