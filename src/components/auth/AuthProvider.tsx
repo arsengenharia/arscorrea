@@ -91,6 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setLoading(false);
       
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate("/portal/redefinir-senha");
+      }
+      
       if (event === 'SIGNED_OUT') {
         navigate("/auth");
       }
