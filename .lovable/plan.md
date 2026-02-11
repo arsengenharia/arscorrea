@@ -1,56 +1,60 @@
 
-# Corrigir Fluxo de Senha do Portal (Todos os Usuarios + "Esqueci Senha")
 
-## Problema Identificado
-Na edge function `create-portal-user`, o link de recuperacao de senha (`generateLink`) so e gerado para **novos usuarios** (linha 257). Quando o usuario ja existe, o e-mail enviado contem apenas um link direto para `/portal` (template `existingUserHtml`), sem nenhum token de recuperacao. Por isso o `PASSWORD_RECOVERY` nunca dispara e o usuario cai direto no login.
+# Melhorias no Portal do Cliente - Dashboard e Lista de Obras
 
-## Solucao
+## Analise do Prompt vs Estado Atual
 
-### 1. Edge Function: Gerar recovery link para TODOS os convites
-**Arquivo:** `supabase/functions/create-portal-user/index.ts`
+A maior parte do que o prompt solicita ja esta implementado e funcionando:
 
-- Remover a condicao `if (!existingUser)` que envolve o `generateLink`
-- Gerar o recovery link sempre, independentemente de o usuario ser novo ou existente
-- Atualizar o template de e-mail para usuarios existentes (`existingUserHtml`) para usar o `recoveryLink` em vez do link direto ao portal
-- Alterar o texto do botao de "Acessar Portal" para "Definir Senha e Acessar" no template de existentes
-- Passar `recoveryLink` para `sendInviteEmail` em ambos os casos
+| Item do Prompt | Status |
+|---|---|
+| Login com email/senha | Ja implementado |
+| Mostrar/esconder senha | Ja implementado |
+| "Esqueci minha senha" | Ja implementado (etapa anterior) |
+| Gestao de estado de autenticacao (Context API) | Ja implementado (AuthProvider) |
+| Header com logo, nome do usuario, botao "Sair" | Ja implementado (PortalLayout) |
+| Cards de obras com nome, status e badge colorido | Ja implementado |
+| Pagina de detalhes com progresso, etapas e fotos | Ja implementado |
+| Responsividade | Ja implementado |
+| Estados de carregamento | Ja implementado |
+| Tratamento de erros | Ja implementado |
 
-Mudancas especificas:
-```text
-// ANTES (linha 257):
-if (!existingUser) {
-  const { data: linkData } = await adminClient.auth.admin.generateLink(...)
-  ...
-}
+## Melhorias a Implementar
 
-// DEPOIS:
-const { data: linkData } = await adminClient.auth.admin.generateLink({
-  type: "recovery",
-  email,
-  options: {
-    redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha",
-  },
-});
-if (linkData?.properties?.action_link) {
-  recoveryLink = linkData.properties.action_link;
-}
-```
+### 1. Cards de obras enriquecidos na lista (`PortalProjectsList.tsx`)
+Os cards atuais mostram apenas nome, cliente e status. Adicionar:
+- **Barra de progresso** calculada a partir das etapas (peso concluido / peso total)
+- **Datas** de inicio e previsao de conclusao
+- Buscar dados de `stages` junto com os projetos para calcular o progresso
 
-E no template `existingUserHtml`, trocar o `href` do botao de `${portalUrl}` para `${recoveryLink || portalUrl}`.
+### 2. Mensagem de boas-vindas personalizada (`PortalProjectsList.tsx`)
+- Saudacao com o nome do cliente (ou email) e mensagem contextual
+- Exemplo: "Ola, Joao! Acompanhe suas obras abaixo."
 
-### 2. Portal Login: Adicionar "Esqueci minha senha"
-**Arquivo:** `src/pages/portal/PortalLogin.tsx`
+### 3. Painel de atividades recentes (`PortalProjectsList.tsx`)
+- Pequena secao acima dos cards mostrando as ultimas atualizacoes:
+  - Respostas recentes a comunicacoes (`portal_events` com `admin_response` preenchido)
+  - Contagem de comunicacoes pendentes (status "Aberto" ou "Em Analise")
+- Consulta simples a tabela `portal_events` filtrada pelos projetos do usuario
 
-- Adicionar link "Esqueci minha senha" abaixo do botao de login
-- Ao clicar, exibir um campo de e-mail e enviar `supabase.auth.resetPasswordForEmail(email, { redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha" })`
-- Mostrar mensagem de confirmacao apos envio
+### 4. Navegacao no header (`PortalLayout.tsx`)
+- Adicionar link "Minhas Obras" no header para facilitar a navegacao quando o cliente esta na pagina de detalhes de uma obra
 
-### 3. Nenhuma mudanca no AuthProvider
-O `PASSWORD_RECOVERY` redirect ja esta implementado corretamente. O problema era que o evento nunca disparava porque nao havia token de recuperacao no link.
+## Detalhes Tecnicos
 
-## Resumo do Fluxo Corrigido
+### `PortalProjectsList.tsx`
+- Alterar a query para incluir `stages(status, stage_weight)` no select
+- Calcular progresso por projeto: `soma(peso das etapas concluidas) / soma(peso total) * 100`
+- Adicionar query separada para `portal_events` recentes (ultimos 7 dias) dos projetos do usuario
+- Renderizar barra `Progress` e datas formatadas dentro de cada card
+- Adicionar secao de boas-vindas no topo com nome do usuario
 
-1. Admin convida email (novo ou existente) --> Edge function gera recovery link --> E-mail enviado com botao "Definir Senha"
-2. Cliente clica no link --> Supabase processa o token --> Redireciona ao app --> `AuthProvider` detecta `PASSWORD_RECOVERY` --> Navega para `/portal/redefinir-senha`
-3. Cliente define senha --> Clica "Acessar Portal" --> Login normal
-4. Se o cliente esquecer a senha: clica "Esqueci minha senha" no `/portal` --> Recebe e-mail de recuperacao --> Mesmo fluxo do passo 2
+### `PortalLayout.tsx`
+- Adicionar link "Minhas Obras" (`/portal/obras`) ao lado do texto "Portal do Cliente" no header
+
+### Nenhuma mudanca necessaria em:
+- `PortalLogin.tsx` (ja completo)
+- `PortalProject.tsx` (ja completo)
+- `AuthProvider.tsx` (ja completo)
+- `ClientRoute.tsx` (ja completo)
+- Edge functions (ja completas)
