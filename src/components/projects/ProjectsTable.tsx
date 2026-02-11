@@ -36,19 +36,8 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
       <div className="space-y-4">
         {projects.map((project) => (
           <div key={project.id} className="bg-white rounded-xl border p-4 shadow-sm">
-            <h3 className="font-medium text-lg mb-2 text-blue-600 flex items-center gap-2">
+            <h3 className="font-medium text-lg mb-2 text-blue-600">
               {project.name}
-              {project.client_id || (project.client && project.client.id) ? (
-                <ClientFilesDialog
-                  clientId={project.client_id || project.client?.id || ""}
-                  clientName={project.client?.name || ""}
-                  trigger={
-                    <Button size="icon" variant="ghost" className="p-1 text-blue-600" title="Anexar arquivos">
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  }
-                />
-              ) : null}
             </h3>
             <div className="space-y-3">
               <div>
@@ -71,18 +60,7 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              {project.client_id || (project.client && project.client.id) ? (
-                <ClientFilesDialog
-                  clientId={project.client_id || project.client?.id || ""}
-                  clientName={project.client?.name || ""}
-                  trigger={
-                    <Button size="icon" variant="outline" className="p-1 text-blue-600" title="Anexar arquivos">
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  }
-                />
-              ) : null}
-              <ProjectActions 
+              <ProjectActions
                 projectId={project.id} 
                 onDelete={onDeleteProject} 
               />
@@ -111,9 +89,6 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
             <TableHead className="w-[150px] py-4 text-gray-700 font-medium">
               Última Atualização
             </TableHead>
-            <TableHead className="w-[150px] py-4 text-gray-700 font-medium text-center">
-              Anexar Arquivos
-            </TableHead>
             <TableHead className="w-[200px] text-center py-4 text-gray-700 font-medium">
               Ações
             </TableHead>
@@ -122,19 +97,8 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
         <TableBody>
           {projects.map((project) => (
             <TableRow key={project.id} className="border-b hover:bg-gray-50">
-              <TableCell className="font-medium py-4 flex items-center gap-2">
+              <TableCell className="font-medium py-4">
                 {project.name}
-                {project.client_id || (project.client && project.client.id) ? (
-                  <ClientFilesDialog
-                    clientId={project.client_id || project.client?.id || ""}
-                    clientName={project.client?.name || ""}
-                    trigger={
-                      <Button size="icon" variant="ghost" className="p-1 text-blue-600" title="Anexar arquivos">
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                ) : null}
               </TableCell>
               <TableCell>
                 <ProjectStatusSelect 
@@ -147,16 +111,6 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
               </TableCell>
               <TableCell>
                 {format(new Date(project.updated_at), 'dd/MM/yyyy')}
-              </TableCell>
-              <TableCell className="text-center">
-                {project.client_id || (project.client && project.client.id) ? (
-                  <ClientFilesDialog
-                    clientId={project.client_id || project.client?.id || ""}
-                    clientName={project.client?.name || ""}
-                  />
-                ) : (
-                  <span className="text-muted-foreground text-xs">Sem cliente</span>
-                )}
               </TableCell>
               <TableCell>
                 <ProjectActions 

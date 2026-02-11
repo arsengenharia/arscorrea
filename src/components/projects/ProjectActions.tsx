@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Eye, Plus, Trash2 } from "lucide-react";
+import { Eye, FolderOpen, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   AlertDialog,
@@ -38,6 +38,17 @@ export function ProjectActions({ projectId, onDelete }: ProjectActionsProps) {
           </TooltipTrigger>
           <TooltipContent>
             <p>Detalhes da Obra</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/obras/${projectId}?tab=documentos`)}>
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Documentos da Obra</p>
           </TooltipContent>
         </Tooltip>
 
