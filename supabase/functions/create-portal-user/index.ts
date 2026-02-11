@@ -243,6 +243,7 @@ Deno.serve(async (req) => {
           client_id,
           project_id,
           created_by: callerUser.id,
+          email: email.trim().toLowerCase(),
         },
         { onConflict: "user_id,project_id" }
       );
