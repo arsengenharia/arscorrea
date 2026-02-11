@@ -26,6 +26,8 @@ import ProjectCosts from "./pages/ProjectCosts";
 import ProjectRevenues from "./pages/ProjectRevenues";
 import Suppliers from "./pages/Suppliers";
 import ClientDetails from "./pages/ClientDetails";
+import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalProject from "./pages/portal/PortalProject";
 import PortalProjectsList from "./pages/portal/PortalProjectsList";
@@ -68,6 +70,8 @@ const App = () => (
           <Route path="/contratos/:id/financeiro" element={<ProtectedRoute><ContractFinancial /></ProtectedRoute>} />
           <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

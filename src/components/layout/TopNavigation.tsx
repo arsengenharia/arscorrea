@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
+import { UserProfileMenu } from "./UserProfileMenu";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, path: "/" },
@@ -86,23 +87,8 @@ export function TopNavigation() {
           </div>
 
           {/* User Area - Desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            {user && (
-              <>
-                <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                  {user.email}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={signOut}
-                  className="gap-2 text-muted-foreground hover:text-foreground"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
-                </Button>
-              </>
-            )}
+          <div className="hidden md:flex items-center">
+            <UserProfileMenu />
           </div>
 
           {/* Mobile Menu Button */}
@@ -146,21 +132,7 @@ export function TopNavigation() {
                 {/* Mobile User Area */}
                 {user && (
                   <div className="p-4 border-t mt-auto">
-                    <p className="text-sm text-muted-foreground truncate mb-3">
-                      {user.email}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        signOut();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full gap-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Sair</span>
-                    </Button>
+                    <UserProfileMenu />
                   </div>
                 )}
               </div>
