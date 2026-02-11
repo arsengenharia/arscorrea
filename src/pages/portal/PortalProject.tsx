@@ -3,13 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { PortalStagesList } from "@/components/portal/PortalStagesList";
+import { PortalEventForm } from "@/components/portal/PortalEventForm";
+import { PortalEventsList } from "@/components/portal/PortalEventsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CalendarDays, Building2, User, Activity } from "lucide-react";
+import { CalendarDays, Building2, User, Activity, MessageSquare } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PortalProject() {
   const { projectId } = useParams();
+  const queryClient = useQueryClient();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["portal-project", projectId],
@@ -177,6 +181,22 @@ export default function PortalProject() {
             Etapas da Obra
           </h2>
           <PortalStagesList stages={stages} />
+        </div>
+
+        {/* Comunicações */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+              <div className="w-1 h-5 bg-primary rounded-full" />
+              <MessageSquare className="h-5 w-5" />
+              Comunicações
+            </h2>
+            <PortalEventForm
+              projectId={projectId!}
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ["portal-events", projectId] })}
+            />
+          </div>
+          <PortalEventsList projectId={projectId!} />
         </div>
       </div>
     </PortalLayout>
