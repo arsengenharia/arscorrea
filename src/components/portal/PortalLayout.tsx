@@ -1,9 +1,13 @@
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export function PortalLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isProjectDetail = location.pathname.startsWith("/portal/obra/");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -14,11 +18,22 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
             <img
               src="/lovable-uploads/ars-correa-logo.png"
               alt="ARS Correa"
-              className="h-8 w-auto"
+              className="h-8 w-auto cursor-pointer"
+              onClick={() => navigate("/portal/obras")}
             />
             <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
               Portal do Cliente
             </span>
+            {isProjectDetail && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/portal/obras")}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                ← Minhas Obras
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
