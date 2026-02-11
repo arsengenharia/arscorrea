@@ -271,9 +271,9 @@ export default function ClientsList() {
                     className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
                     <option value="todos">Tipo: Todos</option>
-                    <option value="Pessoa Física">Pessoa Física</option>
-                    <option value="Pessoa Jurídica">Pessoa Jurídica</option>
-                    <option value="Condomínio">Condomínio</option>
+                    <option value="pessoa_fisica">Pessoa Física</option>
+                    <option value="pessoa_juridica">Pessoa Jurídica</option>
+                    <option value="condominio">Condomínio</option>
                   </select>
                   <select
                     value={segmentFilter}
@@ -281,9 +281,9 @@ export default function ClientsList() {
                     className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
                     <option value="todos">Segmento: Todos</option>
-                    <option value="Residencial">Residencial</option>
-                    <option value="Comercial">Comercial</option>
-                    <option value="Industrial">Industrial</option>
+                    <option value="residencial">Residencial</option>
+                    <option value="comercial">Comercial</option>
+                    <option value="industrial">Industrial</option>
                   </select>
                 </div>
               </div>
