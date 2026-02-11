@@ -1,59 +1,28 @@
 
-# Simplificar Navegacao: Remover Paginas Intermediarias de Obras e Clientes
 
-## Problema Atual
-As paginas `/obras` e `/clientes` mostram apenas dois botoes (novo + lista), o que e redundante porque as proprias paginas de lista ja possuem botao "Nova Obra" / "Novo Cliente".
+# Limpar Icones Redundantes e Adicionar Atalho para Documentos
+
+## Problema
+Na tabela de obras existem icones de upload duplicados:
+- **Desktop**: Um icone de upload ao lado do nome E uma coluna inteira "Anexar Arquivos" — redundante.
+- **Mobile**: Um icone de upload no titulo E outro na area de acoes — tambem redundante.
 
 ## Solucao
-Fazer com que `/obras` e `/clientes` carreguem diretamente as listas, eliminando a etapa intermediaria.
 
-## Alteracoes
+### 1. `ProjectsTable.tsx` — Remover redundancias
+- **Desktop**: Remover o icone de upload ao lado do nome (linhas 127-137) e remover a coluna "Anexar Arquivos" inteira (header linha 114-116 e cell linhas 151-159).
+- **Mobile**: Remover o icone de upload do titulo (linhas 41-51) e o da area de acoes (linhas 74-84).
+- A tabela fica mais limpa, apenas com: Nome, Status, Data de Inicio, Ultima Atualizacao e Acoes.
 
-### 1. `src/pages/Projects.tsx` - Simplificar para mostrar lista diretamente
-- Remover a logica de `tab` (query param) e o menu intermediario
-- A rota `/obras` renderiza diretamente a `ProjectsList` dentro do `Layout`
-- Manter suporte ao query param `status` para filtros vindos do dashboard (usando `localStorage`)
+### 2. `ProjectActions.tsx` — Adicionar icone de Documentos
+- Adicionar um novo botao com icone `FolderOpen` (pasta de documento) entre os botoes existentes.
+- Ao clicar, navega para `/obras/{projectId}` com um hash ou query param que direcione para a secao de documentos (ex: `/obras/{projectId}?tab=documentos` ou scroll automatico).
+- Tooltip: "Documentos da Obra".
 
-### 2. `src/pages/Clients.tsx` - Simplificar para mostrar lista diretamente
-- Remover o menu intermediario com dois botoes
-- A rota `/clientes` renderiza diretamente o conteudo da `ClientsList`
-- Remover a logica de `showList` redirect
+## Arquivos Afetados
 
-### 3. `src/components/projects/ProjectsList.tsx` - Ajustar navegacao
-- Remover o botao "Voltar" (nao ha mais pagina intermediaria)
-- Alterar os links "Nova Obra" de `/obras?tab=new` para `/obras/nova` (nova rota dedicada)
-- Manter o botao "Nova Obra" existente no header
-
-### 4. `src/components/clients/ClientsList.tsx` - Ajustar navegacao
-- Remover o botao "Voltar" que aponta para `/clientes`
-- A pagina ja possui botao "Novo Cliente" apontando para `/clientes/cadastro`
-
-### 5. `src/App.tsx` - Ajustar rotas
-- `/clientes` renderiza `ClientsList` diretamente (com Layout)
-- Remover rota `/clientes/lista` (redundante, redirecionar se necessario)
-- `/obras` renderiza `ProjectsList` (com Layout)
-- Criar rota `/obras/nova` para o formulario de nova obra
-- Remover `ProjectsContent.tsx` (nao sera mais necessario)
-
-### 6. Atualizar referencias em outros arquivos
-- `src/pages/ProjectDetails.tsx`: trocar `/obras?tab=list` por `/obras`
-- `src/components/projects/ProjectForm.tsx`: trocar `/obras?tab=list` por `/obras`
-- `src/components/layout/TopNavigation.tsx` e `AppSidebar.tsx`: ja apontam para `/clientes` e `/obras` (sem mudanca necessaria)
-- `src/pages/ClientDetails.tsx`: trocar `/clientes/lista` por `/clientes`
-- `src/components/clients/ClientForm.tsx`: trocar `/clientes/lista` por `/clientes`
-- `src/components/proposals/ProposalClientSection.tsx`: ja aponta para `/clientes/cadastro` (sem mudanca)
-- Dashboard links que usam `showList=true` ou `status` params: ajustar para apontar diretamente para `/clientes` e `/obras?status=X`
-
-### 7. Arquivos a remover
-- `src/components/projects/ProjectsContent.tsx` (componente intermediario obsoleto)
-
-## Resumo dos Impactos nas Rotas
-
-| Antes | Depois |
+| Arquivo | Acao |
 |---|---|
-| `/obras` (menu) | `/obras` (lista direta) |
-| `/obras?tab=list` | `/obras` |
-| `/obras?tab=new` | `/obras/nova` |
-| `/clientes` (menu) | `/clientes` (lista direta) |
-| `/clientes/lista` | `/clientes` |
-| `/clientes/cadastro` | `/clientes/cadastro` (sem mudanca) |
+| `src/components/projects/ProjectsTable.tsx` | Remover icones de upload redundantes e coluna "Anexar Arquivos" |
+| `src/components/projects/ProjectActions.tsx` | Adicionar botao com icone de pasta que linka para documentos |
+
