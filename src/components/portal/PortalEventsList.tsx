@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Clock, CheckCircle2, Search, AlertTriangle } from "lucide-react";
+import { MessageSquare, Clock, CheckCircle2, Search } from "lucide-react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 interface PortalEventsListProps {
   projectId: string;
@@ -39,15 +41,22 @@ const typeConfig: Record<string, { className: string }> = {
   "Solicitação": { className: "bg-indigo-50 text-indigo-700" },
 };
 
-function EventPhoto({ photoPath }: { photoPath: string }) {
+function EventPhoto({ photoPath, onClick }: { photoPath: string; onClick: () => void }) {
   const { signedUrl } = useSignedUrl("portal_events", photoPath);
   if (!signedUrl) return <div className="w-16 h-16 bg-slate-100 rounded animate-pulse" />;
   return (
-    <img src={signedUrl} alt="" className="w-16 h-16 object-cover rounded border border-slate-200" />
+    <button
+      onClick={onClick}
+      className="cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded"
+    >
+      <img src={signedUrl} alt="" className="w-16 h-16 object-cover rounded border border-slate-200" />
+    </button>
   );
 }
 
 export function PortalEventsList({ projectId }: PortalEventsListProps) {
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
+
   const { data: events, isLoading } = useQuery({
     queryKey: ["portal-events", projectId],
     queryFn: async () => {
@@ -76,62 +85,79 @@ export function PortalEventsList({ projectId }: PortalEventsListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {events.map((event) => {
-        const status = statusConfig[event.status] || statusConfig.aberto;
-        const type = typeConfig[event.event_type] || { className: "bg-slate-100 text-slate-700" };
+    <>
+      <div className="space-y-3">
+        {events.map((event) => {
+          const status = statusConfig[event.status] || statusConfig.aberto;
+          const type = typeConfig[event.event_type] || { className: "bg-slate-100 text-slate-700" };
+          const photoPaths = event.portal_event_photos?.map((p: any) => p.photo_url) || [];
 
-        return (
-          <Card key={event.id} className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Badge variant="secondary" className={type.className}>
-                      {event.event_type}
-                    </Badge>
-                    <Badge variant="outline" className={`${status.className} gap-1`}>
-                      {status.icon}
-                      {status.label}
-                    </Badge>
+          return (
+            <Card key={event.id} className="border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Badge variant="secondary" className={type.className}>
+                        {event.event_type}
+                      </Badge>
+                      <Badge variant="outline" className={`${status.className} gap-1`}>
+                        {status.icon}
+                        {status.label}
+                      </Badge>
+                    </div>
+                    <h4 className="font-semibold text-slate-800 truncate">{event.title}</h4>
                   </div>
-                  <h4 className="font-semibold text-slate-800 truncate">{event.title}</h4>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(event.created_at).toLocaleDateString("pt-BR")}
+                  </span>
                 </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {new Date(event.created_at).toLocaleDateString("pt-BR")}
-                </span>
-              </div>
 
-              <p className="text-sm text-muted-foreground whitespace-pre-line mb-3">
-                {event.description}
-              </p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line mb-3">
+                  {event.description}
+                </p>
 
-              {event.portal_event_photos && event.portal_event_photos.length > 0 && (
-                <div className="flex gap-2 flex-wrap mb-3">
-                  {event.portal_event_photos.map((photo: any) => (
-                    <EventPhoto key={photo.id} photoPath={photo.photo_url} />
-                  ))}
-                </div>
-              )}
+                {photoPaths.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {event.portal_event_photos!.map((photo: any, idx: number) => (
+                      <EventPhoto
+                        key={photo.id}
+                        photoPath={photo.photo_url}
+                        onClick={() => setLightbox({ photos: photoPaths, index: idx })}
+                      />
+                    ))}
+                  </div>
+                )}
 
-              {event.admin_response && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2">
-                  <p className="text-xs font-medium text-blue-700 mb-1 flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    Resposta ARS Correa
-                  </p>
-                  <p className="text-sm text-blue-900 whitespace-pre-line">{event.admin_response}</p>
-                  {event.responded_at && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      {new Date(event.responded_at).toLocaleDateString("pt-BR")}
+                {event.admin_response && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2">
+                    <p className="text-xs font-medium text-blue-700 mb-1 flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" />
+                      Resposta ARS Correa
                     </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+                    <p className="text-sm text-blue-900 whitespace-pre-line">{event.admin_response}</p>
+                    {event.responded_at && (
+                      <p className="text-xs text-blue-500 mt-1">
+                        {new Date(event.responded_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.photos}
+          bucket="portal_events"
+          initialIndex={lightbox.index}
+          open={true}
+          onOpenChange={(open) => { if (!open) setLightbox(null); }}
+        />
+      )}
+    </>
   );
 }

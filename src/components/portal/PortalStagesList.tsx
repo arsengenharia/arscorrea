@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { StagePhoto } from "@/components/projects/StagePhoto";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 interface Stage {
   id: string;
@@ -37,6 +39,8 @@ const statusConfig: Record<string, { label: string; icon: React.ReactNode; class
 };
 
 export function PortalStagesList({ stages }: PortalStagesListProps) {
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
+
   if (!stages.length) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -46,48 +50,65 @@ export function PortalStagesList({ stages }: PortalStagesListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {stages.map((stage) => {
-        const config = statusConfig[stage.status] || statusConfig.pending;
-        return (
-          <Card key={stage.id} className="overflow-hidden border-slate-200">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <h4 className="font-semibold text-slate-800">{stage.name}</h4>
-                <Badge variant="outline" className={`${config.className} gap-1 shrink-0`}>
-                  {config.icon}
-                  {config.label}
-                </Badge>
-              </div>
+    <>
+      <div className="space-y-4">
+        {stages.map((stage) => {
+          const config = statusConfig[stage.status] || statusConfig.pending;
+          const photoPaths = stage.stage_photos?.map((p) => p.photo_url) || [];
 
-              {stage.report && (
-                <p className="text-sm text-muted-foreground mb-3 whitespace-pre-line">
-                  {stage.report}
-                </p>
-              )}
-
-              {stage.report_start_date && (
-                <p className="text-xs text-muted-foreground mb-3">
-                  Período: {new Date(stage.report_start_date).toLocaleDateString("pt-BR")}
-                  {stage.report_end_date &&
-                    ` a ${new Date(stage.report_end_date).toLocaleDateString("pt-BR")}`}
-                </p>
-              )}
-
-              {/* Photo gallery */}
-              {stage.stage_photos && stage.stage_photos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
-                  {stage.stage_photos.map((photo) => (
-                    <div key={photo.id} className="rounded-lg overflow-hidden">
-                      <StagePhoto photoPath={photo.photo_url} />
-                    </div>
-                  ))}
+          return (
+            <Card key={stage.id} className="overflow-hidden border-slate-200">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h4 className="font-semibold text-slate-800">{stage.name}</h4>
+                  <Badge variant="outline" className={`${config.className} gap-1 shrink-0`}>
+                    {config.icon}
+                    {config.label}
+                  </Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+
+                {stage.report && (
+                  <p className="text-sm text-muted-foreground mb-3 whitespace-pre-line">
+                    {stage.report}
+                  </p>
+                )}
+
+                {stage.report_start_date && (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Período: {new Date(stage.report_start_date).toLocaleDateString("pt-BR")}
+                    {stage.report_end_date &&
+                      ` a ${new Date(stage.report_end_date).toLocaleDateString("pt-BR")}`}
+                  </p>
+                )}
+
+                {photoPaths.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
+                    {stage.stage_photos!.map((photo, idx) => (
+                      <button
+                        key={photo.id}
+                        className="rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+                        onClick={() => setLightbox({ photos: photoPaths, index: idx })}
+                      >
+                        <StagePhoto photoPath={photo.photo_url} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.photos}
+          bucket="stages"
+          initialIndex={lightbox.index}
+          open={true}
+          onOpenChange={(open) => { if (!open) setLightbox(null); }}
+        />
+      )}
+    </>
   );
 }
