@@ -511,6 +511,88 @@ export type Database = {
           },
         ]
       }
+      portal_event_photos: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_event_photos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "portal_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_events: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          project_id: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          project_id: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          project_id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_costs: {
         Row: {
           actual_value: number

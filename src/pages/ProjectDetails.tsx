@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   Home,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
 import {
@@ -29,6 +30,7 @@ import { ProjectInfoCard } from "@/components/projects/ProjectInfoCard";
 import { ClientInfoCard } from "@/components/projects/ClientInfoCard";
 import { ProjectStagesList } from "@/components/projects/ProjectStagesList";
 import { ProjectPDFViewer } from "@/components/projects/ProjectPDFViewer";
+import { PortalEventsAdmin } from "@/components/projects/PortalEventsAdmin";
 
 export function ProjectDetails() {
   const { projectId } = useParams();
@@ -269,6 +271,21 @@ export function ProjectDetails() {
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1">
               <ProjectStagesList projectId={projectId!} stages={project.stages || []} />
+            </div>
+          </div>
+
+          {/* Portal Events Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <div className="w-1 h-5 bg-amber-500 rounded-full" />
+                <MessageSquare className="h-5 w-5" />
+                Ocorrências do Portal
+              </h3>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <PortalEventsAdmin projectId={projectId!} />
             </div>
           </div>
         </main>
