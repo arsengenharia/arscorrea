@@ -74,7 +74,7 @@ export function ProjectForm() {
       setIsSubmitting(false);
       // Invalidate projects query to update list
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      navigate("/obras?tab=list");
+      navigate("/obras");
     },
     onError: (error: any) => {
       setIsSubmitting(false);
