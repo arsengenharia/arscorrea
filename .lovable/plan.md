@@ -1,58 +1,37 @@
 
+# Corrigir Fluxo de Redefinicao de Senha do Portal
 
-# Integrar Resend para Envio de Convites do Portal
+## Problema
+Quando o cliente clica no link de recuperacao de senha no e-mail, o Supabase processa o token e redireciona de volta ao app. Porem, o redirecionamento esta caindo na pagina de login (`/portal`) em vez da pagina de redefinicao de senha (`/portal/redefinir-senha`). Isso acontece porque o Supabase pode nao estar respeitando o `redirectTo` configurado no `generateLink`, ou esta redirecionando para a Site URL padrao.
 
-## Objetivo
-Configurar o Resend como servidor de e-mail e modificar a edge function `create-portal-user` para enviar um e-mail de convite personalizado ao cliente quando ele receber acesso ao portal.
+## Solucao
+Adicionar deteccao do evento `PASSWORD_RECOVERY` diretamente no `AuthProvider`, que e o componente central de autenticacao. Quando esse evento for detectado, o app redirecionara automaticamente para `/portal/redefinir-senha`, independentemente de onde o usuario tenha caido inicialmente.
 
 ## Etapas
 
-### 1. Armazenar a API Key do Resend como Secret
-A chave `re_Nf9BHGm1_DLaysMGi9sbCTk6ZN7zbvt3d` sera armazenada como secret do Supabase com o nome `RESEND_API_KEY`, acessivel pela edge function.
+### 1. Modificar `AuthProvider.tsx`
+No listener `onAuthStateChange`, adicionar tratamento para o evento `PASSWORD_RECOVERY`:
+- Quando detectar esse evento, navegar para `/portal/redefinir-senha`
+- Isso garante que, mesmo que o Supabase redirecione para `/portal` ou `/`, o app corrigira a rota automaticamente
 
-### 2. Modificar a Edge Function `create-portal-user`
-Apos criar o usuario e conceder acesso, a funcao enviara um e-mail via API do Resend:
-
-- **Novo usuario**: e-mail de boas-vindas com link para definir senha (usando o link de recovery ja gerado pelo `generateLink`)
-- **Usuario existente**: e-mail informando que um novo projeto foi compartilhado
-
-O e-mail incluira:
-- Nome da obra (buscar da tabela `projects` usando o `project_id`)
-- Link direto para o portal (`https://arscorrea.lovable.app/portal`)
-- Instrucoes para definir senha (se novo usuario)
-
-### 3. Remetente
-O Resend exige um dominio verificado para enviar e-mails. Inicialmente usaremos `onboarding@resend.dev` (remetente de teste do Resend) ate que um dominio proprio seja configurado.
-
-**Importante**: Com `onboarding@resend.dev`, os e-mails so podem ser enviados para o e-mail do dono da conta Resend. Para enviar para qualquer destinatario, sera necessario verificar um dominio proprio no painel do Resend.
-
----
+### 2. Ajustar `PortalResetPassword.tsx`
+- Garantir que a pagina funcione corretamente quando o usuario chega via redirecionamento do `AuthProvider`
+- A pagina ja detecta `PASSWORD_RECOVERY` e `SIGNED_IN` no seu proprio `useEffect`, entao deve funcionar sem alteracoes significativas
 
 ## Detalhes Tecnicos
 
-### Arquivo modificado
-`supabase/functions/create-portal-user/index.ts`
+### Arquivo: `src/components/auth/AuthProvider.tsx`
+Dentro do `onAuthStateChange`, adicionar antes do tratamento de `SIGNED_OUT`:
 
-### Logica de envio (pseudo-codigo)
 ```text
-1. Buscar nome da obra: SELECT name FROM projects WHERE id = project_id
-2. Gerar link de recovery (se novo usuario)
-3. Chamar API Resend:
-   POST https://api.resend.com/emails
-   Headers: Authorization: Bearer RESEND_API_KEY
-   Body: {
-     from: "ARS Correa <onboarding@resend.dev>",
-     to: email,
-     subject: "Convite - Portal ARS Correa",
-     html: template com nome da obra + link do portal + instrucoes
-   }
+if (event === 'PASSWORD_RECOVERY') {
+  navigate("/portal/redefinir-senha");
+}
 ```
 
-### Template do e-mail
-- Header com logo/nome ARS Correa
-- Mensagem de boas-vindas
-- Nome da obra compartilhada
-- Botao "Acessar Portal" apontando para `/portal`
-- Se novo usuario: instrucoes para definir senha com link de recovery
-- Rodape com contato
+Isso intercepta o evento de recuperacao de senha em qualquer ponto do app e redireciona para a pagina correta.
 
+### Impacto
+- Nenhuma alteracao em rotas ou na edge function
+- Funciona tanto para novos usuarios quanto para redefinicoes de senha futuras
+- Nao afeta o fluxo de login normal (admin ou cliente)
