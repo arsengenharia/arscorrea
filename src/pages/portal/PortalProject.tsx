@@ -5,11 +5,12 @@ import { PortalLayout } from "@/components/portal/PortalLayout";
 import { PortalStagesList } from "@/components/portal/PortalStagesList";
 import { PortalEventForm } from "@/components/portal/PortalEventForm";
 import { PortalEventsList } from "@/components/portal/PortalEventsList";
+import { PortalDocumentsList } from "@/components/portal/PortalDocumentsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, Building2, User, Activity, MessageSquare, MapPin, LayoutList, Eye } from "lucide-react";
+import { CalendarDays, Building2, User, Activity, MessageSquare, MapPin, LayoutList, Eye, FolderOpen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function PortalProject() {
@@ -50,6 +51,20 @@ export default function PortalProject() {
         .select("*", { count: "exact", head: true })
         .eq("project_id", projectId!)
         .in("status", ["aberto", "em_analise"]);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!projectId,
+  });
+
+  // Count documents for badge
+  const { data: docsCount } = useQuery({
+    queryKey: ["portal-documents-count", projectId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("project_documents")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId!);
       if (error) throw error;
       return count || 0;
     },
@@ -108,7 +123,7 @@ export default function PortalProject() {
     <PortalLayout>
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Project header */}
-        <div>
+        <div className="animate-fade-in">
           <h1 className="text-2xl font-bold text-slate-800">{project.name}</h1>
           <div className="flex items-center gap-2 mt-2">
             <Badge className={getStatusColor(project.status)}>
@@ -119,7 +134,7 @@ export default function PortalProject() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm">
               <Eye className="h-4 w-4 hidden sm:inline" />
               Visão Geral
@@ -130,10 +145,21 @@ export default function PortalProject() {
             </TabsTrigger>
             <TabsTrigger value="communications" className="gap-1.5 text-xs sm:text-sm relative">
               <MessageSquare className="h-4 w-4 hidden sm:inline" />
-              Comunicações
+              <span className="hidden sm:inline">Comunicações</span>
+              <span className="sm:hidden">Msgs</span>
               {!!pendingCount && pendingCount > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-amber-500 text-white">
                   {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm">
+              <FolderOpen className="h-4 w-4 hidden sm:inline" />
+              <span className="hidden sm:inline">Documentos</span>
+              <span className="sm:hidden">Docs</span>
+              {!!docsCount && docsCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-slate-500 text-white">
+                  {docsCount}
                 </span>
               )}
             </TabsTrigger>
@@ -142,7 +168,7 @@ export default function PortalProject() {
           {/* Overview Tab */}
           <TabsContent value="overview">
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
-              <Card className="border-slate-200">
+              <Card className="border-slate-200 animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Activity className="h-4 w-4" />
@@ -162,7 +188,7 @@ export default function PortalProject() {
                 </CardContent>
               </Card>
 
-              <Card className="border-slate-200">
+              <Card className="border-slate-200 animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <CalendarDays className="h-4 w-4" />
@@ -192,7 +218,7 @@ export default function PortalProject() {
               </Card>
 
               {workAddress && (
-                <Card className="border-slate-200">
+                <Card className="border-slate-200 animate-fade-in">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
@@ -206,7 +232,7 @@ export default function PortalProject() {
               )}
 
               {project.project_manager && (
-                <Card className="border-slate-200">
+                <Card className="border-slate-200 animate-fade-in">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <User className="h-4 w-4" />
@@ -220,7 +246,7 @@ export default function PortalProject() {
               )}
 
               {project.client && (
-                <Card className="border-slate-200">
+                <Card className="border-slate-200 animate-fade-in">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
@@ -237,14 +263,14 @@ export default function PortalProject() {
 
           {/* Stages Tab */}
           <TabsContent value="stages">
-            <div className="mt-4">
+            <div className="mt-4 animate-fade-in">
               <PortalStagesList stages={stages} />
             </div>
           </TabsContent>
 
           {/* Communications Tab */}
           <TabsContent value="communications">
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-800">Comunicações</h2>
                 <PortalEventForm
@@ -256,6 +282,13 @@ export default function PortalProject() {
                 />
               </div>
               <PortalEventsList projectId={projectId!} />
+            </div>
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents">
+            <div className="mt-4 animate-fade-in">
+              <PortalDocumentsList projectId={projectId!} />
             </div>
           </TabsContent>
         </Tabs>
