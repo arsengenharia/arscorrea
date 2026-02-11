@@ -258,6 +258,9 @@ Deno.serve(async (req) => {
       const { data: linkData } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email,
+        options: {
+          redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha",
+        },
       });
       if (linkData?.properties?.action_link) {
         recoveryLink = linkData.properties.action_link;

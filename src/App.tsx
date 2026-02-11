@@ -29,6 +29,7 @@ import ClientDetails from "./pages/ClientDetails";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalProject from "./pages/portal/PortalProject";
 import PortalProjectsList from "./pages/portal/PortalProjectsList";
+import PortalResetPassword from "./pages/portal/PortalResetPassword";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,6 +42,7 @@ const App = () => (
           
           {/* Portal do Cliente */}
           <Route path="/portal" element={<PortalLogin />} />
+          <Route path="/portal/redefinir-senha" element={<PortalResetPassword />} />
           <Route path="/portal/obras" element={<ClientRoute><PortalProjectsList /></ClientRoute>} />
           <Route path="/portal/obra/:projectId" element={<ClientRoute><PortalProject /></ClientRoute>} />
 
