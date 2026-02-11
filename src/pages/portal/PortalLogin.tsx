@@ -27,12 +27,12 @@ export default function PortalLogin() {
 
       if (error) throw error;
 
-      // Check if user has client role
+      // Check if user has admin or client role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
-        .eq("role", "client")
+        .in("role", ["admin", "client"])
         .maybeSingle();
 
       if (!roleData) {
@@ -41,7 +41,13 @@ export default function PortalLogin() {
         return;
       }
 
-      // Get portal access to redirect to the right project
+      // Admin always goes to project list
+      if (roleData.role === "admin") {
+        navigate("/portal/obras");
+        return;
+      }
+
+      // Client: check portal access
       const { data: accessData } = await supabase
         .from("client_portal_access")
         .select("project_id")
