@@ -74,10 +74,14 @@ async function sendInviteEmail(
           <strong style="color: #1e293b; font-size: 16px;">${projectName}</strong>
         </div>
         
+        <p style="color: #475569; line-height: 1.6;">
+          Para acessar, clique no botão abaixo para definir sua senha:
+        </p>
+        
         <div style="text-align: center; margin: 25px 0;">
-          <a href="${portalUrl}" 
+          <a href="${recoveryLink || portalUrl}" 
              style="background: #7c3aed; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-            Acessar Portal
+            Definir Senha e Acessar
           </a>
         </div>
       </div>
@@ -253,18 +257,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate recovery link for new users
-    if (!existingUser) {
-      const { data: linkData } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: {
-          redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha",
-        },
-      });
-      if (linkData?.properties?.action_link) {
-        recoveryLink = linkData.properties.action_link;
-      }
+    // Generate recovery link for all users (new and existing)
+    const { data: linkData } = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: {
+        redirectTo: "https://arscorrea.lovable.app/portal/redefinir-senha",
+      },
+    });
+    if (linkData?.properties?.action_link) {
+      recoveryLink = linkData.properties.action_link;
     }
 
     // Send invite email
