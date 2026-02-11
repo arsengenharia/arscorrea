@@ -14,14 +14,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   MessageSquare,
   Clock,
   CheckCircle2,
   Search,
   Send,
   Loader2,
-  AlertTriangle,
   User,
+  Trash2,
 } from "lucide-react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { toast } from "sonner";
@@ -57,6 +67,8 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
   const [response, setResponse] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteResponseId, setDeleteResponseId] = useState<string | null>(null);
+  const [deletingResponse, setDeletingResponse] = useState(false);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["admin-portal-events", projectId],
@@ -66,7 +78,6 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
         .select("*, portal_event_photos(*)")
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       return data;
     },
@@ -75,7 +86,6 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
   const handleRespond = async (eventId: string) => {
     if (!response.trim() && !newStatus) return;
     setSaving(true);
-
     try {
       const updates: Record<string, any> = {};
       if (response.trim()) {
@@ -86,14 +96,8 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
       if (newStatus) {
         updates.status = newStatus;
       }
-
-      const { error } = await supabase
-        .from("portal_events")
-        .update(updates)
-        .eq("id", eventId);
-
+      const { error } = await supabase.from("portal_events").update(updates).eq("id", eventId);
       if (error) throw error;
-
       toast.success("Resposta enviada!");
       setRespondingTo(null);
       setResponse("");
@@ -103,6 +107,25 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
       toast.error("Erro: " + error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteResponse = async () => {
+    if (!deleteResponseId) return;
+    setDeletingResponse(true);
+    try {
+      const { error } = await supabase
+        .from("portal_events")
+        .update({ admin_response: null, responded_at: null, responded_by: null })
+        .eq("id", deleteResponseId);
+      if (error) throw error;
+      toast.success("Resposta removida!");
+      setDeleteResponseId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-portal-events", projectId] });
+    } catch (error: any) {
+      toast.error("Erro: " + error.message);
+    } finally {
+      setDeletingResponse(false);
     }
   };
 
@@ -120,97 +143,140 @@ export function PortalEventsAdmin({ projectId }: PortalEventsAdminProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {events.map((event) => {
-        const status = statusConfig[event.status] || statusConfig.aberto;
-        const type = typeConfig[event.event_type] || { className: "bg-slate-100 text-slate-700" };
-        const isResponding = respondingTo === event.id;
+    <>
+      <div className="space-y-3">
+        {events.map((event) => {
+          const status = statusConfig[event.status] || statusConfig.aberto;
+          const type = typeConfig[event.event_type] || { className: "bg-slate-100 text-slate-700" };
+          const isResponding = respondingTo === event.id;
 
-        return (
-          <Card key={event.id} className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Badge variant="secondary" className={type.className}>{event.event_type}</Badge>
-                    <Badge variant="outline" className={`${status.className} gap-1`}>
-                      {status.icon}{status.label}
-                    </Badge>
+          return (
+            <Card key={event.id} className="border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Badge variant="secondary" className={type.className}>{event.event_type}</Badge>
+                      <Badge variant="outline" className={`${status.className} gap-1`}>{status.icon}{status.label}</Badge>
+                    </div>
+                    <h4 className="font-semibold text-slate-800">{event.title}</h4>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <User className="h-3 w-3" />
+                      {new Date(event.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
                   </div>
-                  <h4 className="font-semibold text-slate-800">{event.title}</h4>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <User className="h-3 w-3" />
-                    {new Date(event.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </p>
                 </div>
-              </div>
 
-              <p className="text-sm text-muted-foreground whitespace-pre-line mb-3">{event.description}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line mb-3">{event.description}</p>
 
-              {event.portal_event_photos && event.portal_event_photos.length > 0 && (
-                <div className="flex gap-2 flex-wrap mb-3">
-                  {event.portal_event_photos.map((photo: any) => (
-                    <AdminEventPhoto key={photo.id} photoPath={photo.photo_url} />
-                  ))}
-                </div>
-              )}
-
-              {event.admin_response && !isResponding && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3">
-                  <p className="text-xs font-medium text-blue-700 mb-1">Sua resposta:</p>
-                  <p className="text-sm text-blue-900 whitespace-pre-line">{event.admin_response}</p>
-                </div>
-              )}
-
-              {isResponding ? (
-                <div className="space-y-3 border-t border-slate-100 pt-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Alterar Status</label>
-                    <Select value={newStatus} onValueChange={setNewStatus}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Manter atual" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="aberto">Aberto</SelectItem>
-                        <SelectItem value="em_analise">Em Análise</SelectItem>
-                        <SelectItem value="resolvido">Resolvido</SelectItem>
-                        <SelectItem value="fechado">Fechado</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {event.portal_event_photos && event.portal_event_photos.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {event.portal_event_photos.map((photo: any) => (
+                      <AdminEventPhoto key={photo.id} photoPath={photo.photo_url} />
+                    ))}
                   </div>
-                  <Textarea
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
-                    placeholder="Digite sua resposta ao cliente..."
-                    rows={3}
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleRespond(event.id)} disabled={saving}>
-                      {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
-                      Enviar
+                )}
+
+                {event.admin_response && !isResponding && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-blue-700 mb-1">Sua resposta:</p>
+                        <p className="text-sm text-blue-900 whitespace-pre-line">{event.admin_response}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                          onClick={() => {
+                            setRespondingTo(event.id);
+                            setResponse(event.admin_response || "");
+                          }}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteResponseId(event.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isResponding ? (
+                  <div className="space-y-3 border-t border-slate-100 pt-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Alterar Status</label>
+                      <Select value={newStatus} onValueChange={setNewStatus}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="Manter atual" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="aberto">Aberto</SelectItem>
+                          <SelectItem value="em_analise">Em Análise</SelectItem>
+                          <SelectItem value="resolvido">Resolvido</SelectItem>
+                          <SelectItem value="fechado">Fechado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Textarea
+                      value={response}
+                      onChange={(e) => setResponse(e.target.value)}
+                      placeholder="Digite sua resposta ao cliente..."
+                      rows={3}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleRespond(event.id)} disabled={saving}>
+                        {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+                        Enviar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setRespondingTo(null); setResponse(""); setNewStatus(""); }}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  !event.admin_response && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setRespondingTo(event.id);
+                        setResponse("");
+                      }}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-1" />
+                      Responder
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setRespondingTo(null); setResponse(""); setNewStatus(""); }}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setRespondingTo(event.id);
-                    setResponse(event.admin_response || "");
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 mr-1" />
-                  {event.admin_response ? "Editar Resposta" : "Responder"}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <AlertDialog open={!!deleteResponseId} onOpenChange={(open) => { if (!open) setDeleteResponseId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir resposta?</AlertDialogTitle>
+            <AlertDialogDescription>A resposta será removida e o cliente não poderá mais visualizá-la.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingResponse}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteResponse} disabled={deletingResponse} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deletingResponse ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
