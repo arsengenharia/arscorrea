@@ -175,7 +175,7 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Cliente</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo" />
@@ -200,7 +200,7 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Segmento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o segmento" />
