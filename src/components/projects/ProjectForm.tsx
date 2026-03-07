@@ -116,12 +116,10 @@ export function ProjectForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base">Cliente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="bg-white h-12">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
-                  </FormControl>
                   <SelectContent>
                     {clients?.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
@@ -141,8 +139,7 @@ export function ProjectForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base">Status *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="bg-white h-12">
                       <SelectValue placeholder="Selecione um status">
                         {field.value && (
@@ -154,7 +151,6 @@ export function ProjectForm() {
                         )}
                       </SelectValue>
                     </SelectTrigger>
-                  </FormControl>
                   <SelectContent>
                     <SelectItem value="pendente">
                       <Badge variant="pending">Pendente</Badge>
