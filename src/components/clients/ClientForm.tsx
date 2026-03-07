@@ -303,7 +303,7 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo de Cliente</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
@@ -326,7 +326,7 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Segmento</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o segmento" />
                         </SelectTrigger>
@@ -509,7 +509,7 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Responsável pelo Atendimento *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o responsável" />
                         </SelectTrigger>
@@ -550,7 +550,7 @@ export function ClientForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Canal do Lead *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o canal" />
                         </SelectTrigger>
