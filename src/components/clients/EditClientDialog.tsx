@@ -176,11 +176,9 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
                   <FormItem>
                     <FormLabel>Tipo de Cliente</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
                       <SelectContent>
                         {CLIENT_TYPES.map((t) => (
                           <SelectItem key={t.value} value={t.value}>
@@ -201,11 +199,9 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
                   <FormItem>
                     <FormLabel>Segmento</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o segmento" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o segmento" />
+                      </SelectTrigger>
                       <SelectContent>
                         {SEGMENTS.map((s) => (
                           <SelectItem key={s.value} value={s.value}>

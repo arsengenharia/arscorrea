@@ -34,7 +34,7 @@ export function ProjectStatusSelect({ status, onStatusChange }: ProjectStatusSel
   };
 
   return (
-    <Select defaultValue={status} onValueChange={onStatusChange}>
+    <Select value={status} onValueChange={onStatusChange}>
       <SelectTrigger className="w-[140px]">
         <SelectValue>
           <Badge variant={getStatusBadgeVariant(status)}>
