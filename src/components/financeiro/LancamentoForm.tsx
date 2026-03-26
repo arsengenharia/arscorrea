@@ -238,14 +238,14 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fornecedor</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Nenhum" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {suppliers.map((sup) => (
                         <SelectItem key={sup.id} value={sup.id}>
                           {sup.trade_name}

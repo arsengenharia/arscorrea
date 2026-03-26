@@ -222,17 +222,17 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Não definido" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Não definido</SelectItem>
-                        <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
-                        <SelectItem value="Jurídica">Jurídica</SelectItem>
-                        <SelectItem value="Autônomo">Autônomo</SelectItem>
+                        <SelectItem value="none">Não definido</SelectItem>
+                        <SelectItem value="Pessoa Fisica">Pessoa Física</SelectItem>
+                        <SelectItem value="Juridica">Jurídica</SelectItem>
+                        <SelectItem value="Autonomo">Autônomo</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -245,14 +245,14 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoria Padrão</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Nenhuma" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="none">Nenhuma</SelectItem>
                         {categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             [{cat.prefixo}] {cat.nome}

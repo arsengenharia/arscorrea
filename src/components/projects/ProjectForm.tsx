@@ -236,14 +236,14 @@ export function ProjectForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-base">Conta Bancária</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
                 <FormControl>
                   <SelectTrigger className="bg-white h-12">
                     <SelectValue placeholder="Selecione uma conta (opcional)" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {bankAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.banco} - {account.conta}
