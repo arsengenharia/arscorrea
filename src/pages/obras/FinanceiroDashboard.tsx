@@ -9,6 +9,7 @@ import { CostByCategoryChart } from "@/components/financeiro/CostByCategoryChart
 import { CurvaSChart } from "@/components/financeiro/CurvaSChart";
 import { CostDistributionPie } from "@/components/financeiro/CostDistributionPie";
 import { TopSuppliersTable } from "@/components/financeiro/TopSuppliersTable";
+import { FinanceiroPDFButton } from "@/components/financeiro/FinanceiroPDFButton";
 
 interface FinancialEntry {
   id: string;
@@ -106,12 +107,24 @@ export default function FinanceiroDashboard() {
               <p className="text-sm text-muted-foreground">{project.name}</p>
             </div>
           </div>
-          <Link to={`/obras/${projectId}/lancamentos`}>
-            <Button variant="outline" size="sm">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Ver Lançamentos
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <FinanceiroPDFButton
+              projectName={project.name}
+              totalRecebido={totalRecebido}
+              totalGasto={totalGasto}
+              saldo={saldo}
+              margem={margem}
+              iecAtual={iecAtual}
+              orcamentoPrevisto={project.orcamento_previsto ?? null}
+              entries={entries}
+            />
+            <Link to={`/obras/${projectId}/lancamentos`}>
+              <Button variant="outline" size="sm">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Ver Lançamentos
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Alert badges */}
