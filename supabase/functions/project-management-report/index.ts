@@ -42,21 +42,15 @@ Deno.serve(async (req) => {
       .eq("project_id", project_id)
       .order("created_at", { ascending: true });
 
-    // Fetch costs
-    const { data: costs } = await supabase
-      .from("project_costs")
-      .select("*")
+    // v2: Fetch financial entries (replaces project_costs + project_revenues)
+    const { data: entries } = await supabase
+      .from("project_financial_entries")
+      .select("*, category:financial_categories(nome, prefixo, e_receita)")
       .eq("project_id", project_id);
 
-    // Fetch revenues
-    const { data: revenues } = await supabase
-      .from("project_revenues")
-      .select("*")
-      .eq("project_id", project_id);
+    const allEntries = entries || [];
 
     const allStages = stages || [];
-    const allCosts = costs || [];
-    const allRevenues = revenues || [];
     const today = new Date().toISOString().split("T")[0];
 
     // IFEC = Producao Real Acumulada / Producao Prevista Acumulada (baseado em pesos)
@@ -102,16 +96,22 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Financial
-    const custoDiretoPrev = allCosts.filter((c) => c.cost_type === "Direto").reduce((s, c) => s + Number(c.expected_value), 0);
-    const custoIndiretoPrev = allCosts.filter((c) => c.cost_type === "Indireto").reduce((s, c) => s + Number(c.expected_value), 0);
-    const custoDiretoReal = allCosts.filter((c) => c.cost_type === "Direto").reduce((s, c) => s + Number(c.actual_value), 0);
-    const custoIndiretoReal = allCosts.filter((c) => c.cost_type === "Indireto").reduce((s, c) => s + Number(c.actual_value), 0);
-    const custoTotalPrev = custoDiretoPrev + custoIndiretoPrev;
+    // Financial — derived from project_financial_entries (v2)
+    const custoDiretoPrev = 0; // v2 uses orcamento_previsto instead of per-entry previsto
+    const custoIndiretoPrev = 0;
+    const custoDiretoReal = allEntries
+      .filter((e: any) => Number(e.valor) < 0 && e.category?.prefixo === "CV")
+      .reduce((s: number, e: any) => s + Math.abs(Number(e.valor)), 0);
+    const custoIndiretoReal = allEntries
+      .filter((e: any) => Number(e.valor) < 0 && e.category?.prefixo === "ADM")
+      .reduce((s: number, e: any) => s + Math.abs(Number(e.valor)), 0);
+    const custoTotalPrev = Number(project.orcamento_previsto) || 0;
     const custoTotalReal = custoDiretoReal + custoIndiretoReal;
 
-    const receitaPrev = allRevenues.reduce((s, r) => s + Number(r.expected_value), 0);
-    const receitaReal = allRevenues.reduce((s, r) => s + Number(r.actual_value), 0);
+    const receitaPrev = 0; // v2 tracks only realized values
+    const receitaReal = allEntries
+      .filter((e: any) => Number(e.valor) > 0)
+      .reduce((s: number, e: any) => s + Number(e.valor), 0);
 
     const saldo = receitaReal - custoTotalReal;
     const margem = receitaReal > 0 ? (saldo / receitaReal) * 100 : 0;
