@@ -32,6 +32,9 @@ import PortalLogin from "./pages/portal/PortalLogin";
 import PortalProject from "./pages/portal/PortalProject";
 import PortalProjectsList from "./pages/portal/PortalProjectsList";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
+import Categorias from "./pages/financeiro/Categorias";
+import Contas from "./pages/financeiro/Contas";
+import Lancamentos from "./pages/obras/Lancamentos";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -72,6 +75,9 @@ const App = () => (
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/financeiro/categorias" element={<ProtectedRoute><Categorias /></ProtectedRoute>} />
+          <Route path="/financeiro/contas" element={<ProtectedRoute><Contas /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

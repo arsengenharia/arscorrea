@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   BarChart3,
   DollarSign,
-  TrendingUp,
   MoreHorizontal,
   Home,
   FileText,
@@ -184,23 +183,12 @@ export function ProjectDetails() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-green-600 hover:bg-green-50 h-8 px-2 lg:px-3"
-                    onClick={() => navigate(`/obras/${projectId}/receitas`)}
-                    title="Receitas"
-                  >
-                    <TrendingUp className="w-4 h-4 lg:mr-2" />
-                    <span className="hidden lg:inline">Receitas</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     className="text-slate-600 hover:text-amber-600 hover:bg-amber-50 h-8 px-2 lg:px-3"
-                    onClick={() => navigate(`/obras/${projectId}/custos`)}
-                    title="Custos"
+                    onClick={() => navigate(`/obras/${projectId}/lancamentos`)}
+                    title="Lançamentos Financeiros"
                   >
                     <DollarSign className="w-4 h-4 lg:mr-2" />
-                    <span className="hidden lg:inline">Custos</span>
+                    <span className="hidden lg:inline">Lançamentos</span>
                   </Button>
                   <ManagePortalAccessDialog
                     projectId={projectId!}
