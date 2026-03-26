@@ -35,6 +35,7 @@ import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import Categorias from "./pages/financeiro/Categorias";
 import Contas from "./pages/financeiro/Contas";
 import Lancamentos from "./pages/obras/Lancamentos";
+import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -78,6 +79,7 @@ const App = () => (
           <Route path="/financeiro/categorias" element={<ProtectedRoute><Categorias /></ProtectedRoute>} />
           <Route path="/financeiro/contas" element={<ProtectedRoute><Contas /></ProtectedRoute>} />
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

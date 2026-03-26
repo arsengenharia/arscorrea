@@ -183,6 +183,17 @@ export function ProjectDetails() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="text-slate-600 hover:text-green-600 hover:bg-green-50 h-8 px-2 lg:px-3"
+                    onClick={() => navigate(`/obras/${projectId}/financeiro`)}
+                    title="Dashboard Financeiro"
+                  >
+                    <BarChart3 className="w-4 h-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Financeiro</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="text-slate-600 hover:text-amber-600 hover:bg-amber-50 h-8 px-2 lg:px-3"
                     onClick={() => navigate(`/obras/${projectId}/lancamentos`)}
                     title="Lançamentos Financeiros"
