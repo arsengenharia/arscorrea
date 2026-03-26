@@ -35,6 +35,7 @@ import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import Categorias from "./pages/financeiro/Categorias";
 import Contas from "./pages/financeiro/Contas";
 import Conciliacao from "./pages/financeiro/Conciliacao";
+import Rateio from "./pages/financeiro/Rateio";
 import Lancamentos from "./pages/obras/Lancamentos";
 import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
 
@@ -81,6 +82,7 @@ const App = () => (
           <Route path="/financeiro/categorias" element={<ProtectedRoute><Categorias /></ProtectedRoute>} />
           <Route path="/financeiro/contas" element={<ProtectedRoute><Contas /></ProtectedRoute>} />
           <Route path="/financeiro/conciliacao" element={<ProtectedRoute><Conciliacao /></ProtectedRoute>} />
+          <Route path="/financeiro/rateio" element={<ProtectedRoute><Rateio /></ProtectedRoute>} />
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
           <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
