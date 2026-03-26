@@ -1,0 +1,127 @@
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Pencil } from "lucide-react";
+import { CategoryForm } from "@/components/financeiro/CategoryForm";
+
+interface FinancialCategory {
+  id: string;
+  nome: string;
+  prefixo: "CV" | "ROP" | "ADM";
+  e_receita: boolean;
+  cor_hex: string;
+  ativo: boolean;
+}
+
+export default function Categorias() {
+  const queryClient = useQueryClient();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<FinancialCategory | null>(null);
+
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ["financial-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_categories" as any)
+        .select("*")
+        .order("prefixo")
+        .order("nome");
+      if (error) throw error;
+      return data as unknown as FinancialCategory[];
+    },
+  });
+
+  const prefixoBadgeVariant = (prefixo: string) => {
+    if (prefixo === "CV") return "default";
+    if (prefixo === "ROP") return "secondary";
+    return "outline";
+  };
+
+  return (
+    <Layout>
+      <div className="w-full max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Categorias Financeiras</h2>
+          <Button onClick={() => { setEditingCategory(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Categoria
+          </Button>
+        </div>
+
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[48px]">Cor</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Prefixo</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[64px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : categories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhuma categoria encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                categories.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <div
+                        className="h-6 w-6 rounded-full border border-input"
+                        style={{ backgroundColor: c.cor_hex }}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{c.nome}</TableCell>
+                    <TableCell>
+                      <Badge variant={prefixoBadgeVariant(c.prefixo)}>{c.prefixo}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={c.e_receita ? "default" : "secondary"}>
+                        {c.e_receita ? "Entrada" : "Saída"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={c.ativo ? "default" : "outline"}>
+                        {c.ativo ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setEditingCategory(c); setFormOpen(true); }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <CategoryForm
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          category={editingCategory}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ["financial-categories"] })}
+        />
+      </div>
+    </Layout>
+  );
+}
