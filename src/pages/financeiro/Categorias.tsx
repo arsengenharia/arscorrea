@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil } from "lucide-react";
 import { CategoryForm } from "@/components/financeiro/CategoryForm";
+import { FinanceiroTabs } from "./Financeiro";
 
 interface FinancialCategory {
   id: string;
@@ -44,8 +45,10 @@ export default function Categorias() {
   return (
     <Layout>
       <div className="w-full max-w-6xl mx-auto space-y-6">
+        <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+        <FinanceiroTabs />
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Categorias Financeiras</h2>
+          <h3 className="text-xl font-semibold">Categorias</h3>
           <Button onClick={() => { setEditingCategory(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Nova Categoria
           </Button>

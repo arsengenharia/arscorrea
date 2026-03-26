@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil } from "lucide-react";
 import { BankAccountForm } from "@/components/financeiro/BankAccountForm";
 import { formatBRL, formatDate } from "@/lib/formatters";
+import { FinanceiroTabs } from "./Financeiro";
 
 interface BankAccount {
   id: string;
@@ -40,8 +41,10 @@ export default function Contas() {
   return (
     <Layout>
       <div className="w-full max-w-6xl mx-auto space-y-6">
+        <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+        <FinanceiroTabs />
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Contas Bancárias</h2>
+          <h3 className="text-xl font-semibold">Contas Bancárias</h3>
           <Button onClick={() => { setEditingAccount(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>

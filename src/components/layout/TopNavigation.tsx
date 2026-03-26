@@ -13,7 +13,7 @@ const menuItems = [
   { title: "Obras", icon: Building, path: "/obras" },
   { title: "Propostas", icon: FileText, path: "/propostas" },
   { title: "Contratos", icon: ScrollText, path: "/contratos" },
-  { title: "Financeiro", icon: Wallet, path: "/financeiro/categorias" },
+  { title: "Financeiro", icon: Wallet, path: "/financeiro" },
   { title: "Agenda", icon: Calendar, path: "/agenda" },
   { title: "Fornecedores", icon: Truck, path: "/fornecedores" },
   { title: "Portal", icon: Users, path: "/portal/obras", external: true },

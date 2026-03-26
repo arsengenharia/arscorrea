@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import ClientFormPage from "./pages/ClientForm";
@@ -76,6 +76,7 @@ const App = () => (
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/financeiro" element={<ProtectedRoute><Navigate to="/financeiro/categorias" replace /></ProtectedRoute>} />
           <Route path="/financeiro/categorias" element={<ProtectedRoute><Categorias /></ProtectedRoute>} />
           <Route path="/financeiro/contas" element={<ProtectedRoute><Contas /></ProtectedRoute>} />
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />

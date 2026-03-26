@@ -47,7 +47,7 @@ const menuItems = [
   {
     title: "Financeiro",
     icon: Wallet,
-    path: "/financeiro/categorias",
+    path: "/financeiro",
   },
   {
     title: "Agenda",
