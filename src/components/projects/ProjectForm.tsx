@@ -18,6 +18,8 @@ const projectFormSchema = z.object({
   project_manager: z.string().optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
+  bank_account_id: z.string().optional(),
+  orcamento_previsto: z.coerce.number().optional(),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -31,6 +33,19 @@ export function ProjectForm() {
     defaultValues: {
       status: "pendente",
       project_manager: "",
+    },
+  });
+
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ["bank-accounts-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bank_accounts" as any)
+        .select("id, banco, conta, descricao")
+        .eq("ativo", true)
+        .order("banco");
+      if (error) throw error;
+      return data as any[];
     },
   });
 
@@ -59,6 +74,8 @@ export function ProjectForm() {
         end_date: values.end_date || null,
         status: values.status,
         project_manager: values.project_manager || null,
+        bank_account_id: values.bank_account_id || null,
+        orcamento_previsto: values.orcamento_previsto || null,
       };
 
       const { data, error } = await supabase
@@ -212,6 +229,52 @@ export function ProjectForm() {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="bank_account_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base">Conta Bancária</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-white h-12">
+                    <SelectValue placeholder="Selecione uma conta (opcional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">Nenhuma</SelectItem>
+                  {bankAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.banco} - {account.conta}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="orcamento_previsto"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base">Orçamento Previsto R$</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  {...field}
+                  className="h-12 text-base"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto h-12 text-base px-8">
           {isSubmitting ? "Cadastrando..." : "Cadastrar Obra"}
