@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const schema = z.object({
   trade_name: z.string().min(2, "Nome fantasia é obrigatório"),
@@ -18,6 +20,11 @@ const schema = z.object({
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   address: z.string().optional(),
+  tipo: z.string().optional(),
+  categoria_padrao_id: z.string().optional(),
+  chave_pix: z.string().optional(),
+  observacoes: z.string().optional(),
+  ativo: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -32,6 +39,19 @@ interface SupplierFormProps {
 export function SupplierForm({ open, onOpenChange, supplier, onSaved }: SupplierFormProps) {
   const isEditing = !!supplier;
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["financial-categories-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_categories" as any)
+        .select("id, nome, prefixo")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -42,6 +62,11 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
       phone: "",
       email: "",
       address: "",
+      tipo: "",
+      categoria_padrao_id: "",
+      chave_pix: "",
+      observacoes: "",
+      ativo: true,
     },
   });
 
@@ -55,6 +80,11 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
         phone: supplier.phone || "",
         email: supplier.email || "",
         address: supplier.address || "",
+        tipo: supplier.tipo || "",
+        categoria_padrao_id: supplier.categoria_padrao_id || "",
+        chave_pix: supplier.chave_pix || "",
+        observacoes: supplier.observacoes || "",
+        ativo: supplier.ativo !== undefined ? supplier.ativo : true,
       });
     } else {
       form.reset({
@@ -65,6 +95,11 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
         phone: "",
         email: "",
         address: "",
+        tipo: "",
+        categoria_padrao_id: "",
+        chave_pix: "",
+        observacoes: "",
+        ativo: true,
       });
     }
   }, [supplier, open]);
@@ -176,6 +211,67 @@ export function SupplierForm({ open, onOpenChange, supplier, onSaved }: Supplier
                 <FormItem>
                   <FormLabel>Endereço</FormLabel>
                   <FormControl><Textarea placeholder="Endereço completo" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Não definido" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">Não definido</SelectItem>
+                        <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
+                        <SelectItem value="Jurídica">Jurídica</SelectItem>
+                        <SelectItem value="Autônomo">Autônomo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="categoria_padrao_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria Padrão</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Nenhuma" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">Nenhuma</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            [{cat.prefixo}] {cat.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="chave_pix"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Chave Pix</FormLabel>
+                  <FormControl><Input placeholder="CPF, CNPJ, email ou celular" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
