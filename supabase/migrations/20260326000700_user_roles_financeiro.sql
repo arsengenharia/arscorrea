@@ -1,6 +1,2 @@
-ALTER TABLE user_roles
-  DROP CONSTRAINT IF EXISTS user_roles_role_check;
-
-ALTER TABLE user_roles
-  ADD CONSTRAINT user_roles_role_check
-  CHECK (role IN ('admin', 'client', 'financeiro'));
+-- user_roles.role uses enum app_role, not a CHECK constraint
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'financeiro';
