@@ -1,11 +1,12 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { cn } from "@/lib/utils";
-import { Tags, Landmark } from "lucide-react";
+import { Tags, Landmark, GitMerge } from "lucide-react";
 
 const tabs = [
   { label: "Categorias", path: "/financeiro/categorias", icon: Tags },
   { label: "Contas Bancárias", path: "/financeiro/contas", icon: Landmark },
+  { label: "Conciliação", path: "/financeiro/conciliacao", icon: GitMerge },
 ];
 
 export default function Financeiro() {
