@@ -42,6 +42,7 @@ import NfeInbox from "./pages/financeiro/NfeInbox";
 import Recebiveis from "./pages/financeiro/Recebiveis";
 import Lancamentos from "./pages/obras/Lancamentos";
 import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
+import Medicoes from "./pages/obras/Medicoes";
 
 function RedirectToLancamentos() {
   const { projectId } = useParams();
@@ -100,6 +101,7 @@ const App = () => (
           <Route path="/financeiro/contas" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
           <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/medicoes" element={<ProtectedRoute><Medicoes /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

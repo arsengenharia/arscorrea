@@ -13,6 +13,7 @@ import {
   Home,
   FileText,
   MessageSquare,
+  Ruler,
 } from "lucide-react";
 import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
 import {
@@ -200,6 +201,17 @@ export function ProjectDetails() {
                   >
                     <DollarSign className="w-4 h-4 lg:mr-2" />
                     <span className="hidden lg:inline">Lançamentos</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-600 hover:text-purple-600 hover:bg-purple-50 h-8 px-2 lg:px-3"
+                    onClick={() => navigate(`/obras/${projectId}/medicoes`)}
+                    title="Medições"
+                  >
+                    <Ruler className="w-4 h-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Medições</span>
                   </Button>
                   <ManagePortalAccessDialog
                     projectId={projectId!}

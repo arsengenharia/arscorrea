@@ -541,6 +541,118 @@ export type Database = {
           },
         ]
       }
+      medicoes: {
+        Row: {
+          id: string
+          project_id: string
+          contract_id: string | null
+          numero: number
+          periodo_inicio: string
+          periodo_fim: string
+          valor_medido: number
+          valor_acumulado: number | null
+          percentual_fisico: number | null
+          status: string
+          responsavel: string | null
+          aprovado_por: string | null
+          aprovado_em: string | null
+          observacoes: string | null
+          documento_url: string | null
+          financial_entry_id: string | null
+          contract_payment_id: string | null
+          created_at: string
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          contract_id?: string | null
+          numero: number
+          periodo_inicio: string
+          periodo_fim: string
+          valor_medido: number
+          valor_acumulado?: number | null
+          percentual_fisico?: number | null
+          status?: string
+          responsavel?: string | null
+          aprovado_por?: string | null
+          aprovado_em?: string | null
+          observacoes?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          contract_id?: string | null
+          numero?: number
+          periodo_inicio?: string
+          periodo_fim?: string
+          valor_medido?: number
+          valor_acumulado?: number | null
+          percentual_fisico?: number | null
+          status?: string
+          responsavel?: string | null
+          aprovado_por?: string | null
+          aprovado_em?: string | null
+          observacoes?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_payment_id_fkey"
+            columns: ["contract_payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           additive_value: number | null
@@ -1125,6 +1237,51 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      project_budgets: {
+        Row: {
+          id: string
+          project_id: string
+          category_id: string
+          valor_previsto: number
+          observacoes: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          category_id: string
+          valor_previsto: number
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          category_id?: string
+          valor_previsto?: number
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_costs: {
         Row: {
