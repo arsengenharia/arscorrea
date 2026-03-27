@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, DollarSign, Banknote, Receipt, PiggyBank } from "lucide-react";
 import { PaymentSummary } from "@/components/contracts/PaymentSummary";
 import { PaymentLine } from "@/lib/paymentTypes";
-import { FinancialList } from "@/components/contracts/FinancialList";
 
 export default function ContractFinancial() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const { data: contract, isLoading } = useQuery({
     queryKey: ["contract", id],
@@ -187,22 +185,6 @@ export default function ContractFinancial() {
             paymentLines={paymentLines} 
           />
         )}
-
-        {/* Financial List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Lançamentos Financeiros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FinancialList
-              contractId={id!}
-              onCommissionUpdate={() => {
-                queryClient.invalidateQueries({ queryKey: ["contract", id] });
-                queryClient.invalidateQueries({ queryKey: ["contract-payments", id] });
-              }}
-            />
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
