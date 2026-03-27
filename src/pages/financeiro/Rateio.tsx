@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Split } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDate } from "@/lib/formatters";
@@ -393,6 +394,24 @@ export default function Rateio() {
     },
   });
 
+  const { data: allocatedIds = [] } = useQuery({
+    queryKey: ["allocated-entry-ids"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("cost_allocations" as any) as any)
+        .select("lancamento_id");
+      if (error) throw error;
+      const ids = new Set((data as any[]).map((r: any) => r.lancamento_id));
+      return [...ids];
+    },
+  });
+  const allocatedSet = new Set(allocatedIds);
+
+  const [showPendingOnly, setShowPendingOnly] = useState(true);
+
+  const displayedEntries = showPendingOnly
+    ? admEntries.filter((e) => !allocatedSet.has(e.id))
+    : admEntries;
+
   const { data: history = [], isLoading: loadingHistory } = useQuery<AllocationRow[]>({
     queryKey: ["allocation-history"],
     queryFn: async () => {
@@ -419,7 +438,12 @@ export default function Rateio() {
       {/* ADM Entries */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-base">Lançamentos ADM para Ratear</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Lançamentos ADM para Ratear</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setShowPendingOnly(!showPendingOnly)}>
+              {showPendingOnly ? "Mostrar todos" : "Só pendentes"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -428,25 +452,26 @@ export default function Rateio() {
                 <TableHead>Data</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingEntries && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
-              {!loadingEntries && admEntries.length === 0 && (
+              {!loadingEntries && displayedEntries.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum lançamento ADM encontrado.
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    {admEntries.length === 0 ? "Nenhum lançamento ADM encontrado." : "Nenhum lançamento ADM pendente de rateio."}
                   </TableCell>
                 </TableRow>
               )}
-              {admEntries.map((entry) => (
+              {displayedEntries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell>{formatDate(entry.data)}</TableCell>
                   <TableCell>{entry.observacoes || "—"}</TableCell>

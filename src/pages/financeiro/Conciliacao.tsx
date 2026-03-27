@@ -63,6 +63,7 @@ interface FinancialEntry {
   data: string;
   situacao: string;
   bank_account_id: string | null;
+  project: { name: string } | null;
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_financial_entries" as any)
-        .select("*")
+        .select("*, project:projects(name)")
         .eq("situacao", "pendente")
         .eq("bank_account_id", accountId)
         .order("data", { ascending: false });
@@ -207,6 +208,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Obra</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="w-[80px]" />
@@ -215,13 +217,13 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : orderedEntries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                     Nenhum lançamento pendente encontrado
                   </TableCell>
                 </TableRow>
@@ -241,6 +243,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
                           </span>
                         )}
                       </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{entry.project?.name || "—"}</TableCell>
                       <TableCell className="text-sm">
                         {formatDate(entry.data)}
                       </TableCell>
