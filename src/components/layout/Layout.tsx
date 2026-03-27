@@ -1,5 +1,6 @@
 import { TopNavigation } from "./TopNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ChatPanel } from "@/components/ai/ChatPanel";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export function Layout({ children }: LayoutProps) {
       >
         {children}
       </main>
+      <ChatPanel />
     </div>
   );
 }
