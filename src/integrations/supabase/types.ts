@@ -705,6 +705,42 @@ export type Database = {
           },
         ]
       }
+      item_catalog: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          ncm: string
+          nome_padrao: string
+          unidade_padrao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ncm: string
+          nome_padrao: string
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ncm?: string
+          nome_padrao?: string
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       financial_categories: {
         Row: {
           ativo: boolean
@@ -884,6 +920,99 @@ export type Database = {
           },
           {
             foreignKeyName: "nfe_inbox_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_items: {
+        Row: {
+          categoria_item: string | null
+          cfop: string | null
+          created_at: string
+          descricao_original: string
+          financial_entry_id: string | null
+          id: string
+          item_catalog_id: string | null
+          ncm: string | null
+          nfe_inbox_id: string
+          nome_padronizado: string | null
+          project_id: string | null
+          quantidade: number
+          supplier_id: string | null
+          unidade: string | null
+          valor_total: number
+          valor_unitario: number | null
+        }
+        Insert: {
+          categoria_item?: string | null
+          cfop?: string | null
+          created_at?: string
+          descricao_original: string
+          financial_entry_id?: string | null
+          id?: string
+          item_catalog_id?: string | null
+          ncm?: string | null
+          nfe_inbox_id: string
+          nome_padronizado?: string | null
+          project_id?: string | null
+          quantidade?: number
+          supplier_id?: string | null
+          unidade?: string | null
+          valor_total: number
+          valor_unitario?: number | null
+        }
+        Update: {
+          categoria_item?: string | null
+          cfop?: string | null
+          created_at?: string
+          descricao_original?: string
+          financial_entry_id?: string | null
+          id?: string
+          item_catalog_id?: string | null
+          ncm?: string | null
+          nfe_inbox_id?: string
+          nome_padronizado?: string | null
+          project_id?: string | null
+          quantidade?: number
+          supplier_id?: string | null
+          unidade?: string | null
+          valor_total?: number
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_items_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_item_catalog_id_fkey"
+            columns: ["item_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "item_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_nfe_inbox_id_fkey"
+            columns: ["nfe_inbox_id"]
+            isOneToOne: false
+            referencedRelation: "nfe_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"

@@ -7,7 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface NFeItem { xProd: string; vProd: number; NCM: string; CFOP: string; }
+interface NFeItem {
+  xProd: string;
+  vProd: number;
+  NCM: string;
+  CFOP: string;
+  qCom: number;
+  uCom: string;
+  vUnCom: number;
+}
 
 function tag(parent: any, name: string): string {
   return parent?.getElementsByTagName(name)[0]?.textContent?.trim() ?? "";
@@ -15,8 +23,13 @@ function tag(parent: any, name: string): string {
 
 function extractItems(doc: Document): NFeItem[] {
   return Array.from(doc.getElementsByTagName("det")).map((d) => ({
-    xProd: tag(d, "xProd"), vProd: parseFloat(tag(d, "vProd") || "0"),
-    NCM: tag(d, "NCM"), CFOP: tag(d, "CFOP"),
+    xProd: tag(d, "xProd"),
+    vProd: parseFloat(tag(d, "vProd") || "0"),
+    NCM: tag(d, "NCM"),
+    CFOP: tag(d, "CFOP"),
+    qCom: parseFloat(tag(d, "qCom") || "1"),
+    uCom: tag(d, "uCom"),
+    vUnCom: parseFloat(tag(d, "vUnCom") || "0"),
   }));
 }
 

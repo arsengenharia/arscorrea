@@ -146,7 +146,7 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
 
   if (!item) return null;
 
-  const itens = (item.itens_json ?? []) as Array<{ xProd: string; vProd: number; NCM: string }>;
+  const itens = (item.itens_json ?? []) as Array<{ xProd: string; vProd: number; NCM: string; qCom?: number; uCom?: string; vUnCom?: number; nome_padronizado?: string; categoria_item?: string }>;
   const confiancaPct = item.ai_confianca ? Math.round(item.ai_confianca * 100) : 0;
 
   return (
@@ -215,23 +215,38 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
 
         {/* Items table */}
         {itens.length > 0 && (
-          <div className="border rounded-lg max-h-40 overflow-y-auto">
+          <div className="border rounded-lg max-h-48 overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Item</TableHead>
                   <TableHead>NCM</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itens.map((it, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-sm">{it.xProd}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{it.NCM}</TableCell>
-                    <TableCell className="text-right text-sm">{formatBRL(it.vProd)}</TableCell>
-                  </TableRow>
-                ))}
+                {itens.map((it: any, i: number) => {
+                  // Try to find catalog match for display
+                  const ncmDisplay = it.NCM ? it.NCM.replace(/(\d{4})(\d{2})(\d{2})/, "$1.$2.$3") : "—";
+                  return (
+                    <TableRow key={i}>
+                      <TableCell className="text-sm">
+                        <div>{it.xProd}</div>
+                        {it.nome_padronizado && (
+                          <div className="text-xs text-muted-foreground">→ {it.nome_padronizado}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] font-mono">{ncmDisplay}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{it.categoria_item || "—"}</TableCell>
+                      <TableCell className="text-right text-sm">{it.qCom || 1}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{formatBRL(it.vProd)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

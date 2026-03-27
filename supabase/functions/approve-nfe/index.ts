@@ -49,6 +49,57 @@ Deno.serve(async (req) => {
       .eq("id", inbox.supplier_id).is("categoria_padrao_id", null);
   }
 
+  // 7. Create normalized nfe_items from itens_json
+  if (inbox.itens_json && Array.isArray(inbox.itens_json)) {
+    const itemRows = inbox.itens_json.map((item: any) => ({
+      nfe_inbox_id: nfe_inbox_id,
+      financial_entry_id: entry.id,
+      descricao_original: item.xProd || "",
+      ncm: item.NCM || null,
+      cfop: item.CFOP || null,
+      quantidade: item.qCom || 1,
+      unidade: item.uCom || null,
+      valor_unitario: item.vUnCom || null,
+      valor_total: item.vProd || 0,
+      project_id: project_id,
+      supplier_id: inbox.supplier_id,
+    }));
+
+    if (itemRows.length > 0) {
+      const { error: itemsErr } = await supabase
+        .from("nfe_items")
+        .insert(itemRows);
+
+      if (itemsErr) {
+        console.error("Error creating nfe_items:", itemsErr.message);
+        // Don't fail the approval — items are secondary
+      }
+
+      // Auto-link items to catalog by NCM
+      for (const row of itemRows) {
+        if (row.ncm) {
+          const { data: catalogMatch } = await supabase
+            .from("item_catalog")
+            .select("id, nome_padrao, categoria")
+            .eq("ncm", row.ncm)
+            .limit(1)
+            .maybeSingle();
+
+          if (catalogMatch) {
+            await supabase.from("nfe_items")
+              .update({
+                item_catalog_id: catalogMatch.id,
+                nome_padronizado: catalogMatch.nome_padrao,
+                categoria_item: catalogMatch.categoria,
+              })
+              .eq("nfe_inbox_id", nfe_inbox_id)
+              .eq("ncm", row.ncm);
+          }
+        }
+      }
+    }
+  }
+
   await supabase.rpc("calc_project_balance", { p_project_id: project_id });
 
   return new Response(JSON.stringify({ entry_id: entry.id }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
