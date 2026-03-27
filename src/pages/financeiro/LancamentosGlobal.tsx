@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Paperclip } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { LancamentoForm } from "@/components/financeiro/LancamentoForm";
@@ -223,7 +223,21 @@ export default function LancamentosGlobal() {
                 const isPositive = entry.valor >= 0;
                 return (
                   <TableRow key={entry.id}>
-                    <TableCell className="whitespace-nowrap">{formatDate(entry.data)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        {formatDate(entry.data)}
+                        {entry.arquivo_url && !entry.chave_nfe && (
+                          <a
+                            href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/authenticated/lancamentos/${entry.arquivo_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Ver comprovante"
+                          >
+                            <Paperclip className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="max-w-[140px] truncate" title={entry.project?.name}>
                       {entry.project?.name ?? "—"}
                     </TableCell>

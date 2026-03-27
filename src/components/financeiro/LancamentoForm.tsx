@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,6 +43,8 @@ interface LancamentoFormProps {
 
 export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }: LancamentoFormProps) {
   const isEditing = !!entry;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { data: projectsList = [] } = useQuery({
     queryKey: ["projects-for-entry"],
@@ -152,6 +154,8 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         supplier_name: "",
       });
     }
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }, [entry, open]);
 
   const watchProjectId = form.watch("project_id");
@@ -203,6 +207,22 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         }
       }
 
+      let arquivoUrl = entry?.arquivo_url || null;
+
+      if (selectedFile) {
+        const ext = selectedFile.name.split(".").pop();
+        const path = `comprovantes/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("lancamentos")
+          .upload(path, selectedFile, { contentType: selectedFile.type });
+
+        if (uploadErr) {
+          toast.error("Erro ao enviar comprovante: " + uploadErr.message);
+          return;
+        }
+        arquivoUrl = path;
+      }
+
       const payload: any = {
         ...values,
         project_id: resolvedProjectId,
@@ -210,6 +230,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         numero_documento: values.numero_documento || null,
         nota_fiscal: values.nota_fiscal || null,
         observacoes: values.observacoes || null,
+        arquivo_url: arquivoUrl,
         supplier_cnpj: undefined,
         supplier_name: undefined,
       };
@@ -463,6 +484,26 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
                 </FormItem>
               )}
             />
+
+            {/* Comprovante */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Comprovante</label>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm file:border-0 file:bg-transparent file:text-sm file:font-medium"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+                {selectedFile && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">PDF, JPG ou PNG do comprovante (máx 10MB)</p>
+            </div>
 
             {/* Advanced fields — collapsible */}
             <details className="group">

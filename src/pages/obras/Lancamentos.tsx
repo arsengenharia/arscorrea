@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { LancamentoForm } from "@/components/financeiro/LancamentoForm";
 import { formatBRL, formatDate } from "@/lib/formatters";
@@ -139,7 +139,21 @@ export default function Lancamentos() {
               ) : (
                 entries.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell>{formatDate(entry.data)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {formatDate(entry.data)}
+                        {entry.arquivo_url && !entry.chave_nfe && (
+                          <a
+                            href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/authenticated/lancamentos/${entry.arquivo_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Ver comprovante"
+                          >
+                            <Paperclip className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {entry.category?.cor_hex && (
