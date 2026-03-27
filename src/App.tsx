@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import ClientFormPage from "./pages/ClientForm";
@@ -22,8 +22,6 @@ import ContractForm from "./pages/ContractForm";
 import ContractFinancial from "./pages/ContractFinancial";
 import Agenda from "./pages/Agenda";
 import ProjectReport from "./pages/ProjectReport";
-import ProjectCosts from "./pages/ProjectCosts";
-import ProjectRevenues from "./pages/ProjectRevenues";
 import Suppliers from "./pages/Suppliers";
 import SupplierDetail from "./pages/SupplierDetail";
 import ClientDetails from "./pages/ClientDetails";
@@ -44,6 +42,11 @@ import NfeInbox from "./pages/financeiro/NfeInbox";
 import Recebiveis from "./pages/financeiro/Recebiveis";
 import Lancamentos from "./pages/obras/Lancamentos";
 import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
+
+function RedirectToLancamentos() {
+  const { projectId } = useParams();
+  return <Navigate to={`/obras/${projectId}/lancamentos`} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -71,8 +74,8 @@ const App = () => (
           <Route path="/obras/:projectId/etapas/adicionar" element={<ProtectedRoute><StageForm /></ProtectedRoute>} />
           <Route path="/obras/:projectId/etapas/:stageId/editar" element={<ProtectedRoute><EditStageForm /></ProtectedRoute>} />
           <Route path="/obras/:projectId/relatorio" element={<ProtectedRoute><ProjectReport /></ProtectedRoute>} />
-          <Route path="/obras/:projectId/custos" element={<ProtectedRoute><ProjectCosts /></ProtectedRoute>} />
-          <Route path="/obras/:projectId/receitas" element={<ProtectedRoute><ProjectRevenues /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/custos" element={<ProtectedRoute><RedirectToLancamentos /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/receitas" element={<ProtectedRoute><RedirectToLancamentos /></ProtectedRoute>} />
           <Route path="/propostas" element={<ProtectedRoute><Proposals /></ProtectedRoute>} />
           <Route path="/propostas/nova" element={<ProtectedRoute><ProposalForm /></ProtectedRoute>} />
           <Route path="/propostas/:id" element={<ProtectedRoute><ProposalForm /></ProtectedRoute>} />
