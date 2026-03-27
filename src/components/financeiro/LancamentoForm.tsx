@@ -29,6 +29,7 @@ const schema = z.object({
   observacoes: z.string().optional(),
   supplier_cnpj: z.string().optional(),
   supplier_name: z.string().optional(),
+  contract_payment_id: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -115,6 +116,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
       observacoes: "",
       supplier_cnpj: "",
       supplier_name: "",
+      contract_payment_id: "",
     },
   });
 
@@ -135,6 +137,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         observacoes: entry.observacoes || "",
         supplier_cnpj: "",
         supplier_name: "",
+        contract_payment_id: entry?.contract_payment_id || "",
       });
     } else {
       form.reset({
@@ -152,6 +155,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         observacoes: "",
         supplier_cnpj: "",
         supplier_name: "",
+        contract_payment_id: "",
       });
     }
     setSelectedFile(null);
@@ -170,6 +174,44 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
   }, [watchProjectId]);
 
   const watchTipoDoc = form.watch("tipo_documento");
+
+  const watchCategoryId = form.watch("category_id");
+  const resolvedProjectId = projectId || form.watch("project_id");
+
+  // Check if selected category is revenue
+  const isRevenueCategory = categories.find((c: any) => c.id === watchCategoryId)?.e_receita;
+
+  const { data: pendingPayments = [] } = useQuery({
+    queryKey: ["pending-payments", resolvedProjectId],
+    queryFn: async () => {
+      if (!resolvedProjectId) return [];
+      // Get contracts for this project
+      const { data: contracts } = await supabase
+        .from("contracts")
+        .select("id, titulo")
+        .eq("project_id", resolvedProjectId)
+        .eq("status", "ativo");
+
+      if (!contracts?.length) return [];
+
+      const contractIds = contracts.map((c: any) => c.id);
+
+      // Get pending payments for those contracts
+      const { data: payments } = await supabase
+        .from("contract_payments")
+        .select("id, kind, description, expected_value, expected_date, received_value, status, contract_id")
+        .in("contract_id", contractIds)
+        .neq("status", "recebido")
+        .order("expected_date");
+
+      // Add contract title for display
+      return (payments || []).map((p: any) => ({
+        ...p,
+        contract_title: contracts.find((c: any) => c.id === p.contract_id)?.titulo || "",
+      }));
+    },
+    enabled: !!resolvedProjectId && !!isRevenueCategory,
+  });
 
   const onSubmit = async (values: FormValues) => {
     const resolvedProjectId = projectId || values.project_id;
@@ -235,6 +277,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         arquivo_url: arquivoUrl,
         supplier_cnpj: undefined,
         supplier_name: undefined,
+        contract_payment_id: values.contract_payment_id && values.contract_payment_id !== "none" ? values.contract_payment_id : null,
       };
 
       if (isEditing) {
@@ -250,6 +293,33 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
           .insert(payload as any);
         if (error) throw error;
         toast.success("Lançamento registrado!");
+      }
+
+      // Auto-sync contract payment status
+      const paymentId = values.contract_payment_id;
+      if (paymentId && paymentId !== "none") {
+        const entryValor = Math.abs(Number(values.valor));
+
+        // Fetch current payment state
+        const { data: payment } = await supabase
+          .from("contract_payments")
+          .select("expected_value, received_value")
+          .eq("id", paymentId)
+          .single();
+
+        if (payment) {
+          const currentReceived = Number((payment as any).received_value) || 0;
+          const newReceived = currentReceived + entryValor;
+          const expected = Number((payment as any).expected_value);
+
+          const newStatus = newReceived >= expected ? "recebido" : newReceived > 0 ? "parcial" : "pendente";
+
+          await supabase.from("contract_payments" as any).update({
+            received_value: newReceived,
+            received_date: values.data,
+            status: newStatus,
+          }).eq("id", paymentId);
+        }
       }
 
       const balanceProjectId = projectId || values.project_id;
@@ -357,6 +427,41 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
                 )}
               />
             </div>
+
+            {/* Vincular a Parcela do Contrato — only for revenue categories with pending payments */}
+            {isRevenueCategory && pendingPayments.length > 0 && (
+              <FormField control={form.control} name="contract_payment_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vincular a Parcela do Contrato</FormLabel>
+                  <Select value={field.value || ""} onValueChange={(v) => {
+                    field.onChange(v === "none" ? "" : v);
+                    // Auto-fill valor from the selected payment
+                    if (v && v !== "none") {
+                      const payment = pendingPayments.find((p: any) => p.id === v);
+                      if (payment) {
+                        const remaining = Number(payment.expected_value) - Number(payment.received_value || 0);
+                        form.setValue("valor", remaining);
+                      }
+                    }
+                  }}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="(opcional) selecione a parcela" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Sem vínculo com parcela</SelectItem>
+                      {pendingPayments.map((p: any) => {
+                        const remaining = Number(p.expected_value) - Number(p.received_value || 0);
+                        const dateStr = p.expected_date ? p.expected_date.split("-").reverse().join("/") : "";
+                        return (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.contract_title} — {p.kind === "entrada" ? "Entrada" : p.kind === "comissao" ? "Comissão" : `Parcela`} — R$ {remaining.toLocaleString("pt-BR", {minimumFractionDigits: 2})} — Venc: {dateStr}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
 
             {/* Row 2: Fornecedor */}
             <FormField
