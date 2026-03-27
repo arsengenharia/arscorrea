@@ -39,6 +39,7 @@ import Rateio from "./pages/financeiro/Rateio";
 import VisaoGeral from "./pages/financeiro/VisaoGeral";
 import LancamentosGlobal from "./pages/financeiro/LancamentosGlobal";
 import Configuracoes from "./pages/financeiro/Configuracoes";
+import NfeInbox from "./pages/financeiro/NfeInbox";
 import Lancamentos from "./pages/obras/Lancamentos";
 import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
 
@@ -86,6 +87,7 @@ const App = () => (
           <Route path="/financeiro/lancamentos" element={<ProtectedRoute><LancamentosGlobal /></ProtectedRoute>} />
           <Route path="/financeiro/conciliacao" element={<ProtectedRoute><Conciliacao /></ProtectedRoute>} />
           <Route path="/financeiro/rateio" element={<ProtectedRoute><Rateio /></ProtectedRoute>} />
+          <Route path="/financeiro/nfe" element={<ProtectedRoute><NfeInbox /></ProtectedRoute>} />
           <Route path="/financeiro/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="/financeiro/categorias" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
           <Route path="/financeiro/contas" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
