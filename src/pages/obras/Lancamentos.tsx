@@ -34,6 +34,8 @@ interface FinancialEntry {
   bank_account_id: string;
   category_id: string;
   supplier_id: string | null;
+  chave_nfe: string | null;
+  arquivo_url: string | null;
   category: { nome: string; prefixo: string; cor_hex: string } | null;
   supplier: { trade_name: string } | null;
   bank_account: { banco: string; conta: string } | null;
@@ -53,7 +55,7 @@ export default function Lancamentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_financial_entries" as any)
-        .select("*, category:financial_categories(nome, prefixo, cor_hex), supplier:suppliers(trade_name), bank_account:bank_accounts(banco, conta)")
+        .select("*, category:financial_categories(nome, prefixo, cor_hex), supplier:suppliers(trade_name), bank_account:bank_accounts(banco, conta), chave_nfe, arquivo_url")
         .eq("project_id", projectId!)
         .order("data", { ascending: false });
       if (error) throw error;
@@ -154,7 +156,28 @@ export default function Lancamentos() {
                       </div>
                     </TableCell>
                     <TableCell>{entry.supplier?.trade_name || "—"}</TableCell>
-                    <TableCell>{entry.tipo_documento}</TableCell>
+                    <TableCell>
+                      {entry.tipo_documento}
+                      {entry.chave_nfe && (
+                        entry.arquivo_url ? (
+                          <a
+                            href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/authenticated/nfe-attachments/${entry.arquivo_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 inline-flex"
+                            title={`NF-e: ${entry.chave_nfe}`}
+                          >
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-200">
+                              NF-e
+                            </Badge>
+                          </a>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                            NF-e
+                          </Badge>
+                        )
+                      )}
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       <span className={entry.valor >= 0 ? "text-green-600" : "text-red-600"}>
                         {formatBRL(entry.valor)}

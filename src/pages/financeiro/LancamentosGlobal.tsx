@@ -63,7 +63,7 @@ export default function LancamentosGlobal() {
       const { data, error } = await supabase
         .from("project_financial_entries" as any)
         .select(
-          "*, project:projects(name), category:financial_categories(nome, prefixo, cor_hex), supplier:suppliers(trade_name)"
+          "*, project:projects(name), category:financial_categories(nome, prefixo, cor_hex), supplier:suppliers(trade_name), chave_nfe, arquivo_url"
         )
         .order("data", { ascending: false })
         .limit(200);
@@ -197,6 +197,7 @@ export default function LancamentosGlobal() {
                 <TableHead>Obra</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Fornecedor</TableHead>
+                <TableHead>Tipo Doc</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -205,14 +206,14 @@ export default function LancamentosGlobal() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhum lançamento encontrado
                   </TableCell>
                 </TableRow>
@@ -243,6 +244,28 @@ export default function LancamentosGlobal() {
                     </TableCell>
                     <TableCell className="max-w-[130px] truncate" title={entry.supplier?.trade_name}>
                       {entry.supplier?.trade_name ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      {entry.tipo_documento}
+                      {entry.chave_nfe && (
+                        entry.arquivo_url ? (
+                          <a
+                            href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/authenticated/nfe-attachments/${entry.arquivo_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 inline-flex"
+                            title={`NF-e: ${entry.chave_nfe}`}
+                          >
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-200">
+                              NF-e
+                            </Badge>
+                          </a>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                            NF-e
+                          </Badge>
+                        )
+                      )}
                     </TableCell>
                     <TableCell
                       className={`text-right font-mono whitespace-nowrap ${
