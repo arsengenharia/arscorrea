@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import { UserProfileMenu } from "./UserProfileMenu";
+import { useNfePendingCount } from "@/hooks/useNfePendingCount";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, path: "/" },
@@ -25,6 +26,7 @@ export function TopNavigation() {
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const nfePendingCount = useNfePendingCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -83,6 +85,11 @@ export function TopNavigation() {
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.title}</span>
+                {item.title === "Financeiro" && nfePendingCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] rounded-full bg-amber-500 text-white text-[10px] font-bold px-1">
+                    {nfePendingCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -126,6 +133,11 @@ export function TopNavigation() {
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
+                      {item.title === "Financeiro" && nfePendingCount > 0 && (
+                        <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] rounded-full bg-amber-500 text-white text-[10px] font-bold px-1">
+                          {nfePendingCount}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>
