@@ -46,9 +46,9 @@ interface BankTransaction {
   id: string;
   bank_account_id: string;
   data_transacao: string;
-  descricao: string;
+  descricao_banco: string;
   valor: number;
-  status: "pendente" | "conciliado" | "nao_identificado";
+  status_conciliacao: "pendente" | "conciliado" | "nao_identificado";
   lancamento_id: string | null;
   reconciliation?: {
     lancamento_id: string;
@@ -58,9 +58,9 @@ interface BankTransaction {
 
 interface FinancialEntry {
   id: string;
-  descricao: string;
+  descricao_banco: string;
   valor: number;
-  data_vencimento: string;
+  data: string;
   situacao: string;
   bank_account_id: string | null;
 }
@@ -107,7 +107,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
         .select("*")
         .eq("situacao", "pendente")
         .eq("bank_account_id", accountId)
-        .order("data_vencimento", { ascending: false });
+        .order("data", { ascending: false });
       if (error) throw error;
       return data as unknown as FinancialEntry[];
     },
@@ -131,7 +131,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
       const { error: recError } = await supabase
         .from("bank_reconciliations" as any)
         .insert({
-          bank_transaction_id: transaction.id,
+          transaction_id: transaction.id,
           lancamento_id: entry.id,
           tipo_match: "manual",
         });
@@ -140,7 +140,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
       // 2. Update bank transaction
       const { error: txError } = await supabase
         .from("bank_transactions" as any)
-        .update({ status: "conciliado", lancamento_id: entry.id })
+        .update({ status_conciliacao: "conciliado", lancamento_id: entry.id })
         .eq("id", transaction.id);
       if (txError) throw txError;
 
@@ -177,7 +177,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Descrição</span>
-              <span className="font-medium">{transaction.descricao}</span>
+              <span className="font-medium">{transaction.descricao_banco}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Valor</span>
@@ -234,7 +234,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
                       className={isSuggested ? "bg-green-50/60" : undefined}
                     >
                       <TableCell className="text-sm">
-                        {entry.descricao}
+                        {entry.observacoes || "—"}
                         {isSuggested && (
                           <span className="ml-2 text-[10px] font-semibold text-green-700 uppercase">
                             Sugerido
@@ -242,7 +242,7 @@ function MatchDialog({ transaction, accountId, onClose, onMatched }: MatchDialog
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {formatDate(entry.data_vencimento)}
+                        {formatDate(entry.data)}
                       </TableCell>
                       <TableCell className="text-sm font-medium">
                         {formatBRL(entry.valor)}
@@ -365,7 +365,7 @@ export default function Conciliacao() {
     try {
       const { error } = await supabase
         .from("bank_transactions" as any)
-        .update({ status: "nao_identificado" })
+        .update({ status_conciliacao: "nao_identificado" })
         .eq("id", tx.id);
       if (error) throw error;
       toast.success("Transação marcada como não identificada");
@@ -461,7 +461,7 @@ export default function Conciliacao() {
                         {formatDate(tx.data_transacao)}
                       </TableCell>
                       <TableCell className="text-sm max-w-[280px] truncate">
-                        {tx.descricao}
+                        {tx.descricao_banco}
                       </TableCell>
                       <TableCell
                         className={`text-right text-sm font-medium ${
@@ -471,10 +471,10 @@ export default function Conciliacao() {
                         {formatBRL(tx.valor)}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={tx.status} />
+                        <StatusBadge status={tx.status_conciliacao} />
                       </TableCell>
                       <TableCell>
-                        {tx.status === "conciliado" && tx.reconciliation ? (
+                        {tx.status_conciliacao === "conciliado" && tx.reconciliation ? (
                           <Badge
                             variant={
                               tx.reconciliation.tipo_match === "auto" ? "default" : "secondary"
@@ -482,7 +482,7 @@ export default function Conciliacao() {
                           >
                             {tx.reconciliation.tipo_match === "auto" ? "Auto" : "Manual"}
                           </Badge>
-                        ) : tx.status === "pendente" ? (
+                        ) : tx.status_conciliacao === "pendente" ? (
                           <Button
                             size="sm"
                             variant="outline"
@@ -494,7 +494,7 @@ export default function Conciliacao() {
                         ) : null}
                       </TableCell>
                       <TableCell>
-                        {tx.status === "pendente" && (
+                        {tx.status_conciliacao === "pendente" && (
                           <Button
                             size="sm"
                             variant="ghost"

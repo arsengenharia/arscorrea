@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
@@ -81,7 +81,7 @@ function AllocationDialog({
       const { data, error } = await supabase
         .from("projects")
         .select("id, name, status, orcamento_previsto")
-        .in("status", ["Pendente", "Em Andamento"])
+        .in("status", ["pendente", "em andamento", "iniciado", "em_andamento"])
         .order("name");
       if (error) throw error;
       return data as Project[];
@@ -89,23 +89,19 @@ function AllocationDialog({
     enabled: open,
   });
 
-  // Initialize allocs when projects load or entry changes
-  const getInitialAllocs = () => {
-    const init: Record<string, ProjectAlloc> = {};
-    projects.forEach((p) => {
-      init[p.id] = allocs[p.id] ?? { selected: true, percentual: "" };
-    });
-    return init;
-  };
-
-  const currentAllocs = projects.length
-    ? Object.keys(allocs).length
-      ? allocs
-      : getInitialAllocs()
-    : allocs;
+  // Initialize allocs when projects load
+  useEffect(() => {
+    if (projects.length > 0 && Object.keys(allocs).length === 0) {
+      const init: Record<string, ProjectAlloc> = {};
+      projects.forEach((p) => {
+        init[p.id] = { selected: true, percentual: "" };
+      });
+      setAllocs(init);
+    }
+  }, [projects]);
 
   const selectedProjects = projects.filter(
-    (p) => currentAllocs[p.id]?.selected
+    (p) => allocs[p.id]?.selected
   );
 
   // Auto-compute percentuals for non-manual methods
@@ -140,8 +136,8 @@ function AllocationDialog({
     } else {
       // manual
       projects.forEach((p) => {
-        if (currentAllocs[p.id]?.selected) {
-          const pct = parseFloat(currentAllocs[p.id]?.percentual || "0") || 0;
+        if (allocs[p.id]?.selected) {
+          const pct = parseFloat(allocs[p.id]?.percentual || "0") || 0;
           result[p.id] = {
             percentual: pct,
             valor: entry ? entry.valor * (pct / 100) : 0,
@@ -297,7 +293,7 @@ function AllocationDialog({
                 </TableHeader>
                 <TableBody>
                   {projects.map((p) => {
-                    const isSelected = currentAllocs[p.id]?.selected ?? true;
+                    const isSelected = allocs[p.id]?.selected ?? true;
                     const computed = computedAllocs[p.id];
                     return (
                       <TableRow key={p.id} className={!isSelected ? "opacity-40" : ""}>
@@ -322,7 +318,7 @@ function AllocationDialog({
                               min={0}
                               max={100}
                               step={0.01}
-                              value={currentAllocs[p.id]?.percentual ?? ""}
+                              value={allocs[p.id]?.percentual ?? ""}
                               onChange={(e) => setPercent(p.id, e.target.value)}
                               disabled={!isSelected}
                               className="h-7 text-right w-24 ml-auto"
@@ -414,8 +410,11 @@ export default function Rateio() {
   });
 
   return (
-    <Layout title="Financeiro">
-      <FinanceiroTabs />
+    <Layout>
+      <div className="w-full max-w-6xl mx-auto space-y-6">
+        <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+        <FinanceiroTabs />
+        <h3 className="text-xl font-semibold">Rateio de Custos Indiretos</h3>
 
       {/* ADM Entries */}
       <Card className="mb-6">
@@ -538,6 +537,7 @@ export default function Rateio() {
         open={!!selectedEntry}
         onClose={() => setSelectedEntry(null)}
       />
+      </div>
     </Layout>
   );
 }
