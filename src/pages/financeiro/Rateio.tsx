@@ -479,6 +479,11 @@ export default function Rateio() {
                     {formatBRL(entry.valor)}
                   </TableCell>
                   <TableCell>
+                    {allocatedSet.has(entry.id)
+                      ? <Badge className="bg-green-100 text-green-800">Rateado</Badge>
+                      : <Badge variant="outline">Pendente</Badge>}
+                  </TableCell>
+                  <TableCell>
                     <Button
                       size="sm"
                       variant="outline"
