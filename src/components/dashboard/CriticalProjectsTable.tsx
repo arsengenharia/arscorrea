@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,14 +24,14 @@ export function CriticalProjectsTable({ data, isLoading }: CriticalProjectsTable
   const navigate = useNavigate();
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-lg font-medium">Obras Críticas / Em Atraso</CardTitle>
+    <Card className="shadow-sm border-slate-100">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 rounded-md bg-rose-50">
+            <AlertTriangle className="h-4 w-4 text-rose-600" />
+          </div>
+          <h3 className="font-semibold text-base text-slate-800">Obras Criticas / Em Atraso</h3>
         </div>
-      </CardHeader>
-      <CardContent>
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
         ) : data.length === 0 ? (

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
@@ -29,14 +29,14 @@ const formatCurrency = (value: number) => {
 
 export function NextPaymentsTable({ data, isLoading }: NextPaymentsTableProps) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-lg font-medium">Próximos Vencimentos</CardTitle>
+    <Card className="shadow-sm border-slate-100">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 rounded-md bg-sky-50">
+            <Calendar className="h-4 w-4 text-sky-600" />
+          </div>
+          <h3 className="font-semibold text-base text-slate-800">Proximos Vencimentos</h3>
         </div>
-      </CardHeader>
-      <CardContent>
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
@@ -54,7 +54,7 @@ export function NextPaymentsTable({ data, isLoading }: NextPaymentsTableProps) {
                 <TableRow>
                   <TableHead>Contrato</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>Descricao</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-right">Saldo</TableHead>
@@ -67,7 +67,7 @@ export function NextPaymentsTable({ data, isLoading }: NextPaymentsTableProps) {
                     <TableCell className="max-w-[150px] truncate">{payment.clientName}</TableCell>
                     <TableCell className="max-w-[150px] truncate">{payment.description}</TableCell>
                     <TableCell>
-                      {payment.expectedDate 
+                      {payment.expectedDate
                         ? format(new Date(payment.expectedDate), "dd/MM/yyyy", { locale: ptBR })
                         : "-"
                       }
