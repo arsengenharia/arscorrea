@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ChevronRight } from "lucide-react";
 
 const schema = z.object({
   project_id: z.string().optional(),
@@ -26,6 +27,8 @@ const schema = z.object({
   is_comprometido: z.boolean(),
   nota_fiscal: z.string().optional(),
   observacoes: z.string().optional(),
+  supplier_cnpj: z.string().optional(),
+  supplier_name: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -46,10 +49,10 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name")
+        .select("id, name, bank_account_id")
         .order("name");
       if (error) throw error;
-      return data as { id: string; name: string }[];
+      return data as { id: string; name: string; bank_account_id: string | null }[];
     },
     enabled: !projectId,
   });
@@ -108,6 +111,8 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
       is_comprometido: false,
       nota_fiscal: "",
       observacoes: "",
+      supplier_cnpj: "",
+      supplier_name: "",
     },
   });
 
@@ -126,6 +131,8 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         is_comprometido: entry.is_comprometido ?? false,
         nota_fiscal: entry.nota_fiscal || "",
         observacoes: entry.observacoes || "",
+        supplier_cnpj: "",
+        supplier_name: "",
       });
     } else {
       form.reset({
@@ -141,9 +148,22 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         is_comprometido: false,
         nota_fiscal: "",
         observacoes: "",
+        supplier_cnpj: "",
+        supplier_name: "",
       });
     }
   }, [entry, open]);
+
+  const watchProjectId = form.watch("project_id");
+  useEffect(() => {
+    if (!watchProjectId || projectId) return; // only for global form
+    const proj = projectsList.find((p: any) => p.id === watchProjectId);
+    if (proj?.bank_account_id) {
+      form.setValue("bank_account_id", proj.bank_account_id);
+    }
+  }, [watchProjectId]);
+
+  const watchTipoDoc = form.watch("tipo_documento");
 
   const onSubmit = async (values: FormValues) => {
     const resolvedProjectId = projectId || values.project_id;
@@ -153,13 +173,45 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
     }
 
     try {
+      let resolvedSupplierId = values.supplier_id || null;
+
+      if (values.tipo_documento === "NF-e" && values.supplier_cnpj) {
+        const cleanDoc = values.supplier_cnpj.replace(/\D/g, "");
+        if (cleanDoc) {
+          let { data: existingSupplier } = await supabase
+            .from("suppliers")
+            .select("id")
+            .eq("document", cleanDoc)
+            .maybeSingle();
+
+          if (!existingSupplier && values.supplier_name) {
+            const { data: newSup } = await supabase
+              .from("suppliers")
+              .insert({
+                document: cleanDoc,
+                trade_name: values.supplier_name,
+                legal_name: values.supplier_name,
+                tipo: "Juridica",
+                observacoes: "Cadastro automatico via lancamento NF-e",
+                ativo: true,
+              } as any)
+              .select("id")
+              .single();
+            existingSupplier = newSup;
+          }
+          if (existingSupplier) resolvedSupplierId = existingSupplier.id;
+        }
+      }
+
       const payload: any = {
         ...values,
         project_id: resolvedProjectId,
-        supplier_id: values.supplier_id || null,
+        supplier_id: resolvedSupplierId,
         numero_documento: values.numero_documento || null,
         nota_fiscal: values.nota_fiscal || null,
         observacoes: values.observacoes || null,
+        supplier_cnpj: undefined,
+        supplier_name: undefined,
       };
 
       if (isEditing) {
@@ -364,36 +416,38 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
               />
             </div>
 
-            {/* Row 4: Nº Documento | Nota Fiscal */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="numero_documento"
-                render={({ field }) => (
+            {/* NF-e fields — shown only when tipo_documento is "NF-e" */}
+            {watchTipoDoc === "NF-e" && (
+              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg border border-dashed">
+                <FormField control={form.control} name="supplier_cnpj" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nº Documento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número do documento" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                    <FormLabel>CNPJ do Fornecedor</FormLabel>
+                    <FormControl><Input placeholder="00.000.000/0000-00" {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
+                )} />
+                <FormField control={form.control} name="supplier_name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Fornecedor</FormLabel>
+                    <FormControl><Input placeholder="Razão social" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+            )}
 
-              <FormField
-                control={form.control}
-                name="nota_fiscal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nota Fiscal</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número da nota fiscal" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Nota Fiscal */}
+            <FormField
+              control={form.control}
+              name="nota_fiscal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nota Fiscal</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Número da nota fiscal" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Row 5: Observações */}
             <FormField
@@ -410,44 +464,66 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
               )}
             />
 
-            {/* Row 6: Comprometido | Situação */}
-            <div className="flex items-center gap-4">
-              <FormField
-                control={form.control}
-                name="is_comprometido"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3 flex-1">
-                    <FormLabel className="cursor-pointer">Comprometido</FormLabel>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="situacao"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormLabel>Situação *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+            {/* Advanced fields — collapsible */}
+            <details className="group">
+              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
+                Opções avançadas
+              </summary>
+              <div className="mt-3 space-y-4 pl-4 border-l-2 border-muted">
+                <FormField
+                  control={form.control}
+                  name="numero_documento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº Documento</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a situação" />
-                        </SelectTrigger>
+                        <Input placeholder="Número do documento" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="conciliado">Conciliado</SelectItem>
-                        <SelectItem value="divergente">Divergente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex items-center gap-4">
+                  <FormField
+                    control={form.control}
+                    name="is_comprometido"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3 flex-1">
+                        <FormLabel className="cursor-pointer">Comprometido</FormLabel>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="situacao"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Situação *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a situação" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                            <SelectItem value="conciliado">Conciliado</SelectItem>
+                            <SelectItem value="divergente">Divergente</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </details>
 
             <div className="flex justify-end gap-4 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

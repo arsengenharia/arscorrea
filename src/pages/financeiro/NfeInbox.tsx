@@ -10,7 +10,6 @@ import { FinanceiroTabs } from "./Financeiro";
 import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
 import { NfeReviewDialog } from "@/components/financeiro/NfeReviewDialog";
 import { NfeUploadArea } from "@/components/financeiro/NfeUploadArea";
-import { NfeManualEntryForm } from "@/components/financeiro/NfeManualEntryForm";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
@@ -121,7 +120,6 @@ export default function NfeInbox() {
             </TabsTrigger>
             <TabsTrigger value="historico">Historico</TabsTrigger>
             <TabsTrigger value="upload">Upload Manual</TabsTrigger>
-            <TabsTrigger value="manual">Inserção Manual</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pendentes" className="mt-4">
@@ -134,10 +132,6 @@ export default function NfeInbox() {
 
           <TabsContent value="upload" className="mt-4">
             <NfeUploadArea />
-          </TabsContent>
-
-          <TabsContent value="manual" className="mt-4">
-            <NfeManualEntryForm />
           </TabsContent>
         </Tabs>
       </div>
