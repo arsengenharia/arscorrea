@@ -87,7 +87,7 @@ export default function NfeInbox() {
               <TableCell><StatusBadge status={item.status} /></TableCell>
               {showActions && (
                 <TableCell>
-                  <Button size="sm" variant="outline" onClick={() => setReviewItem(item)}>
+                  <Button size="sm" variant="outline" onPointerUp={(e) => e.stopPropagation()} onClick={() => setTimeout(() => setReviewItem(item), 0)}>
                     <Eye className="h-3 w-3 mr-1" /> Revisar
                   </Button>
                 </TableCell>

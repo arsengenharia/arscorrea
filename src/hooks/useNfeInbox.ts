@@ -47,8 +47,9 @@ export function useNfeInbox(statusFilter?: string) {
   useEffect(() => {
     fetchItems();
 
+    const channelName = `nfe-inbox-${statusFilter ?? "all"}-${Date.now()}`;
     const channel = supabase
-      .channel("nfe-inbox-changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "nfe_inbox" },
