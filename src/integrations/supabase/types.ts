@@ -2046,6 +2046,311 @@ export type Database = {
           },
         ]
       }
+      ai_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          status: string
+          context_type: string | null
+          context_id: string | null
+          context_snapshot: Json | null
+          message_count: number
+          total_tokens: number
+          last_message_at: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          status?: string
+          context_type?: string | null
+          context_id?: string | null
+          context_snapshot?: Json | null
+          message_count?: number
+          total_tokens?: number
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          status?: string
+          context_type?: string | null
+          context_id?: string | null
+          context_snapshot?: Json | null
+          message_count?: number
+          total_tokens?: number
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge: {
+        Row: {
+          id: string
+          tipo: string
+          conteudo: string
+          embedding: string | null
+          scope_type: string | null
+          scope_id: string | null
+          user_id: string | null
+          ativo: boolean
+          confianca: number
+          vezes_usado: number
+          ultimo_uso: string | null
+          conversation_id: string | null
+          message_id: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          tipo: string
+          conteudo: string
+          embedding?: string | null
+          scope_type?: string | null
+          scope_id?: string | null
+          user_id?: string | null
+          ativo?: boolean
+          confianca?: number
+          vezes_usado?: number
+          ultimo_uso?: string | null
+          conversation_id?: string | null
+          message_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          tipo?: string
+          conteudo?: string
+          embedding?: string | null
+          scope_type?: string | null
+          scope_id?: string | null
+          user_id?: string | null
+          ativo?: boolean
+          confianca?: number
+          vezes_usado?: number
+          ultimo_uso?: string | null
+          conversation_id?: string | null
+          message_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: string
+          content: string
+          context_used: Json | null
+          sources: Json | null
+          tool_name: string | null
+          tool_input: Json | null
+          tool_output: Json | null
+          model: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          latency_ms: number | null
+          action_audit_id: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: string
+          content: string
+          context_used?: Json | null
+          sources?: Json | null
+          tool_name?: string | null
+          tool_input?: Json | null
+          tool_output?: Json | null
+          model?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          latency_ms?: number | null
+          action_audit_id?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: string
+          content?: string
+          context_used?: Json | null
+          sources?: Json | null
+          tool_name?: string | null
+          tool_input?: Json | null
+          tool_output?: Json | null
+          model?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          latency_ms?: number | null
+          action_audit_id?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_tool_registry: {
+        Row: {
+          id: string
+          name: string
+          display_name: string
+          description: string
+          category: string
+          function_type: string
+          function_name: string
+          parameters_schema: Json
+          return_schema: Json | null
+          required_roles: string[]
+          ativo: boolean
+          requires_confirmation: boolean
+          risk_level: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          display_name: string
+          description: string
+          category: string
+          function_type: string
+          function_name: string
+          parameters_schema: Json
+          return_schema?: Json | null
+          required_roles?: string[]
+          ativo?: boolean
+          requires_confirmation?: boolean
+          risk_level?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          display_name?: string
+          description?: string
+          category?: string
+          function_type?: string
+          function_name?: string
+          parameters_schema?: Json
+          return_schema?: Json | null
+          required_roles?: string[]
+          ativo?: boolean
+          requires_confirmation?: boolean
+          risk_level?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ai_user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          idioma: string
+          formato_moeda: string
+          projeto_padrao: string | null
+          nivel_detalhe: string
+          alertar_anomalias: boolean
+          alertar_vencimentos: boolean
+          resumo_diario: boolean
+          apelidos: Json
+          preferencias_extra: Json
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          idioma?: string
+          formato_moeda?: string
+          projeto_padrao?: string | null
+          nivel_detalhe?: string
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          resumo_diario?: boolean
+          apelidos?: Json
+          preferencias_extra?: Json
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          idioma?: string
+          formato_moeda?: string
+          projeto_padrao?: string | null
+          nivel_detalhe?: string
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          resumo_diario?: boolean
+          apelidos?: Json
+          preferencias_extra?: Json
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
