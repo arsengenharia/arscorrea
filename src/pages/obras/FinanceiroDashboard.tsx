@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign } from "lucide-react";
+import { ArrowLeft, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { FinanceiroCards } from "@/components/financeiro/FinanceiroCards";
 import { CostByCategoryChart } from "@/components/financeiro/CostByCategoryChart";
 import { CurvaSChart } from "@/components/financeiro/CurvaSChart";
 import { CostDistributionPie } from "@/components/financeiro/CostDistributionPie";
 import { TopSuppliersTable } from "@/components/financeiro/TopSuppliersTable";
 import { FinanceiroPDFButton } from "@/components/financeiro/FinanceiroPDFButton";
+import { ProjectBudgetEditor } from "@/components/financeiro/ProjectBudgetEditor";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface FinancialEntry {
   id: string;
@@ -24,6 +27,7 @@ interface FinancialEntry {
 export default function FinanceiroDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const [budgetOpen, setBudgetOpen] = useState(false);
 
   const { data: project, isLoading: loadingProject } = useQuery({
     queryKey: ["project", projectId],
@@ -168,6 +172,23 @@ export default function FinanceiroDashboard() {
           <CostDistributionPie entries={entries} />
           <TopSuppliersTable entries={entries} />
         </div>
+
+        {/* Budget by category — collapsible */}
+        <Collapsible open={budgetOpen} onOpenChange={setBudgetOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-sm hover:bg-muted/50 transition-colors">
+              <span>Orçamento por Categoria</span>
+              {budgetOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <ProjectBudgetEditor projectId={projectId!} />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </Layout>
   );
