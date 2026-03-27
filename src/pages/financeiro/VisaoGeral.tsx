@@ -76,6 +76,31 @@ export default function VisaoGeral() {
     queryFn: fetchPendingCounts,
   });
 
+  const { data: alertData } = useQuery({
+    queryKey: ["financial-alerts"],
+    queryFn: async () => {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // NF-e pending > 24h
+      const { count: nfeStale } = await (supabase.from("nfe_inbox" as any) as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "aguardando_revisao")
+        .lt("created_at", oneDayAgo);
+
+      // Entries without reconciliation > 7 days
+      const { count: entriesStale } = await (supabase.from("project_financial_entries" as any) as any)
+        .select("id", { count: "exact", head: true })
+        .eq("situacao", "pendente")
+        .lt("created_at", sevenDaysAgo);
+
+      return {
+        nfeStale: nfeStale || 0,
+        entriesStale: entriesStale || 0,
+      };
+    },
+  });
+
   // ── KPI calculations ──────────────────────────────────────────────────────
   const totalReceita = projects.reduce(
     (s, p) => s + (Number(p.receita_realizada) || 0),
@@ -192,7 +217,7 @@ export default function VisaoGeral() {
         </div>
 
         {/* Alert Badges */}
-        {(obrasNegativas > 0 || obrasIecAlto > 0) && (
+        {(obrasNegativas > 0 || obrasIecAlto > 0 || alertData?.nfeStale || alertData?.entriesStale) && (
           <div className="flex flex-wrap gap-2">
             {obrasNegativas > 0 && (
               <Badge variant="destructive" className="flex items-center gap-1 py-1 px-3">
@@ -206,6 +231,18 @@ export default function VisaoGeral() {
                 {obrasIecAlto} obra{obrasIecAlto !== 1 ? "s" : ""} acima do orçamento (IEC &gt; 1)
               </Badge>
             )}
+            {alertData?.nfeStale ? (
+              <Badge className="bg-yellow-100 text-yellow-800">
+                <Clock className="w-3 h-3 mr-1" />
+                {alertData.nfeStale} NF-e pendente{alertData.nfeStale > 1 ? "s" : ""} há mais de 24h
+              </Badge>
+            ) : null}
+            {alertData?.entriesStale ? (
+              <Badge className="bg-yellow-100 text-yellow-800">
+                <Clock className="w-3 h-3 mr-1" />
+                {alertData.entriesStale} lançamento{alertData.entriesStale > 1 ? "s" : ""} sem conciliação há mais de 7 dias
+              </Badge>
+            ) : null}
           </div>
         )}
 
