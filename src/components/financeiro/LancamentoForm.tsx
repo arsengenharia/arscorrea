@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 const schema = z.object({
+  project_id: z.string().optional(),
   bank_account_id: z.string().uuid("Selecione uma conta"),
   category_id: z.string().uuid("Selecione uma categoria"),
   supplier_id: z.string().optional(),
@@ -32,13 +33,26 @@ type FormValues = z.infer<typeof schema>;
 interface LancamentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId: string;
+  projectId?: string;
   entry: any | null;
   onSaved: () => void;
 }
 
 export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }: LancamentoFormProps) {
   const isEditing = !!entry;
+
+  const { data: projectsList = [] } = useQuery({
+    queryKey: ["projects-for-entry"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+    enabled: !projectId,
+  });
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["bank-accounts-active"],
@@ -82,6 +96,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      project_id: projectId || "",
       bank_account_id: "",
       category_id: "",
       supplier_id: "",
@@ -99,6 +114,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
   useEffect(() => {
     if (entry) {
       form.reset({
+        project_id: entry?.project_id || projectId || "",
         bank_account_id: entry.bank_account_id || "",
         category_id: entry.category_id || "",
         supplier_id: entry.supplier_id || "",
@@ -113,6 +129,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
       });
     } else {
       form.reset({
+        project_id: projectId || "",
         bank_account_id: "",
         category_id: "",
         supplier_id: "",
@@ -129,10 +146,16 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
   }, [entry, open]);
 
   const onSubmit = async (values: FormValues) => {
+    const resolvedProjectId = projectId || values.project_id;
+    if (!resolvedProjectId) {
+      toast.error("Selecione uma obra");
+      return;
+    }
+
     try {
       const payload: any = {
         ...values,
-        project_id: projectId,
+        project_id: resolvedProjectId,
         supplier_id: values.supplier_id || null,
         numero_documento: values.numero_documento || null,
         nota_fiscal: values.nota_fiscal || null,
@@ -154,7 +177,10 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         toast.success("Lançamento registrado!");
       }
 
-      await supabase.rpc("calc_project_balance", { p_project_id: projectId });
+      const balanceProjectId = projectId || values.project_id;
+      if (balanceProjectId) {
+        await supabase.rpc("calc_project_balance", { p_project_id: balanceProjectId });
+      }
 
       onSaved();
       onOpenChange(false);
@@ -178,6 +204,32 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Project selector — only shown when projectId is not provided by parent */}
+            {!projectId && (
+              <FormField
+                control={form.control}
+                name="project_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Obra *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a obra" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {projectsList.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Row 1: Conta Bancária | Categoria */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
