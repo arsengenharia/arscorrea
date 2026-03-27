@@ -25,6 +25,7 @@ import ProjectReport from "./pages/ProjectReport";
 import ProjectCosts from "./pages/ProjectCosts";
 import ProjectRevenues from "./pages/ProjectRevenues";
 import Suppliers from "./pages/Suppliers";
+import SupplierDetail from "./pages/SupplierDetail";
 import ClientDetails from "./pages/ClientDetails";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
@@ -80,6 +81,7 @@ const App = () => (
           <Route path="/contratos/:id/financeiro" element={<ProtectedRoute><ContractFinancial /></ProtectedRoute>} />
           <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+          <Route path="/fornecedores/:supplierId" element={<ProtectedRoute><SupplierDetail /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/financeiro" element={<ProtectedRoute><Navigate to="/financeiro/visao-geral" replace /></ProtectedRoute>} />
