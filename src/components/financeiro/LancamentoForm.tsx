@@ -164,6 +164,8 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
     const proj = projectsList.find((p: any) => p.id === watchProjectId);
     if (proj?.bank_account_id) {
       form.setValue("bank_account_id", proj.bank_account_id);
+    } else {
+      form.setValue("bank_account_id", "");
     }
   }, [watchProjectId]);
 
