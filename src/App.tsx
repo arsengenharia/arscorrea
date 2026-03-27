@@ -36,6 +36,9 @@ import Categorias from "./pages/financeiro/Categorias";
 import Contas from "./pages/financeiro/Contas";
 import Conciliacao from "./pages/financeiro/Conciliacao";
 import Rateio from "./pages/financeiro/Rateio";
+import VisaoGeral from "./pages/financeiro/VisaoGeral";
+import LancamentosGlobal from "./pages/financeiro/LancamentosGlobal";
+import Configuracoes from "./pages/financeiro/Configuracoes";
 import Lancamentos from "./pages/obras/Lancamentos";
 import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
 
@@ -78,11 +81,14 @@ const App = () => (
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/financeiro" element={<ProtectedRoute><Navigate to="/financeiro/categorias" replace /></ProtectedRoute>} />
-          <Route path="/financeiro/categorias" element={<ProtectedRoute><Categorias /></ProtectedRoute>} />
-          <Route path="/financeiro/contas" element={<ProtectedRoute><Contas /></ProtectedRoute>} />
+          <Route path="/financeiro" element={<ProtectedRoute><Navigate to="/financeiro/visao-geral" replace /></ProtectedRoute>} />
+          <Route path="/financeiro/visao-geral" element={<ProtectedRoute><VisaoGeral /></ProtectedRoute>} />
+          <Route path="/financeiro/lancamentos" element={<ProtectedRoute><LancamentosGlobal /></ProtectedRoute>} />
           <Route path="/financeiro/conciliacao" element={<ProtectedRoute><Conciliacao /></ProtectedRoute>} />
           <Route path="/financeiro/rateio" element={<ProtectedRoute><Rateio /></ProtectedRoute>} />
+          <Route path="/financeiro/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+          <Route path="/financeiro/categorias" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
+          <Route path="/financeiro/contas" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
           <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
