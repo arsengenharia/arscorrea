@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, DollarSign, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
 import { FinanceiroCards } from "@/components/financeiro/FinanceiroCards";
 import { CostByCategoryChart } from "@/components/financeiro/CostByCategoryChart";
 import { CurvaSChart } from "@/components/financeiro/CurvaSChart";
@@ -13,6 +13,16 @@ import { TopSuppliersTable } from "@/components/financeiro/TopSuppliersTable";
 import { FinanceiroPDFButton } from "@/components/financeiro/FinanceiroPDFButton";
 import { ProjectBudgetEditor } from "@/components/financeiro/ProjectBudgetEditor";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface FinancialEntry {
   id: string;
@@ -55,6 +65,20 @@ export default function FinanceiroDashboard() {
         .order("data", { ascending: true });
       if (error) throw error;
       return data as unknown as FinancialEntry[];
+    },
+    enabled: !!projectId,
+  });
+
+  const { data: marginHistory = [] } = useQuery({
+    queryKey: ["margin-history", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("margin_snapshots" as any)
+        .select("mes, receita, custo, saldo, margem, iec")
+        .eq("project_id", projectId!)
+        .order("mes", { ascending: true });
+      if (error) throw error;
+      return data as any[];
     },
     enabled: !!projectId,
   });
@@ -172,6 +196,33 @@ export default function FinanceiroDashboard() {
           <CostDistributionPie entries={entries} />
           <TopSuppliersTable entries={entries} />
         </div>
+
+        {/* Margin history chart */}
+        {marginHistory.length > 1 && (
+          <Card className="shadow-sm border-slate-100">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-md bg-purple-50">
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
+                </div>
+                <h3 className="font-semibold text-base text-slate-800">Evolução da Margem</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={marginHistory.map((m: any) => ({
+                  mes: m.mes?.substring(0, 7),
+                  margem: Number(m.margem) || 0,
+                  iec: Number(m.iec) || 0,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="mes" tick={{ fill: "#64748b", fontSize: 12 }} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="margem" stroke="#8B5CF6" strokeWidth={2} name="Margem %" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Budget by category — collapsible */}
         <Collapsible open={budgetOpen} onOpenChange={setBudgetOpen}>

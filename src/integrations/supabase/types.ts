@@ -2068,6 +2068,139 @@ export type Database = {
         Relationships: []
       }
     }
+      ai_query_log: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string | null
+          query_text: string
+          response_text: string | null
+          tokens_used: number | null
+          model: string | null
+          duration_ms: number | null
+          context: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          query_text: string
+          response_text?: string | null
+          tokens_used?: number | null
+          model?: string | null
+          duration_ms?: number | null
+          context?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          query_text?: string
+          response_text?: string | null
+          tokens_used?: number | null
+          model?: string | null
+          duration_ms?: number | null
+          context?: Json | null
+        }
+        Relationships: []
+      }
+      anomalies: {
+        Row: {
+          id: string
+          created_at: string
+          project_id: string | null
+          supplier_id: string | null
+          lancamento_id: string | null
+          nfe_id: string | null
+          tipo: string
+          severidade: string
+          titulo: string
+          descricao: string | null
+          valor_detectado: number | null
+          valor_referencia: number | null
+          status: string
+          resolucao_nota: string | null
+          resolvida_em: string | null
+          resolvida_por: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          project_id?: string | null
+          supplier_id?: string | null
+          lancamento_id?: string | null
+          nfe_id?: string | null
+          tipo: string
+          severidade: string
+          titulo: string
+          descricao?: string | null
+          valor_detectado?: number | null
+          valor_referencia?: number | null
+          status?: string
+          resolucao_nota?: string | null
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          project_id?: string | null
+          supplier_id?: string | null
+          lancamento_id?: string | null
+          nfe_id?: string | null
+          tipo?: string
+          severidade?: string
+          titulo?: string
+          descricao?: string | null
+          valor_detectado?: number | null
+          valor_referencia?: number | null
+          status?: string
+          resolucao_nota?: string | null
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      margin_snapshots: {
+        Row: {
+          id: string
+          created_at: string
+          project_id: string
+          mes: string
+          receita: number | null
+          custo: number | null
+          saldo: number | null
+          margem: number | null
+          iec: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          project_id: string
+          mes: string
+          receita?: number | null
+          custo?: number | null
+          saldo?: number | null
+          margem?: number | null
+          iec?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          project_id?: string
+          mes?: string
+          receita?: number | null
+          custo?: number | null
+          saldo?: number | null
+          margem?: number | null
+          iec?: number | null
+        }
+        Relationships: []
+      }
+    }
     Views: {
       [_ in never]: never
     }
