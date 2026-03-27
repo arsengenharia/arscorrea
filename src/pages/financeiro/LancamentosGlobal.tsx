@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Paperclip } from "lucide-react";
+import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { LancamentoForm } from "@/components/financeiro/LancamentoForm";
@@ -55,6 +55,33 @@ export default function LancamentosGlobal() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [filterProject, setFilterProject] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // NF-e items for expanded rows
+  const { data: nfeItems = [] } = useQuery({
+    queryKey: ["nfe-items-for-entries", [...expandedRows]],
+    queryFn: async () => {
+      if (expandedRows.size === 0) return [];
+      const ids = [...expandedRows];
+      const { data, error } = await supabase
+        .from("nfe_items" as any)
+        .select("*, catalog:item_catalog(nome_padrao, categoria, unidade_padrao)")
+        .in("financial_entry_id", ids)
+        .order("valor_total", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: expandedRows.size > 0,
+  });
 
   // All entries query
   const { data: entries = [], isLoading } = useQuery({
@@ -221,10 +248,19 @@ export default function LancamentosGlobal() {
               {filtered.map((entry) => {
                 const cat = entry.category;
                 const isPositive = entry.valor >= 0;
+                const isExpanded = expandedRows.has(entry.id);
+                const hasItems = !!entry.chave_nfe;
+                const entryItems = nfeItems.filter((i: any) => i.financial_entry_id === entry.id);
                 return (
-                  <TableRow key={entry.id}>
+                  <>
+                  <TableRow key={entry.id} className={hasItems ? "cursor-pointer" : ""} onClick={() => hasItems && toggleRow(entry.id)}>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center gap-1">
+                        {hasItems && (
+                          isExpanded
+                            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        )}
                         {formatDate(entry.data)}
                         {entry.arquivo_url && !entry.chave_nfe && (
                           <a
@@ -315,6 +351,68 @@ export default function LancamentosGlobal() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {/* Expanded items row */}
+                  {isExpanded && (
+                    <TableRow key={`${entry.id}-items`}>
+                      <TableCell colSpan={8} className="bg-slate-50/80 p-0">
+                        <div className="px-6 py-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package className="h-3.5 w-3.5 text-blue-600" />
+                            <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                              Itens da NF-e ({entryItems.length})
+                            </span>
+                          </div>
+                          {entryItems.length === 0 ? (
+                            <p className="text-xs text-muted-foreground py-2">Nenhum item registrado para este lançamento.</p>
+                          ) : (
+                            <div className="rounded border bg-white">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="text-[11px]">
+                                    <TableHead className="py-1.5 h-auto">Descrição Original</TableHead>
+                                    <TableHead className="py-1.5 h-auto">Nome Padronizado</TableHead>
+                                    <TableHead className="py-1.5 h-auto">NCM</TableHead>
+                                    <TableHead className="py-1.5 h-auto">Categoria</TableHead>
+                                    <TableHead className="py-1.5 h-auto text-right">Qtd</TableHead>
+                                    <TableHead className="py-1.5 h-auto text-right">Vlr Unit</TableHead>
+                                    <TableHead className="py-1.5 h-auto text-right">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {entryItems.map((item: any) => (
+                                    <TableRow key={item.id} className="text-xs">
+                                      <TableCell className="py-1.5">{item.descricao_original}</TableCell>
+                                      <TableCell className="py-1.5 text-blue-700 font-medium">
+                                        {item.nome_padronizado || item.catalog?.nome_padrao || "—"}
+                                      </TableCell>
+                                      <TableCell className="py-1.5">
+                                        {item.ncm ? (
+                                          <Badge variant="outline" className="text-[9px] font-mono px-1 py-0 h-4">
+                                            {item.ncm.replace(/(\d{4})(\d{2})(\d{2})/, "$1.$2.$3")}
+                                          </Badge>
+                                        ) : "—"}
+                                      </TableCell>
+                                      <TableCell className="py-1.5 text-muted-foreground">
+                                        {item.categoria_item || item.catalog?.categoria || "—"}
+                                      </TableCell>
+                                      <TableCell className="py-1.5 text-right">{item.quantidade || 1}</TableCell>
+                                      <TableCell className="py-1.5 text-right">
+                                        {item.valor_unitario ? formatBRL(Number(item.valor_unitario)) : "—"}
+                                      </TableCell>
+                                      <TableCell className="py-1.5 text-right font-medium">
+                                        {formatBRL(Number(item.valor_total))}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </>
                 );
               })}
             </TableBody>
