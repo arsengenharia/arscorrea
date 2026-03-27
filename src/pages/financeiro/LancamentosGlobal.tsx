@@ -66,19 +66,63 @@ export default function LancamentosGlobal() {
     });
   };
 
-  // NF-e items for expanded rows
+  // NF-e items for expanded rows — search by financial_entry_id OR by nfe_inbox linked to the entry
   const { data: nfeItems = [] } = useQuery({
     queryKey: ["nfe-items-for-entries", [...expandedRows]],
     queryFn: async () => {
       if (expandedRows.size === 0) return [];
       const ids = [...expandedRows];
-      const { data, error } = await supabase
+
+      // Strategy 1: items linked directly by financial_entry_id
+      const { data: directItems } = await supabase
         .from("nfe_items" as any)
         .select("*, catalog:item_catalog(nome_padrao, categoria, unidade_padrao)")
         .in("financial_entry_id", ids)
         .order("valor_total", { ascending: false });
-      if (error) throw error;
-      return data as any[];
+
+      // Strategy 2: items linked via nfe_inbox (for entries created before the link existed)
+      const { data: inboxLinks } = await supabase
+        .from("nfe_inbox" as any)
+        .select("id, financial_entry_id")
+        .in("financial_entry_id", ids);
+
+      let indirectItems: any[] = [];
+      if (inboxLinks && inboxLinks.length > 0) {
+        const inboxIds = inboxLinks.map((l: any) => l.id);
+        const { data } = await supabase
+          .from("nfe_items" as any)
+          .select("*, catalog:item_catalog(nome_padrao, categoria, unidade_padrao)")
+          .in("nfe_inbox_id", inboxIds)
+          .is("financial_entry_id", null)
+          .order("valor_total", { ascending: false });
+
+        // Tag indirect items with the financial_entry_id from the inbox link
+        indirectItems = (data || []).map((item: any) => {
+          const link = inboxLinks.find((l: any) => l.id === item.nfe_inbox_id);
+          return { ...item, financial_entry_id: link?.financial_entry_id };
+        });
+      }
+
+      // Strategy 3: for entries with supplier_id, check items by supplier + project
+      // (catches items from manual NF-e entries that bypass nfe_inbox)
+      const expandedEntries = entries.filter((e: any) => ids.includes(e.id) && e.tipo_documento === "NF-e");
+      let supplierItems: any[] = [];
+      for (const entry of expandedEntries) {
+        if (entry.supplier_id && !(directItems || []).some((i: any) => i.financial_entry_id === entry.id) && !indirectItems.some((i: any) => i.financial_entry_id === entry.id)) {
+          const { data } = await supabase
+            .from("nfe_items" as any)
+            .select("*, catalog:item_catalog(nome_padrao, categoria, unidade_padrao)")
+            .eq("supplier_id", entry.supplier_id)
+            .is("financial_entry_id", null)
+            .order("valor_total", { ascending: false })
+            .limit(20);
+          if (data) {
+            supplierItems.push(...data.map((i: any) => ({ ...i, financial_entry_id: entry.id })));
+          }
+        }
+      }
+
+      return [...(directItems || []), ...indirectItems, ...supplierItems];
     },
     enabled: expandedRows.size > 0,
   });
@@ -249,7 +293,7 @@ export default function LancamentosGlobal() {
                 const cat = entry.category;
                 const isPositive = entry.valor >= 0;
                 const isExpanded = expandedRows.has(entry.id);
-                const hasItems = !!entry.chave_nfe;
+                const hasItems = entry.tipo_documento === "NF-e" || !!entry.chave_nfe;
                 const entryItems = nfeItems.filter((i: any) => i.financial_entry_id === entry.id);
                 return (
                   <>
@@ -363,7 +407,7 @@ export default function LancamentosGlobal() {
                             </span>
                           </div>
                           {entryItems.length === 0 ? (
-                            <p className="text-xs text-muted-foreground py-2">Nenhum item registrado para este lançamento.</p>
+                            <p className="text-xs text-muted-foreground py-2">Nenhum item granular registrado. Itens aparecem quando a NF-e é processada via upload XML ou email.</p>
                           ) : (
                             <div className="rounded border bg-white">
                               <Table>
