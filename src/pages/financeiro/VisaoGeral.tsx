@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ConsolidatedPDFButton } from "@/components/financeiro/ConsolidatedPDFButton";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -141,7 +142,18 @@ export default function VisaoGeral() {
   return (
     <Layout>
       <div className="w-full max-w-6xl mx-auto space-y-6">
-        <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+          {projects.length > 0 && (
+            <ConsolidatedPDFButton
+              projects={projects}
+              totalReceita={totalReceita}
+              totalCusto={totalCusto}
+              totalSaldo={totalSaldo}
+              margemMedia={margemMedia}
+            />
+          )}
+        </div>
         <FinanceiroTabs />
 
         {/* KPI Cards */}
