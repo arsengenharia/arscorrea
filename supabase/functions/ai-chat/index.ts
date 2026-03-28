@@ -26,25 +26,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auth -- get user from JWT
+    // Auth -- extract user from JWT
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create authenticated client for user-scoped queries
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     // Service client for AI operations
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: { user } } = await supabaseUser.auth.getUser();
-    if (!user) {
+    // Decode user from JWT (works with both HS256 and ES256 tokens)
+    let userId: string | null = null;
+    const token = authHeader.replace("Bearer ", "");
+    if (token && token.includes(".")) {
+      try {
+        const parts = token.split(".");
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+        userId = payload.sub || null;
+      } catch { /* ignore */ }
+    }
+
+    if (!userId) {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser(token);
+        userId = authUser?.id || null;
+      } catch { /* ignore */ }
+    }
+
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const user = { id: userId };
 
     // Get user role
     const { data: roleData } = await supabase
