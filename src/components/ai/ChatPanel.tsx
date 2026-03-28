@@ -96,7 +96,7 @@ export function ChatPanel() {
 
       {/* Chat panel */}
       {open && (
-        <Card className="fixed bottom-6 right-6 z-50 w-[420px] h-[600px] flex flex-col shadow-2xl border-slate-200 rounded-2xl overflow-hidden">
+        <Card className="fixed z-50 flex flex-col shadow-2xl border-slate-200 overflow-hidden bottom-0 right-0 w-full h-full rounded-none md:bottom-6 md:right-6 md:w-[420px] md:h-[600px] md:rounded-2xl">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
@@ -110,8 +110,8 @@ export function ChatPanel() {
               <button onClick={clearChat} className="p-1.5 rounded-md hover:bg-white/10 transition-colors" title="Nova conversa">
                 <RotateCcw className="h-4 w-4" />
               </button>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
-                <X className="h-4 w-4" />
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/10 transition-colors md:p-1.5 p-2.5">
+                <X className="h-4 w-4 md:h-4 md:w-4 h-5 w-5" />
               </button>
             </div>
           </div>

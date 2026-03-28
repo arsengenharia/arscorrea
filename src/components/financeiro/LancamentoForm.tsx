@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, FileText, Package, Trash2, Plus } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, Package, Trash2, Plus } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/formatters";
 
 const schema = z.object({
@@ -59,6 +59,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedNfeId, setSelectedNfeId] = useState("");
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
+  const [quickMode, setQuickMode] = useState(!entry);
 
   const { data: projectsList = [] } = useQuery({
     queryKey: ["projects-for-entry"],
@@ -188,6 +189,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
     setSelectedFile(null);
     setSelectedNfeId("");
     setManualItems([]);
+    setQuickMode(!entry);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [entry, open]);
 
@@ -413,397 +415,180 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Project selector — only shown when projectId is not provided by parent */}
-            {!projectId && (
-              <FormField
-                control={form.control}
-                name="project_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Obra *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a obra" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {projectsList.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Row 1: Conta Bancária | Categoria */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="bank_account_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Conta Bancária *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a conta" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bankAccounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {bankAccountLabel(acc)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoria *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a categoria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            [{cat.prefixo}] {cat.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Vincular a Parcela do Contrato — only for revenue categories with pending payments */}
-            {isRevenueCategory && pendingPayments.length > 0 && (
-              <FormField control={form.control} name="contract_payment_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vincular a Parcela do Contrato</FormLabel>
-                  <Select value={field.value || ""} onValueChange={(v) => {
-                    field.onChange(v === "none" ? "" : v);
-                    // Auto-fill valor from the selected payment
-                    if (v && v !== "none") {
-                      const payment = pendingPayments.find((p: any) => p.id === v);
-                      if (payment) {
-                        const remaining = Number(payment.expected_value) - Number(payment.received_value || 0);
-                        form.setValue("valor", remaining);
-                      }
-                    }
-                  }}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="(opcional) selecione a parcela" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Sem vínculo com parcela</SelectItem>
-                      {pendingPayments.map((p: any) => {
-                        const remaining = Number(p.expected_value) - Number(p.received_value || 0);
-                        const dateStr = p.expected_date ? p.expected_date.split("-").reverse().join("/") : "";
-                        return (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.contract_title} — {p.kind === "entrada" ? "Entrada" : p.kind === "comissao" ? "Comissão" : `Parcela`} — R$ {remaining.toLocaleString("pt-BR", {minimumFractionDigits: 2})} — Venc: {dateStr}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            )}
-
-            {/* Row 2: Fornecedor */}
-            <FormField
-              control={form.control}
-              name="supplier_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fornecedor</FormLabel>
-                  <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Nenhum" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                      {suppliers.map((sup) => (
-                        <SelectItem key={sup.id} value={sup.id}>
-                          {sup.trade_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Vincular NF-e — collapsible */}
-            <details className="group">
-              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Vincular a uma NF-e aprovada
-              </summary>
-              <div className="mt-2 pl-4 border-l-2 border-muted">
-                <Select value={selectedNfeId} onValueChange={(v) => {
-                  setSelectedNfeId(v === "none" ? "" : v);
-                  if (v && v !== "none") {
-                    const nfe = approvedNfes.find((n: any) => n.id === v);
-                    if (nfe) {
-                      form.setValue("valor", -(Math.abs(Number(nfe.valor_total))));
-                      form.setValue("tipo_documento", "NF-e");
-                      form.setValue("nota_fiscal", nfe.numero_nota || "");
-                      if (nfe.data_emissao) form.setValue("data", nfe.data_emissao);
-                    }
-                  }
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="(opcional) selecione uma NF-e" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma</SelectItem>
-                    {approvedNfes.map((nfe: any) => (
-                      <SelectItem key={nfe.id} value={nfe.id}>
-                        NF {nfe.numero_nota} — {nfe.razao_social || nfe.supplier?.trade_name || "?"} — {formatBRL(Number(nfe.valor_total))} — {nfe.data_emissao ? formatDate(nfe.data_emissao) : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Vincula este lançamento a uma NF-e já aprovada no sistema.</p>
-              </div>
-            </details>
-
-            {/* Row 3: Data | Valor | Tipo Documento */}
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="data"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="valor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor * <span className="text-muted-foreground text-xs">(+ entrada, - saída)</span></FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="tipo_documento"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo Documento *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {["Pix", "Boleto", "Transferência", "Dinheiro", "Outros", "NF-e"].map((tipo) => (
-                          <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Itens manuais — collapsible */}
-            <details className="group">
-              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                Adicionar itens ao lançamento
-              </summary>
-              <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
-                <p className="text-xs text-muted-foreground">Para compras sem NF-e ou com negociação informal.</p>
-
-                {manualItems.length > 0 && (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="text-[11px]">
-                          <TableHead className="py-1.5">Descrição</TableHead>
-                          <TableHead className="py-1.5 w-16">Qtd</TableHead>
-                          <TableHead className="py-1.5 w-14">Un</TableHead>
-                          <TableHead className="py-1.5 w-24">Vlr Unit</TableHead>
-                          <TableHead className="py-1.5 w-24">Total</TableHead>
-                          <TableHead className="py-1.5 w-8"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {manualItems.map((item) => (
-                          <TableRow key={item.key}>
-                            <TableCell className="py-1">
-                              <Input value={item.descricao} onChange={e => updateManualItem(item.key, "descricao", e.target.value)} placeholder="Descrição" className="h-7 text-sm" />
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Input type="number" value={item.quantidade} onChange={e => updateManualItem(item.key, "quantidade", Number(e.target.value))} className="h-7 text-sm w-16" />
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Input value={item.unidade} onChange={e => updateManualItem(item.key, "unidade", e.target.value)} placeholder="un" className="h-7 text-sm w-14" />
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Input type="number" step="0.01" value={item.valor_unitario} onChange={e => updateManualItem(item.key, "valor_unitario", Number(e.target.value))} className="h-7 text-sm" />
-                            </TableCell>
-                            <TableCell className="py-1 text-sm font-mono">{formatBRL(item.valor_total)}</TableCell>
-                            <TableCell className="py-1">
-                              <Button variant="ghost" size="icon" type="button" className="h-6 w-6" onClick={() => setManualItems(prev => prev.filter(i => i.key !== item.key))}>
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+            {quickMode ? (
+              <div className="space-y-4">
+                {/* Obra (if global) */}
+                {!projectId && (
+                  <FormField
+                    control={form.control}
+                    name="project_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Obra *</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a obra" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {projectsList.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
 
-                <Button variant="outline" size="sm" type="button" onClick={() => setManualItems(prev => [...prev, { key: Math.random().toString(36).slice(2), descricao: "", quantidade: 1, unidade: "un", valor_unitario: 0, valor_total: 0 }])}>
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar Item
-                </Button>
-
-                {manualItems.length > 0 && (
-                  <p className="text-xs font-medium">Total dos itens: {formatBRL(manualItems.reduce((s, i) => s + i.valor_total, 0))}</p>
-                )}
-              </div>
-            </details>
-
-            {/* Nota Fiscal */}
-            <FormField
-              control={form.control}
-              name="nota_fiscal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nota Fiscal</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Número da nota fiscal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Row 5: Observações */}
-            <FormField
-              control={form.control}
-              name="observacoes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Observações adicionais..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Comprovante */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Comprovante</label>
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm file:border-0 file:bg-transparent file:text-sm file:font-medium"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                />
-                {selectedFile && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
-                    Limpar
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">PDF, JPG ou PNG do comprovante (máx 10MB)</p>
-            </div>
-
-            {/* Advanced fields — collapsible */}
-            <details className="group">
-              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
-                <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
-                Opções avançadas
-              </summary>
-              <div className="mt-3 space-y-4 pl-4 border-l-2 border-muted">
+                {/* Categoria */}
                 <FormField
                   control={form.control}
-                  name="numero_documento"
+                  name="category_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nº Documento</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Número do documento" {...field} />
-                      </FormControl>
+                      <FormLabel>Categoria *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a categoria" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              [{cat.prefixo}] {cat.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="flex items-center gap-4">
+                {/* Data + Valor */}
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="is_comprometido"
+                    name="data"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-3 flex-1">
-                        <FormLabel className="cursor-pointer">Comprometido</FormLabel>
+                      <FormItem>
+                        <FormLabel>Data *</FormLabel>
                         <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          <Input type="date" {...field} />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
                   <FormField
                     control={form.control}
-                    name="situacao"
+                    name="valor"
                     render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Situação *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                      <FormItem>
+                        <FormLabel>Valor * <span className="text-muted-foreground text-xs">(+ entrada, - saída)</span></FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Expand link */}
+                <button
+                  type="button"
+                  onClick={() => setQuickMode(false)}
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  <ChevronDown className="h-3 w-3" />
+                  Formulário completo (fornecedor, NF-e, itens, comprovante...)
+                </button>
+
+                {/* Submit */}
+                <div className="flex justify-end gap-4 pt-2">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                  <Button type="submit">{form.formState.isSubmitting ? "Salvando..." : "Registrar"}</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Project selector — only shown when projectId is not provided by parent */}
+                {!projectId && (
+                  <FormField
+                    control={form.control}
+                    name="project_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Obra *</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione a situação" />
+                              <SelectValue placeholder="Selecione a obra" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="pendente">Pendente</SelectItem>
-                            <SelectItem value="conciliado">Conciliado</SelectItem>
-                            <SelectItem value="divergente">Divergente</SelectItem>
+                            {projectsList.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Row 1: Conta Bancária | Categoria */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bank_account_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conta Bancária *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a conta" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {bankAccounts.map((acc) => (
+                              <SelectItem key={acc.id} value={acc.id}>
+                                {bankAccountLabel(acc)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoria *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a categoria" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                [{cat.prefixo}] {cat.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -811,15 +596,337 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
                     )}
                   />
                 </div>
-              </div>
-            </details>
 
-            <div className="flex justify-end gap-4 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">{isEditing ? "Salvar" : "Registrar"}</Button>
-            </div>
+                {/* Vincular a Parcela do Contrato — only for revenue categories with pending payments */}
+                {isRevenueCategory && pendingPayments.length > 0 && (
+                  <FormField control={form.control} name="contract_payment_id" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vincular a Parcela do Contrato</FormLabel>
+                      <Select value={field.value || ""} onValueChange={(v) => {
+                        field.onChange(v === "none" ? "" : v);
+                        // Auto-fill valor from the selected payment
+                        if (v && v !== "none") {
+                          const payment = pendingPayments.find((p: any) => p.id === v);
+                          if (payment) {
+                            const remaining = Number(payment.expected_value) - Number(payment.received_value || 0);
+                            form.setValue("valor", remaining);
+                          }
+                        }
+                      }}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="(opcional) selecione a parcela" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Sem vínculo com parcela</SelectItem>
+                          {pendingPayments.map((p: any) => {
+                            const remaining = Number(p.expected_value) - Number(p.received_value || 0);
+                            const dateStr = p.expected_date ? p.expected_date.split("-").reverse().join("/") : "";
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.contract_title} — {p.kind === "entrada" ? "Entrada" : p.kind === "comissao" ? "Comissão" : `Parcela`} — R$ {remaining.toLocaleString("pt-BR", {minimumFractionDigits: 2})} — Venc: {dateStr}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+
+                {/* Row 2: Fornecedor */}
+                <FormField
+                  control={form.control}
+                  name="supplier_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fornecedor</FormLabel>
+                      <Select onValueChange={(v) => field.onChange(v === "none" ? "" : v)} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Nenhum" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {suppliers.map((sup) => (
+                            <SelectItem key={sup.id} value={sup.id}>
+                              {sup.trade_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Vincular NF-e — collapsible */}
+                <details className="group">
+                  <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    Vincular a uma NF-e aprovada
+                  </summary>
+                  <div className="mt-2 pl-4 border-l-2 border-muted">
+                    <Select value={selectedNfeId} onValueChange={(v) => {
+                      setSelectedNfeId(v === "none" ? "" : v);
+                      if (v && v !== "none") {
+                        const nfe = approvedNfes.find((n: any) => n.id === v);
+                        if (nfe) {
+                          form.setValue("valor", -(Math.abs(Number(nfe.valor_total))));
+                          form.setValue("tipo_documento", "NF-e");
+                          form.setValue("nota_fiscal", nfe.numero_nota || "");
+                          if (nfe.data_emissao) form.setValue("data", nfe.data_emissao);
+                        }
+                      }
+                    }}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="(opcional) selecione uma NF-e" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {approvedNfes.map((nfe: any) => (
+                          <SelectItem key={nfe.id} value={nfe.id}>
+                            NF {nfe.numero_nota} — {nfe.razao_social || nfe.supplier?.trade_name || "?"} — {formatBRL(Number(nfe.valor_total))} — {nfe.data_emissao ? formatDate(nfe.data_emissao) : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Vincula este lançamento a uma NF-e já aprovada no sistema.</p>
+                  </div>
+                </details>
+
+                {/* Row 3: Data | Valor | Tipo Documento */}
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="data"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data *</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="valor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor * <span className="text-muted-foreground text-xs">(+ entrada, - saída)</span></FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tipo_documento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo Documento *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {["Pix", "Boleto", "Transferência", "Dinheiro", "Outros", "NF-e"].map((tipo) => (
+                              <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Itens manuais — collapsible */}
+                <details className="group">
+                  <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    Adicionar itens ao lançamento
+                  </summary>
+                  <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
+                    <p className="text-xs text-muted-foreground">Para compras sem NF-e ou com negociação informal.</p>
+
+                    {manualItems.length > 0 && (
+                      <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="text-[11px]">
+                              <TableHead className="py-1.5">Descrição</TableHead>
+                              <TableHead className="py-1.5 w-16">Qtd</TableHead>
+                              <TableHead className="py-1.5 w-14">Un</TableHead>
+                              <TableHead className="py-1.5 w-24">Vlr Unit</TableHead>
+                              <TableHead className="py-1.5 w-24">Total</TableHead>
+                              <TableHead className="py-1.5 w-8"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {manualItems.map((item) => (
+                              <TableRow key={item.key}>
+                                <TableCell className="py-1">
+                                  <Input value={item.descricao} onChange={e => updateManualItem(item.key, "descricao", e.target.value)} placeholder="Descrição" className="h-7 text-sm" />
+                                </TableCell>
+                                <TableCell className="py-1">
+                                  <Input type="number" value={item.quantidade} onChange={e => updateManualItem(item.key, "quantidade", Number(e.target.value))} className="h-7 text-sm w-16" />
+                                </TableCell>
+                                <TableCell className="py-1">
+                                  <Input value={item.unidade} onChange={e => updateManualItem(item.key, "unidade", e.target.value)} placeholder="un" className="h-7 text-sm w-14" />
+                                </TableCell>
+                                <TableCell className="py-1">
+                                  <Input type="number" step="0.01" value={item.valor_unitario} onChange={e => updateManualItem(item.key, "valor_unitario", Number(e.target.value))} className="h-7 text-sm" />
+                                </TableCell>
+                                <TableCell className="py-1 text-sm font-mono">{formatBRL(item.valor_total)}</TableCell>
+                                <TableCell className="py-1">
+                                  <Button variant="ghost" size="icon" type="button" className="h-6 w-6" onClick={() => setManualItems(prev => prev.filter(i => i.key !== item.key))}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    <Button variant="outline" size="sm" type="button" onClick={() => setManualItems(prev => [...prev, { key: Math.random().toString(36).slice(2), descricao: "", quantidade: 1, unidade: "un", valor_unitario: 0, valor_total: 0 }])}>
+                      <Plus className="h-3 w-3 mr-1" /> Adicionar Item
+                    </Button>
+
+                    {manualItems.length > 0 && (
+                      <p className="text-xs font-medium">Total dos itens: {formatBRL(manualItems.reduce((s, i) => s + i.valor_total, 0))}</p>
+                    )}
+                  </div>
+                </details>
+
+                {/* Nota Fiscal */}
+                <FormField
+                  control={form.control}
+                  name="nota_fiscal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nota Fiscal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Número da nota fiscal" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Row 5: Observações */}
+                <FormField
+                  control={form.control}
+                  name="observacoes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Observações</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Observações adicionais..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Comprovante */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Comprovante</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm file:border-0 file:bg-transparent file:text-sm file:font-medium"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    />
+                    {selectedFile && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">PDF, JPG ou PNG do comprovante (máx 10MB)</p>
+                </div>
+
+                {/* Advanced fields — collapsible */}
+                <details className="group">
+                  <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                    <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
+                    Opções avançadas
+                  </summary>
+                  <div className="mt-3 space-y-4 pl-4 border-l-2 border-muted">
+                    <FormField
+                      control={form.control}
+                      name="numero_documento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nº Documento</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Número do documento" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex items-center gap-4">
+                      <FormField
+                        control={form.control}
+                        name="is_comprometido"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-3 flex-1">
+                            <FormLabel className="cursor-pointer">Comprometido</FormLabel>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="situacao"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Situação *</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione a situação" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="pendente">Pendente</SelectItem>
+                                <SelectItem value="conciliado">Conciliado</SelectItem>
+                                <SelectItem value="divergente">Divergente</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </details>
+
+                <div className="flex justify-end gap-4 pt-2">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">{isEditing ? "Salvar" : "Registrar"}</Button>
+                </div>
+              </div>
+            )}
           </form>
         </Form>
       </DialogContent>
