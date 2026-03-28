@@ -47,13 +47,17 @@ export async function executeTool(
     }
 
     if (tool.function_type === "direct_query") {
-      // Query a view
       let query = supabase.from(tool.function_name).select("*");
 
-      // Apply filters from input
+      // Apply filters — use ILIKE for text fields (partial match), eq for IDs
+      const textFields = ["name", "trade_name", "legal_name", "titulo", "title", "descricao", "observacoes"];
       for (const [key, value] of Object.entries(toolInput)) {
         if (value && key !== "limit") {
-          query = query.eq(key, value);
+          if (textFields.includes(key) && typeof value === "string") {
+            query = query.ilike(key, `%${value}%`);
+          } else {
+            query = query.eq(key, value);
+          }
         }
       }
 
