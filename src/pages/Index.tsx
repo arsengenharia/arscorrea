@@ -18,6 +18,7 @@ import { ProjectsKPIs } from "@/components/dashboard/ProjectsKPIs";
 import { CriticalProjectsTable } from "@/components/dashboard/CriticalProjectsTable";
 import { RevenueCostChart } from "@/components/dashboard/RevenueCostChart";
 import { ProfitMarginChart } from "@/components/dashboard/ProfitMarginChart";
+import { ProactiveInsights } from "@/components/dashboard/ProactiveInsights";
 
 import { 
   useDashboardMetrics, 
@@ -108,6 +109,7 @@ const Index = () => {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Visão Geral — Obras Ativas</h3>
               <FinancialKPIsV2 />
             </div>
+            <ProactiveInsights />
             <FinancialKPIs data={financial} isLoading={isLoading} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <CashFlowChart data={cashFlowSeries} isLoading={isLoading} />
