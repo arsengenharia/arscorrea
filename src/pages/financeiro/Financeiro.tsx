@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Receipt, GitMerge, Split, Settings, FileCheck, HandCoins, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Receipt, GitMerge, Split, Settings, FileCheck, HandCoins, ShieldAlert, BarChart3 } from "lucide-react";
 
 const tabs = [
   { label: "Visão Geral", path: "/financeiro/visao-geral", icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const tabs = [
   { label: "Rateio", path: "/financeiro/rateio", icon: Split },
   { label: "NF-e", path: "/financeiro/nfe", icon: FileCheck },
   { label: "Anomalias", path: "/financeiro/anomalias", icon: ShieldAlert },
+  { label: "Indicadores", path: "/financeiro/indicadores", icon: BarChart3 },
   { label: "Configurações", path: "/financeiro/configuracoes", icon: Settings },
 ];
 
