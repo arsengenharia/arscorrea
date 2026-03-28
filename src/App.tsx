@@ -52,6 +52,11 @@ function RedirectToLancamentos() {
   return <Navigate to={`/obras/${projectId}/lancamentos`} replace />;
 }
 
+function RedirectToRelatorio() {
+  const { projectId } = useParams();
+  return <Navigate to={`/obras/${projectId}/relatorio`} replace />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <Toaster position="top-center" />
@@ -107,7 +112,7 @@ const App = () => (
           <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
           <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
           <Route path="/obras/:projectId/medicoes" element={<ProtectedRoute><Medicoes /></ProtectedRoute>} />
-          <Route path="/relatorio/:projectId" element={<ProtectedRoute><RelatorioProjeto /></ProtectedRoute>} />
+          <Route path="/relatorio/:projectId" element={<ProtectedRoute><RedirectToRelatorio /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
