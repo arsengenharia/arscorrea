@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   PenSquare,
   Plus,
@@ -14,9 +15,11 @@ import {
   FileText,
   MessageSquare,
   Ruler,
+  Search,
 } from "lucide-react";
 import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
 import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
+import { InvestigationPanel } from "@/components/ai/InvestigationPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +40,7 @@ import { ProjectDocumentsAdmin } from "@/components/projects/ProjectDocumentsAdm
 export function ProjectDetails() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [investigationOpen, setInvestigationOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -226,6 +230,16 @@ export function ProjectDetails() {
                     prompt="Faça uma análise completa desta obra: status, financeiro, etapas, riscos e recomendações."
                     label="Analisar"
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200"
+                    onClick={() => setInvestigationOpen(true)}
+                    title="Modo Investigação"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">Investigar</span>
+                  </Button>
                   <ProjectPDFViewer project={project} />
 
                   <Link to={`/obras/${projectId}/etapas/adicionar`}>
@@ -321,6 +335,12 @@ export function ProjectDetails() {
           </div>
         </main>
       </div>
+
+      <InvestigationPanel
+        projectId={projectId!}
+        open={investigationOpen}
+        onOpenChange={setInvestigationOpen}
+      />
     </Layout>
   );
 }
