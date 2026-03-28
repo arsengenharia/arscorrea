@@ -5,6 +5,7 @@ import { subDays } from "date-fns";
 
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { FinancialKPIs } from "@/components/dashboard/FinancialKPIs";
+import { FinancialKPIsV2 } from "@/components/dashboard/FinancialKPIsV2";
 import { CommercialKPIs } from "@/components/dashboard/CommercialKPIs";
 import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
 import { OverdueAgingChart } from "@/components/dashboard/OverdueAgingChart";
@@ -17,6 +18,7 @@ import { ProjectsKPIs } from "@/components/dashboard/ProjectsKPIs";
 import { CriticalProjectsTable } from "@/components/dashboard/CriticalProjectsTable";
 import { RevenueCostChart } from "@/components/dashboard/RevenueCostChart";
 import { ProfitMarginChart } from "@/components/dashboard/ProfitMarginChart";
+import { ProactiveInsights } from "@/components/dashboard/ProactiveInsights";
 
 import { 
   useDashboardMetrics, 
@@ -103,6 +105,11 @@ const Index = () => {
 
           {/* Financial Tab */}
           <TabsContent value="financial" className="space-y-6 mt-6">
+            <div className="space-y-2 mb-6">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Visão Geral — Obras Ativas</h3>
+              <FinancialKPIsV2 />
+            </div>
+            <ProactiveInsights />
             <FinancialKPIs data={financial} isLoading={isLoading} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <CashFlowChart data={cashFlowSeries} isLoading={isLoading} />

@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import ClientFormPage from "./pages/ClientForm";
@@ -22,9 +22,8 @@ import ContractForm from "./pages/ContractForm";
 import ContractFinancial from "./pages/ContractFinancial";
 import Agenda from "./pages/Agenda";
 import ProjectReport from "./pages/ProjectReport";
-import ProjectCosts from "./pages/ProjectCosts";
-import ProjectRevenues from "./pages/ProjectRevenues";
 import Suppliers from "./pages/Suppliers";
+import SupplierDetail from "./pages/SupplierDetail";
 import ClientDetails from "./pages/ClientDetails";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
@@ -32,6 +31,31 @@ import PortalLogin from "./pages/portal/PortalLogin";
 import PortalProject from "./pages/portal/PortalProject";
 import PortalProjectsList from "./pages/portal/PortalProjectsList";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
+import Categorias from "./pages/financeiro/Categorias";
+import Contas from "./pages/financeiro/Contas";
+import Conciliacao from "./pages/financeiro/Conciliacao";
+import Rateio from "./pages/financeiro/Rateio";
+import VisaoGeral from "./pages/financeiro/VisaoGeral";
+import LancamentosGlobal from "./pages/financeiro/LancamentosGlobal";
+import Configuracoes from "./pages/financeiro/Configuracoes";
+import NfeInbox from "./pages/financeiro/NfeInbox";
+import Recebiveis from "./pages/financeiro/Recebiveis";
+import Anomalias from "./pages/financeiro/Anomalias";
+import Indicadores from "./pages/financeiro/Indicadores";
+import Lancamentos from "./pages/obras/Lancamentos";
+import FinanceiroDashboard from "./pages/obras/FinanceiroDashboard";
+import Medicoes from "./pages/obras/Medicoes";
+import RelatorioProjeto from "./pages/RelatorioProjeto";
+
+function RedirectToLancamentos() {
+  const { projectId } = useParams();
+  return <Navigate to={`/obras/${projectId}/lancamentos`} replace />;
+}
+
+function RedirectToRelatorio() {
+  const { projectId } = useParams();
+  return <Navigate to={`/obras/${projectId}/relatorio`} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -59,8 +83,8 @@ const App = () => (
           <Route path="/obras/:projectId/etapas/adicionar" element={<ProtectedRoute><StageForm /></ProtectedRoute>} />
           <Route path="/obras/:projectId/etapas/:stageId/editar" element={<ProtectedRoute><EditStageForm /></ProtectedRoute>} />
           <Route path="/obras/:projectId/relatorio" element={<ProtectedRoute><ProjectReport /></ProtectedRoute>} />
-          <Route path="/obras/:projectId/custos" element={<ProtectedRoute><ProjectCosts /></ProtectedRoute>} />
-          <Route path="/obras/:projectId/receitas" element={<ProtectedRoute><ProjectRevenues /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/custos" element={<ProtectedRoute><RedirectToLancamentos /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/receitas" element={<ProtectedRoute><RedirectToLancamentos /></ProtectedRoute>} />
           <Route path="/propostas" element={<ProtectedRoute><Proposals /></ProtectedRoute>} />
           <Route path="/propostas/nova" element={<ProtectedRoute><ProposalForm /></ProtectedRoute>} />
           <Route path="/propostas/:id" element={<ProtectedRoute><ProposalForm /></ProtectedRoute>} />
@@ -70,8 +94,25 @@ const App = () => (
           <Route path="/contratos/:id/financeiro" element={<ProtectedRoute><ContractFinancial /></ProtectedRoute>} />
           <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/fornecedores" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+          <Route path="/fornecedores/:supplierId" element={<ProtectedRoute><SupplierDetail /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/financeiro" element={<ProtectedRoute><Navigate to="/financeiro/visao-geral" replace /></ProtectedRoute>} />
+          <Route path="/financeiro/visao-geral" element={<ProtectedRoute><VisaoGeral /></ProtectedRoute>} />
+          <Route path="/financeiro/lancamentos" element={<ProtectedRoute><LancamentosGlobal /></ProtectedRoute>} />
+          <Route path="/financeiro/recebiveis" element={<ProtectedRoute><Recebiveis /></ProtectedRoute>} />
+          <Route path="/financeiro/conciliacao" element={<ProtectedRoute><Conciliacao /></ProtectedRoute>} />
+          <Route path="/financeiro/rateio" element={<ProtectedRoute><Rateio /></ProtectedRoute>} />
+          <Route path="/financeiro/nfe" element={<ProtectedRoute><NfeInbox /></ProtectedRoute>} />
+          <Route path="/financeiro/anomalias" element={<ProtectedRoute><Anomalias /></ProtectedRoute>} />
+          <Route path="/financeiro/indicadores" element={<ProtectedRoute><Indicadores /></ProtectedRoute>} />
+          <Route path="/financeiro/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+          <Route path="/financeiro/categorias" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
+          <Route path="/financeiro/contas" element={<ProtectedRoute><Navigate to="/financeiro/configuracoes" replace /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/lancamentos" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
+          <Route path="/obras/:projectId/medicoes" element={<ProtectedRoute><Medicoes /></ProtectedRoute>} />
+          <Route path="/relatorio/:projectId" element={<ProtectedRoute><RedirectToRelatorio /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

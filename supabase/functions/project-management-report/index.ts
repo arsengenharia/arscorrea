@@ -42,21 +42,34 @@ Deno.serve(async (req) => {
       .eq("project_id", project_id)
       .order("created_at", { ascending: true });
 
-    // Fetch costs
-    const { data: costs } = await supabase
-      .from("project_costs")
-      .select("*")
+    // v2: Fetch financial entries (replaces project_costs + project_revenues)
+    const { data: entries } = await supabase
+      .from("project_financial_entries")
+      .select("*, category:financial_categories(nome, prefixo, e_receita)")
       .eq("project_id", project_id);
 
-    // Fetch revenues
-    const { data: revenues } = await supabase
-      .from("project_revenues")
-      .select("*")
+    const allEntries = entries || [];
+
+    // Fetch budget breakdown by category (v2)
+    const { data: budgets } = await supabase
+      .from("project_budgets")
+      .select("category_id, valor_previsto, category:financial_categories(prefixo)")
+      .eq("project_id", project_id);
+
+    // Fetch contract total for planned revenue
+    const { data: contracts } = await supabase
+      .from("contracts")
+      .select("total")
+      .eq("project_id", project_id)
+      .in("status", ["ativo", "em_assinatura"]);
+
+    // Include rateio allocations in indirect costs
+    const { data: allocations } = await supabase
+      .from("cost_allocations")
+      .select("valor_alocado")
       .eq("project_id", project_id);
 
     const allStages = stages || [];
-    const allCosts = costs || [];
-    const allRevenues = revenues || [];
     const today = new Date().toISOString().split("T")[0];
 
     // IFEC = Producao Real Acumulada / Producao Prevista Acumulada (baseado em pesos)
@@ -102,16 +115,41 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Financial
-    const custoDiretoPrev = allCosts.filter((c) => c.cost_type === "Direto").reduce((s, c) => s + Number(c.expected_value), 0);
-    const custoIndiretoPrev = allCosts.filter((c) => c.cost_type === "Indireto").reduce((s, c) => s + Number(c.expected_value), 0);
-    const custoDiretoReal = allCosts.filter((c) => c.cost_type === "Direto").reduce((s, c) => s + Number(c.actual_value), 0);
-    const custoIndiretoReal = allCosts.filter((c) => c.cost_type === "Indireto").reduce((s, c) => s + Number(c.actual_value), 0);
-    const custoTotalPrev = custoDiretoPrev + custoIndiretoPrev;
+    // Financial — derived from project_financial_entries (v2)
+    const allBudgets = budgets || [];
+
+    // Planned costs from project_budgets
+    const custoDiretoPrev = allBudgets
+      .filter((b: any) => b.category?.prefixo === "CV")
+      .reduce((s: number, b: any) => s + Number(b.valor_previsto || 0), 0);
+
+    const custoIndiretoPrev = allBudgets
+      .filter((b: any) => b.category?.prefixo === "ADM")
+      .reduce((s: number, b: any) => s + Number(b.valor_previsto || 0), 0);
+
+    const custoTotalPrev = custoDiretoPrev + custoIndiretoPrev > 0
+      ? custoDiretoPrev + custoIndiretoPrev
+      : Number(project.orcamento_previsto) || 0; // fallback to global budget
+
+    const custoDiretoReal = allEntries
+      .filter((e: any) => Number(e.valor) < 0 && e.category?.prefixo === "CV")
+      .reduce((s: number, e: any) => s + Math.abs(Number(e.valor)), 0);
+
+    const custoRateio = (allocations || [])
+      .reduce((s: number, a: any) => s + Math.abs(Number(a.valor_alocado || 0)), 0);
+
+    const custoIndiretoReal = allEntries
+      .filter((e: any) => Number(e.valor) < 0 && e.category?.prefixo === "ADM")
+      .reduce((s: number, e: any) => s + Math.abs(Number(e.valor)), 0) + custoRateio;
+
     const custoTotalReal = custoDiretoReal + custoIndiretoReal;
 
-    const receitaPrev = allRevenues.reduce((s, r) => s + Number(r.expected_value), 0);
-    const receitaReal = allRevenues.reduce((s, r) => s + Number(r.actual_value), 0);
+    // Planned revenue from contracts
+    const receitaPrev = (contracts || [])
+      .reduce((s: number, c: any) => s + Number(c.total || 0), 0);
+    const receitaReal = allEntries
+      .filter((e: any) => Number(e.valor) > 0)
+      .reduce((s: number, e: any) => s + Number(e.valor), 0);
 
     const saldo = receitaReal - custoTotalReal;
     const margem = receitaReal > 0 ? (saldo / receitaReal) * 100 : 0;

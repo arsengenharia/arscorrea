@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import {
   BarChart,
@@ -27,7 +27,21 @@ const formatCurrency = (value: number) => {
   return `R$ ${value}`;
 };
 
-const COLORS = ["#22C55E", "#F59E0B", "#F97316", "#EF4444", "#DC2626"];
+const COLORS = ["#67e8f9", "#86efac", "#fcd34d", "#fda4af", "#c4b5fd"];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg shadow-lg p-3">
+      <p className="text-sm font-medium text-slate-700 mb-1">{label}</p>
+      {payload.map((entry: any, i: number) => (
+        <p key={i} className="text-sm" style={{ color: entry.color }}>
+          {entry.name}: <span className="font-semibold">{formatCurrency(entry.value)}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
 
 export function OverdueAgingChart({ data, isLoading }: OverdueAgingChartProps) {
   const labelMap: { [key: string]: string } = {
@@ -44,41 +58,33 @@ export function OverdueAgingChart({ data, isLoading }: OverdueAgingChartProps) {
   }));
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-lg font-medium">Parcelas Vencidas por Aging</CardTitle>
+    <Card className="shadow-sm border-slate-100">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 rounded-md bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+          </div>
+          <h3 className="font-semibold text-base text-slate-800">Parcelas Vencidas por Aging</h3>
         </div>
-      </CardHeader>
-      <CardContent>
         {isLoading ? (
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[280px] w-full" />
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="label" 
-                fontSize={12}
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "#64748b", fontSize: 12 }}
+                axisLine={{ stroke: "#e2e8f0" }}
                 tickLine={false}
-                axisLine={false}
               />
-              <YAxis 
-                tickFormatter={formatCurrency} 
-                fontSize={12}
+              <YAxis
+                tickFormatter={formatCurrency}
+                tick={{ fill: "#64748b", fontSize: 12 }}
+                axisLine={false}
                 tickLine={false}
-                axisLine={false}
               />
-              <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px"
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="value" name="Valor" radius={[4, 4, 0, 0]}>
                 {chartData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

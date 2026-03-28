@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building, Calendar, FileText, Home, LogOut, Menu, ScrollText, Truck, Users } from "lucide-react";
+import { Building, Calendar, FileText, Home, LogOut, Menu, ScrollText, Truck, Users, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import { UserProfileMenu } from "./UserProfileMenu";
+import { useNfePendingCount } from "@/hooks/useNfePendingCount";
+import { SmartSearch } from "@/components/ai/SmartSearch";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, path: "/" },
@@ -13,6 +15,7 @@ const menuItems = [
   { title: "Obras", icon: Building, path: "/obras" },
   { title: "Propostas", icon: FileText, path: "/propostas" },
   { title: "Contratos", icon: ScrollText, path: "/contratos" },
+  { title: "Financeiro", icon: Wallet, path: "/financeiro" },
   { title: "Agenda", icon: Calendar, path: "/agenda" },
   { title: "Fornecedores", icon: Truck, path: "/fornecedores" },
   { title: "Portal", icon: Users, path: "/portal/obras", external: true },
@@ -24,6 +27,7 @@ export function TopNavigation() {
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const nfePendingCount = useNfePendingCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,6 +71,9 @@ export function TopNavigation() {
             />
           </button>
 
+          {/* Smart Search */}
+          <SmartSearch />
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
             {menuItems.map((item) => (
@@ -82,6 +89,11 @@ export function TopNavigation() {
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.title}</span>
+                {item.title === "Financeiro" && nfePendingCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] rounded-full bg-amber-500 text-white text-[10px] font-bold px-1">
+                    {nfePendingCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -125,6 +137,11 @@ export function TopNavigation() {
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
+                      {item.title === "Financeiro" && nfePendingCount > 0 && (
+                        <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] rounded-full bg-amber-500 text-white text-[10px] font-bold px-1">
+                          {nfePendingCount}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>

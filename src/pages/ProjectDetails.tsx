@@ -3,19 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   PenSquare,
   Plus,
   ChevronLeft,
   BarChart3,
   DollarSign,
-  TrendingUp,
   MoreHorizontal,
   Home,
   FileText,
   MessageSquare,
+  Ruler,
+  Search,
 } from "lucide-react";
 import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
+import { InvestigationPanel } from "@/components/ai/InvestigationPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +40,7 @@ import { ProjectDocumentsAdmin } from "@/components/projects/ProjectDocumentsAdm
 export function ProjectDetails() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [investigationOpen, setInvestigationOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -185,22 +190,33 @@ export function ProjectDetails() {
                     variant="ghost"
                     size="sm"
                     className="text-slate-600 hover:text-green-600 hover:bg-green-50 h-8 px-2 lg:px-3"
-                    onClick={() => navigate(`/obras/${projectId}/receitas`)}
-                    title="Receitas"
+                    onClick={() => navigate(`/obras/${projectId}/financeiro`)}
+                    title="Dashboard Financeiro"
                   >
-                    <TrendingUp className="w-4 h-4 lg:mr-2" />
-                    <span className="hidden lg:inline">Receitas</span>
+                    <BarChart3 className="w-4 h-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Financeiro</span>
                   </Button>
 
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-slate-600 hover:text-amber-600 hover:bg-amber-50 h-8 px-2 lg:px-3"
-                    onClick={() => navigate(`/obras/${projectId}/custos`)}
-                    title="Custos"
+                    onClick={() => navigate(`/obras/${projectId}/lancamentos`)}
+                    title="Lançamentos Financeiros"
                   >
                     <DollarSign className="w-4 h-4 lg:mr-2" />
-                    <span className="hidden lg:inline">Custos</span>
+                    <span className="hidden lg:inline">Lançamentos</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-600 hover:text-purple-600 hover:bg-purple-50 h-8 px-2 lg:px-3"
+                    onClick={() => navigate(`/obras/${projectId}/medicoes`)}
+                    title="Medições"
+                  >
+                    <Ruler className="w-4 h-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Medições</span>
                   </Button>
                   <ManagePortalAccessDialog
                     projectId={projectId!}
@@ -210,6 +226,20 @@ export function ProjectDetails() {
 
                 {/* Ações Principais Group */}
                 <div className="flex gap-1">
+                  <AnalyzeButton
+                    prompt="Faça uma análise completa desta obra: status, financeiro, etapas, riscos e recomendações."
+                    label="Analisar"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200"
+                    onClick={() => setInvestigationOpen(true)}
+                    title="Modo Investigação"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">Investigar</span>
+                  </Button>
                   <ProjectPDFViewer project={project} />
 
                   <Link to={`/obras/${projectId}/etapas/adicionar`}>
@@ -305,6 +335,12 @@ export function ProjectDetails() {
           </div>
         </main>
       </div>
+
+      <InvestigationPanel
+        projectId={projectId!}
+        open={investigationOpen}
+        onOpenChange={setInvestigationOpen}
+      />
     </Layout>
   );
 }

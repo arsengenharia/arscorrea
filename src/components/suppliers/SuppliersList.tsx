@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,11 @@ export function SuppliersList() {
             ) : (
               filtered.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.trade_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to={`/fornecedores/${s.id}`} className="hover:text-primary hover:underline">
+                      {s.trade_name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{s.document || "—"}</TableCell>
                   <TableCell>{s.contact_name || "—"}</TableCell>
                   <TableCell>{s.phone || "—"}</TableCell>

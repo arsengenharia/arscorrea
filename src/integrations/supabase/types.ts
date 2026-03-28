@@ -14,6 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_accounts: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco: string
+          conta: string
+          created_at: string
+          data_saldo_inicial: string
+          descricao: string | null
+          id: string
+          saldo_inicial: number
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco: string
+          conta: string
+          created_at?: string
+          data_saldo_inicial: string
+          descricao?: string | null
+          id?: string
+          saldo_inicial?: number
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string
+          conta?: string
+          created_at?: string
+          data_saldo_inicial?: string
+          descricao?: string | null
+          id?: string
+          saldo_inicial?: number
+        }
+        Relationships: []
+      }
+      bank_reconciliations: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          lancamento_id: string
+          tipo_match: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lancamento_id: string
+          tipo_match: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          lancamento_id?: string
+          tipo_match?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "bank_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          bank_account_id: string
+          data_transacao: string
+          descricao_banco: string
+          id: string
+          importado_em: string
+          lancamento_id: string | null
+          status_conciliacao: string
+          tipo_origem: string
+          valor: number
+        }
+        Insert: {
+          bank_account_id: string
+          data_transacao: string
+          descricao_banco: string
+          id?: string
+          importado_em?: string
+          lancamento_id?: string | null
+          status_conciliacao?: string
+          tipo_origem: string
+          valor: number
+        }
+        Update: {
+          bank_account_id?: string
+          data_transacao?: string
+          descricao_banco?: string
+          id?: string
+          importado_em?: string
+          lancamento_id?: string | null
+          status_conciliacao?: string
+          tipo_origem?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_event_attendees: {
         Row: {
           created_at: string | null
@@ -405,6 +541,118 @@ export type Database = {
           },
         ]
       }
+      medicoes: {
+        Row: {
+          id: string
+          project_id: string
+          contract_id: string | null
+          numero: number
+          periodo_inicio: string
+          periodo_fim: string
+          valor_medido: number
+          valor_acumulado: number | null
+          percentual_fisico: number | null
+          status: string
+          responsavel: string | null
+          aprovado_por: string | null
+          aprovado_em: string | null
+          observacoes: string | null
+          documento_url: string | null
+          financial_entry_id: string | null
+          contract_payment_id: string | null
+          created_at: string
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          contract_id?: string | null
+          numero: number
+          periodo_inicio: string
+          periodo_fim: string
+          valor_medido: number
+          valor_acumulado?: number | null
+          percentual_fisico?: number | null
+          status?: string
+          responsavel?: string | null
+          aprovado_por?: string | null
+          aprovado_em?: string | null
+          observacoes?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          contract_id?: string | null
+          numero?: number
+          periodo_inicio?: string
+          periodo_fim?: string
+          valor_medido?: number
+          valor_acumulado?: number | null
+          percentual_fisico?: number | null
+          status?: string
+          responsavel?: string | null
+          aprovado_por?: string | null
+          aprovado_em?: string | null
+          observacoes?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_payment_id_fkey"
+            columns: ["contract_payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           additive_value: number | null
@@ -514,6 +762,127 @@ export type Database = {
           },
         ]
       }
+      cost_allocations: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_rateio: string
+          id: string
+          lancamento_id: string
+          percentual: number
+          project_id: string
+          valor_alocado: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_rateio: string
+          id?: string
+          lancamento_id: string
+          percentual: number
+          project_id: string
+          valor_alocado: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_rateio?: string
+          id?: string
+          lancamento_id?: string
+          percentual?: number
+          project_id?: string
+          valor_alocado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_allocations_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_catalog: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          ncm: string
+          nome_padrao: string
+          unidade_padrao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ncm: string
+          nome_padrao: string
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ncm?: string
+          nome_padrao?: string
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      financial_categories: {
+        Row: {
+          ativo: boolean
+          cor_hex: string
+          created_at: string
+          e_receita: boolean
+          id: string
+          nome: string
+          prefixo: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor_hex: string
+          created_at?: string
+          e_receita?: boolean
+          id?: string
+          nome: string
+          prefixo: string
+        }
+        Update: {
+          ativo?: boolean
+          cor_hex?: string
+          created_at?: string
+          e_receita?: boolean
+          id?: string
+          nome?: string
+          prefixo?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -540,6 +909,228 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      nfe_inbox: {
+        Row: {
+          ai_confianca: number | null
+          ai_justificativa: string | null
+          arquivo_path: string
+          arquivo_tipo: string
+          bank_account_id_selecionado: string | null
+          categoria_final: string | null
+          categoria_sugerida: string | null
+          chave_nfe: string | null
+          cnpj: string | null
+          created_at: string
+          data_emissao: string | null
+          email_assunto: string | null
+          email_recebido_em: string | null
+          email_remetente: string | null
+          financial_entry_id: string | null
+          id: string
+          itens_json: Json | null
+          numero_nota: string | null
+          observacao: string | null
+          obras_ativas_json: Json | null
+          origem: string
+          project_id_selecionado: string | null
+          razao_social: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          supplier_id: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          ai_confianca?: number | null
+          ai_justificativa?: string | null
+          arquivo_path: string
+          arquivo_tipo: string
+          bank_account_id_selecionado?: string | null
+          categoria_final?: string | null
+          categoria_sugerida?: string | null
+          chave_nfe?: string | null
+          cnpj?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          email_assunto?: string | null
+          email_recebido_em?: string | null
+          email_remetente?: string | null
+          financial_entry_id?: string | null
+          id?: string
+          itens_json?: Json | null
+          numero_nota?: string | null
+          observacao?: string | null
+          obras_ativas_json?: Json | null
+          origem: string
+          project_id_selecionado?: string | null
+          razao_social?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          supplier_id?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          ai_confianca?: number | null
+          ai_justificativa?: string | null
+          arquivo_path?: string
+          arquivo_tipo?: string
+          bank_account_id_selecionado?: string | null
+          categoria_final?: string | null
+          categoria_sugerida?: string | null
+          chave_nfe?: string | null
+          cnpj?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          email_assunto?: string | null
+          email_recebido_em?: string | null
+          email_remetente?: string | null
+          financial_entry_id?: string | null
+          id?: string
+          itens_json?: Json | null
+          numero_nota?: string | null
+          observacao?: string | null
+          obras_ativas_json?: Json | null
+          origem?: string
+          project_id_selecionado?: string | null
+          razao_social?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          supplier_id?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_inbox_bank_account_id_selecionado_fkey"
+            columns: ["bank_account_id_selecionado"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_project_id_selecionado_fkey"
+            columns: ["project_id_selecionado"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_items: {
+        Row: {
+          categoria_item: string | null
+          cfop: string | null
+          created_at: string
+          descricao_original: string
+          financial_entry_id: string | null
+          id: string
+          item_catalog_id: string | null
+          ncm: string | null
+          nfe_inbox_id: string
+          nome_padronizado: string | null
+          project_id: string | null
+          quantidade: number
+          supplier_id: string | null
+          unidade: string | null
+          valor_total: number
+          valor_unitario: number | null
+        }
+        Insert: {
+          categoria_item?: string | null
+          cfop?: string | null
+          created_at?: string
+          descricao_original: string
+          financial_entry_id?: string | null
+          id?: string
+          item_catalog_id?: string | null
+          ncm?: string | null
+          nfe_inbox_id: string
+          nome_padronizado?: string | null
+          project_id?: string | null
+          quantidade?: number
+          supplier_id?: string | null
+          unidade?: string | null
+          valor_total: number
+          valor_unitario?: number | null
+        }
+        Update: {
+          categoria_item?: string | null
+          cfop?: string | null
+          created_at?: string
+          descricao_original?: string
+          financial_entry_id?: string | null
+          id?: string
+          item_catalog_id?: string | null
+          ncm?: string | null
+          nfe_inbox_id?: string
+          nome_padronizado?: string | null
+          project_id?: string | null
+          quantidade?: number
+          supplier_id?: string | null
+          unidade?: string | null
+          valor_total?: number
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_items_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_item_catalog_id_fkey"
+            columns: ["item_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "item_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_nfe_inbox_id_fkey"
+            columns: ["nfe_inbox_id"]
+            isOneToOne: false
+            referencedRelation: "nfe_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_event_photos: {
         Row: {
@@ -647,6 +1238,51 @@ export type Database = {
         }
         Relationships: []
       }
+      project_budgets: {
+        Row: {
+          id: string
+          project_id: string
+          category_id: string
+          valor_previsto: number
+          observacoes: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          category_id: string
+          valor_previsto: number
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          category_id?: string
+          valor_previsto?: number
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_costs: {
         Row: {
           actual_value: number
@@ -742,6 +1378,112 @@ export type Database = {
           },
         ]
       }
+      project_financial_entries: {
+        Row: {
+          arquivo_url: string | null
+          bank_account_id: string
+          category_id: string
+          chave_nfe: string | null
+          contract_payment_id: string | null
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          is_comprometido: boolean
+          nota_fiscal: string | null
+          numero_documento: string | null
+          observacoes: string | null
+          project_id: string
+          situacao: string
+          supplier_id: string | null
+          tipo_documento: string
+          valor: number
+        }
+        Insert: {
+          arquivo_url?: string | null
+          bank_account_id: string
+          category_id: string
+          chave_nfe?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data: string
+          id?: string
+          is_comprometido?: boolean
+          nota_fiscal?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          project_id: string
+          situacao?: string
+          supplier_id?: string | null
+          tipo_documento: string
+          valor: number
+        }
+        Update: {
+          arquivo_url?: string | null
+          bank_account_id?: string
+          category_id?: string
+          chave_nfe?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          is_comprometido?: boolean
+          nota_fiscal?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          project_id?: string
+          situacao?: string
+          supplier_id?: string | null
+          tipo_documento?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_financial_entries_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_contract_payment_id_fkey"
+            columns: ["contract_payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_reports: {
         Row: {
           created_at: string
@@ -829,39 +1571,67 @@ export type Database = {
       }
       projects: {
         Row: {
+          bank_account_id: string | null
           client_id: string
           created_at: string
+          custo_realizado: number | null
           end_date: string | null
+          iec_atual: number | null
           id: string
+          margem_atual: number | null
           name: string
+          orcamento_previsto: number | null
           project_manager: string | null
+          receita_realizada: number | null
+          saldo_atual: number | null
           start_date: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          bank_account_id?: string | null
           client_id: string
           created_at?: string
+          custo_realizado?: number | null
           end_date?: string | null
+          iec_atual?: number | null
           id?: string
+          margem_atual?: number | null
           name: string
+          orcamento_previsto?: number | null
           project_manager?: string | null
+          receita_realizada?: number | null
+          saldo_atual?: number | null
           start_date?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          bank_account_id?: string | null
           client_id?: string
           created_at?: string
+          custo_realizado?: number | null
           end_date?: string | null
+          iec_atual?: number | null
           id?: string
+          margem_atual?: number | null
           name?: string
+          orcamento_previsto?: number | null
           project_manager?: string | null
+          receita_realizada?: number | null
+          saldo_atual?: number | null
           start_date?: string | null
           status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
@@ -1196,41 +1966,390 @@ export type Database = {
       suppliers: {
         Row: {
           address: string | null
+          ativo: boolean
+          bairro: string | null
+          categoria_padrao_id: string | null
+          cep: string | null
+          chave_pix: string | null
+          cidade: string | null
+          complemento: string | null
           contact_name: string | null
           created_at: string
           document: string | null
           email: string | null
+          estado: string | null
           id: string
           legal_name: string | null
+          numero: string | null
+          observacoes: string | null
           phone: string | null
+          rua: string | null
+          tipo: string | null
           trade_name: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          ativo?: boolean
+          bairro?: string | null
+          categoria_padrao_id?: string | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          complemento?: string | null
           contact_name?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
+          estado?: string | null
           id?: string
           legal_name?: string | null
+          numero?: string | null
+          observacoes?: string | null
           phone?: string | null
+          rua?: string | null
+          tipo?: string | null
           trade_name: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          ativo?: boolean
+          bairro?: string | null
+          categoria_padrao_id?: string | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          complemento?: string | null
           contact_name?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
+          estado?: string | null
           id?: string
           legal_name?: string | null
+          numero?: string | null
+          observacoes?: string | null
           phone?: string | null
+          rua?: string | null
+          tipo?: string | null
           trade_name?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          status: string
+          context_type: string | null
+          context_id: string | null
+          context_snapshot: Json | null
+          message_count: number
+          total_tokens: number
+          last_message_at: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          status?: string
+          context_type?: string | null
+          context_id?: string | null
+          context_snapshot?: Json | null
+          message_count?: number
+          total_tokens?: number
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          status?: string
+          context_type?: string | null
+          context_id?: string | null
+          context_snapshot?: Json | null
+          message_count?: number
+          total_tokens?: number
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge: {
+        Row: {
+          id: string
+          tipo: string
+          conteudo: string
+          embedding: string | null
+          scope_type: string | null
+          scope_id: string | null
+          user_id: string | null
+          ativo: boolean
+          confianca: number
+          vezes_usado: number
+          ultimo_uso: string | null
+          conversation_id: string | null
+          message_id: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          tipo: string
+          conteudo: string
+          embedding?: string | null
+          scope_type?: string | null
+          scope_id?: string | null
+          user_id?: string | null
+          ativo?: boolean
+          confianca?: number
+          vezes_usado?: number
+          ultimo_uso?: string | null
+          conversation_id?: string | null
+          message_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          tipo?: string
+          conteudo?: string
+          embedding?: string | null
+          scope_type?: string | null
+          scope_id?: string | null
+          user_id?: string | null
+          ativo?: boolean
+          confianca?: number
+          vezes_usado?: number
+          ultimo_uso?: string | null
+          conversation_id?: string | null
+          message_id?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: string
+          content: string
+          context_used: Json | null
+          sources: Json | null
+          tool_name: string | null
+          tool_input: Json | null
+          tool_output: Json | null
+          model: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          latency_ms: number | null
+          action_audit_id: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: string
+          content: string
+          context_used?: Json | null
+          sources?: Json | null
+          tool_name?: string | null
+          tool_input?: Json | null
+          tool_output?: Json | null
+          model?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          latency_ms?: number | null
+          action_audit_id?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: string
+          content?: string
+          context_used?: Json | null
+          sources?: Json | null
+          tool_name?: string | null
+          tool_input?: Json | null
+          tool_output?: Json | null
+          model?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          latency_ms?: number | null
+          action_audit_id?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_tool_registry: {
+        Row: {
+          id: string
+          name: string
+          display_name: string
+          description: string
+          category: string
+          function_type: string
+          function_name: string
+          parameters_schema: Json
+          return_schema: Json | null
+          required_roles: string[]
+          ativo: boolean
+          requires_confirmation: boolean
+          risk_level: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          display_name: string
+          description: string
+          category: string
+          function_type: string
+          function_name: string
+          parameters_schema: Json
+          return_schema?: Json | null
+          required_roles?: string[]
+          ativo?: boolean
+          requires_confirmation?: boolean
+          risk_level?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          display_name?: string
+          description?: string
+          category?: string
+          function_type?: string
+          function_name?: string
+          parameters_schema?: Json
+          return_schema?: Json | null
+          required_roles?: string[]
+          ativo?: boolean
+          requires_confirmation?: boolean
+          risk_level?: string
+          created_at?: string
+        }
         Relationships: []
+      }
+      ai_user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          idioma: string
+          formato_moeda: string
+          projeto_padrao: string | null
+          nivel_detalhe: string
+          alertar_anomalias: boolean
+          alertar_vencimentos: boolean
+          resumo_diario: boolean
+          apelidos: Json
+          preferencias_extra: Json
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          idioma?: string
+          formato_moeda?: string
+          projeto_padrao?: string | null
+          nivel_detalhe?: string
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          resumo_diario?: boolean
+          apelidos?: Json
+          preferencias_extra?: Json
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          idioma?: string
+          formato_moeda?: string
+          projeto_padrao?: string | null
+          nivel_detalhe?: string
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          resumo_diario?: boolean
+          apelidos?: Json
+          preferencias_extra?: Json
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1250,6 +2369,139 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+    }
+      ai_query_log: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string | null
+          query_text: string
+          response_text: string | null
+          tokens_used: number | null
+          model: string | null
+          duration_ms: number | null
+          context: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          query_text: string
+          response_text?: string | null
+          tokens_used?: number | null
+          model?: string | null
+          duration_ms?: number | null
+          context?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          query_text?: string
+          response_text?: string | null
+          tokens_used?: number | null
+          model?: string | null
+          duration_ms?: number | null
+          context?: Json | null
+        }
+        Relationships: []
+      }
+      anomalies: {
+        Row: {
+          id: string
+          created_at: string
+          project_id: string | null
+          supplier_id: string | null
+          lancamento_id: string | null
+          nfe_id: string | null
+          tipo: string
+          severidade: string
+          titulo: string
+          descricao: string | null
+          valor_detectado: number | null
+          valor_referencia: number | null
+          status: string
+          resolucao_nota: string | null
+          resolvida_em: string | null
+          resolvida_por: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          project_id?: string | null
+          supplier_id?: string | null
+          lancamento_id?: string | null
+          nfe_id?: string | null
+          tipo: string
+          severidade: string
+          titulo: string
+          descricao?: string | null
+          valor_detectado?: number | null
+          valor_referencia?: number | null
+          status?: string
+          resolucao_nota?: string | null
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          project_id?: string | null
+          supplier_id?: string | null
+          lancamento_id?: string | null
+          nfe_id?: string | null
+          tipo?: string
+          severidade?: string
+          titulo?: string
+          descricao?: string | null
+          valor_detectado?: number | null
+          valor_referencia?: number | null
+          status?: string
+          resolucao_nota?: string | null
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      margin_snapshots: {
+        Row: {
+          id: string
+          created_at: string
+          project_id: string
+          mes: string
+          receita: number | null
+          custo: number | null
+          saldo: number | null
+          margem: number | null
+          iec: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          project_id: string
+          mes: string
+          receita?: number | null
+          custo?: number | null
+          saldo?: number | null
+          margem?: number | null
+          iec?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          project_id?: string
+          mes?: string
+          receita?: number | null
+          custo?: number | null
+          saldo?: number | null
+          margem?: number | null
+          iec?: number | null
         }
         Relationships: []
       }

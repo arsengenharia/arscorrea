@@ -1,0 +1,298 @@
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle, Building } from "lucide-react";
+
+import { Layout } from "@/components/layout/Layout";
+import { FinanceiroTabs } from "./Financeiro";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBRL, formatPercent } from "@/lib/formatters";
+import { KpiCard } from "@/components/ui/kpi-card";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConsolidatedPDFButton } from "@/components/financeiro/ConsolidatedPDFButton";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
+
+// ─── Queries ────────────────────────────────────────────────────────────────
+
+async function fetchProjectsSummary() {
+  const { data, error } = await supabase
+    .from("projects")
+    .select(
+      "id, name, status, orcamento_previsto, custo_realizado, receita_realizada, saldo_atual, margem_atual, iec_atual"
+    )
+    .in("status", [
+      "Pendente",
+      "Em Andamento",
+      "pendente",
+      "em andamento",
+      "em_andamento",
+      "iniciado",
+    ])
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function fetchPendingCounts() {
+  const [entriesRes, txRes] = await Promise.all([
+    supabase
+      .from("project_financial_entries" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("situacao", "pendente"),
+    supabase
+      .from("bank_transactions" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("status_conciliacao", "pendente"),
+  ]);
+  return {
+    entriesPendentes: entriesRes.count || 0,
+    txPendentes: txRes.count || 0,
+  };
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export default function VisaoGeral() {
+  const navigate = useNavigate();
+
+  const { data: projects = [], isLoading: loadingProjects } = useQuery({
+    queryKey: ["projects-financial-summary"],
+    queryFn: fetchProjectsSummary,
+  });
+
+  const { data: pending } = useQuery({
+    queryKey: ["financial-pending-counts"],
+    queryFn: fetchPendingCounts,
+  });
+
+  const { data: alertData } = useQuery({
+    queryKey: ["financial-alerts"],
+    queryFn: async () => {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // NF-e pending > 24h
+      const { count: nfeStale } = await (supabase.from("nfe_inbox" as any) as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "aguardando_revisao")
+        .lt("created_at", oneDayAgo);
+
+      // Entries without reconciliation > 7 days
+      const { count: entriesStale } = await (supabase.from("project_financial_entries" as any) as any)
+        .select("id", { count: "exact", head: true })
+        .eq("situacao", "pendente")
+        .lt("created_at", sevenDaysAgo);
+
+      return {
+        nfeStale: nfeStale || 0,
+        entriesStale: entriesStale || 0,
+      };
+    },
+  });
+
+  // ── KPI calculations ──────────────────────────────────────────────────────
+  const totalReceita = projects.reduce(
+    (s, p) => s + (Number(p.receita_realizada) || 0),
+    0
+  );
+  const totalCusto = projects.reduce(
+    (s, p) => s + (Number(p.custo_realizado) || 0),
+    0
+  );
+  const totalSaldo = totalReceita - totalCusto;
+  const margemMedia =
+    totalReceita > 0
+      ? ((totalReceita - totalCusto) / totalReceita) * 100
+      : 0;
+  const obrasNegativas = projects.filter(
+    (p) => (Number(p.saldo_atual) || 0) < 0
+  ).length;
+  const obrasIecAlto = projects.filter(
+    (p) => p.iec_atual != null && Number(p.iec_atual) > 1
+  ).length;
+
+  const entriesPendentes = pending?.entriesPendentes ?? 0;
+  const txPendentes = pending?.txPendentes ?? 0;
+  const totalPendencias = entriesPendentes + txPendentes;
+
+  // ── Pending label ─────────────────────────────────────────────────────────
+  let pendenciasLabel: string;
+  if (entriesPendentes > 0 && txPendentes > 0) {
+    pendenciasLabel = `${entriesPendentes} lançamento(s) não conciliado(s), ${txPendentes} transação(ões) pendente(s)`;
+  } else if (entriesPendentes > 0) {
+    pendenciasLabel = `${entriesPendentes} lançamento(s) não conciliado(s)`;
+  } else if (txPendentes > 0) {
+    pendenciasLabel = `${txPendentes} transação(ões) pendente(s)`;
+  } else {
+    pendenciasLabel = "Tudo em dia";
+  }
+
+  return (
+    <Layout>
+      <div className="w-full max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+          <div className="flex items-center gap-2">
+            <AnalyzeButton prompt="Analise a saúde financeira geral: receitas, custos, saldos, margens, anomalias e recomendações." label="Analisar" />
+            {projects.length > 0 && (
+              <ConsolidatedPDFButton
+                projects={projects}
+                totalReceita={totalReceita}
+                totalCusto={totalCusto}
+                totalSaldo={totalSaldo}
+                margemMedia={margemMedia}
+              />
+            )}
+          </div>
+        </div>
+        <FinanceiroTabs />
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard icon={TrendingUp} iconBg="emerald" label="Receita Total" value={loadingProjects ? "—" : formatBRL(totalReceita)} valueClassName="text-green-600" subtitle={`${projects.length} obra${projects.length !== 1 ? "s" : ""} ativa${projects.length !== 1 ? "s" : ""}`} />
+          <KpiCard icon={TrendingDown} iconBg="rose" label="Custo Total" value={loadingProjects ? "—" : formatBRL(totalCusto)} valueClassName="text-red-600" />
+          <KpiCard icon={Wallet} iconBg="blue" label="Saldo Global" value={loadingProjects ? "—" : formatBRL(totalSaldo)} valueClassName={totalSaldo >= 0 ? "text-green-600" : "text-red-600"} subtitle={`Margem média: ${loadingProjects ? "—" : formatPercent(margemMedia)}`} />
+          <KpiCard icon={Clock} iconBg="amber" label="Pendências" value={totalPendencias} valueClassName={totalPendencias > 0 ? "text-amber-600" : "text-green-600"} subtitle={pendenciasLabel} />
+        </div>
+
+        {/* Alert Badges */}
+        {(obrasNegativas > 0 || obrasIecAlto > 0 || alertData?.nfeStale || alertData?.entriesStale) && (
+          <div className="flex flex-wrap gap-2">
+            {obrasNegativas > 0 && (
+              <Badge variant="destructive" className="flex items-center gap-1 py-1 px-3">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {obrasNegativas} obra{obrasNegativas !== 1 ? "s" : ""} com saldo negativo
+              </Badge>
+            )}
+            {obrasIecAlto > 0 && (
+              <Badge className="flex items-center gap-1 py-1 px-3 bg-orange-500 hover:bg-orange-600 text-white">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {obrasIecAlto} obra{obrasIecAlto !== 1 ? "s" : ""} acima do orçamento (IEC &gt; 1)
+              </Badge>
+            )}
+            {alertData?.nfeStale ? (
+              <Badge className="bg-yellow-100 text-yellow-900">
+                <Clock className="w-3 h-3 mr-1" />
+                {alertData.nfeStale} NF-e pendente{alertData.nfeStale > 1 ? "s" : ""} há mais de 24h
+              </Badge>
+            ) : null}
+            {alertData?.entriesStale ? (
+              <Badge className="bg-yellow-100 text-yellow-900">
+                <Clock className="w-3 h-3 mr-1" />
+                {alertData.entriesStale} lançamento{alertData.entriesStale > 1 ? "s" : ""} sem conciliação há mais de 7 dias
+              </Badge>
+            ) : null}
+          </div>
+        )}
+
+        {/* Projects Summary Table */}
+        <div className="space-y-2">
+          <h3 className="text-xl font-semibold">Resumo por Obra</h3>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Obra</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Orçamento</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Saldo</TableHead>
+                  <TableHead className="text-right">Margem</TableHead>
+                  <TableHead className="text-right">IEC</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingProjects ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : projects.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <div className="text-center py-12">
+                        <Building className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">Nenhuma obra ativa</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cadastre uma obra para acompanhar o financeiro.</p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/obras/nova")}>
+                          Nova Obra
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  projects.map((p) => {
+                    const saldo = Number(p.saldo_atual) || 0;
+                    const margem = Number(p.margem_atual) || 0;
+                    const iec = p.iec_atual != null ? Number(p.iec_atual) : null;
+
+                    return (
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/obras/${p.id}/financeiro`)}
+                      >
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{p.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatBRL(Number(p.orcamento_previsto) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatBRL(Number(p.receita_realizada) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatBRL(Number(p.custo_realizado) || 0)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-semibold ${
+                            saldo >= 0 ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {formatBRL(saldo)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatPercent(margem)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right ${
+                            iec != null && iec > 1
+                              ? "text-red-600 font-bold"
+                              : ""
+                          }`}
+                        >
+                          {iec != null ? iec.toFixed(3) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Clique em uma obra para ver o dashboard financeiro detalhado.
+          </p>
+        </div>
+      </div>
+    </Layout>
+  );
+}
