@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { useNfePendingCount } from "@/hooks/useNfePendingCount";
+import { SmartSearch } from "@/components/ai/SmartSearch";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, path: "/" },
@@ -69,6 +70,9 @@ export function TopNavigation() {
               className="h-7 md:h-9"
             />
           </button>
+
+          {/* Smart Search */}
+          <SmartSearch />
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
