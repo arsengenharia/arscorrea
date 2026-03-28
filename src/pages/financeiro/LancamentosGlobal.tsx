@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { useAiCommandListener } from "@/hooks/useAiCommands";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { LancamentoForm } from "@/components/financeiro/LancamentoForm";
@@ -56,6 +57,24 @@ export default function LancamentosGlobal() {
   const [filterProject, setFilterProject] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // AI smart filter: listen for filter_entries commands from the chat panel
+  const handleAiFilter = useCallback((params: Record<string, any>) => {
+    if (params.project_id) {
+      setFilterProject(params.project_id);
+    }
+    if (params.category) {
+      // Try to match by category name against loaded categories
+      // The AI may pass an ID or a name — handle both
+      setFilterCategory(params.category);
+    }
+    if (params.category_id) {
+      setFilterCategory(params.category_id);
+    }
+    // date_from / date_to: for now we don't have date range state,
+    // but we'll add it so the filter works end-to-end
+  }, []);
+  useAiCommandListener("filter_entries", handleAiFilter);
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => {

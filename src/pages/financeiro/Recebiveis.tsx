@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAiCommandListener } from "@/hooks/useAiCommands";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { Card, CardContent } from "@/components/ui/card";
@@ -352,6 +353,17 @@ export default function Recebiveis() {
   const [filterProject, setFilterProject] = useState("all");
   const [selectedPayment, setSelectedPayment] = useState<ContractPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // AI smart filter: listen for filter_recebiveis commands from the chat panel
+  const handleAiFilter = useCallback((params: Record<string, any>) => {
+    if (params.project_id) {
+      setFilterProject(params.project_id);
+    }
+    if (params.status) {
+      setFilterStatus(params.status);
+    }
+  }, []);
+  useAiCommandListener("filter_recebiveis", handleAiFilter);
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["all-receivables"],

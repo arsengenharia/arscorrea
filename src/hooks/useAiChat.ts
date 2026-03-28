@@ -7,7 +7,7 @@ export interface ChatMessage {
   content: string;
   pending_tool?: { name: string; display_name: string; input: any };
   tool_results?: any[];
-  action?: { type: string; path: string; description?: string };
+  action?: { type: string; path: string; description?: string; params?: Record<string, any> };
   timestamp: Date;
 }
 
@@ -15,7 +15,7 @@ export function useAiChat(contextType?: string, contextId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [lastAction, setLastAction] = useState<{ type: string; path: string; description?: string } | null>(null);
+  const [lastAction, setLastAction] = useState<{ type: string; path: string; description?: string; params?: Record<string, any> } | null>(null);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg: ChatMessage = {

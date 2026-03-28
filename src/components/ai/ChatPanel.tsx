@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, X, Send, Loader2, RotateCcw, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { Bot, X, Send, Loader2, RotateCcw, CheckCircle, XCircle, ExternalLink, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAiContext } from "@/contexts/AiContext";
 import { AI_ANALYZE_EVENT } from "./AnalyzeButton";
+import { emitAiCommand } from "@/hooks/useAiCommands";
+import { toast } from "sonner";
 
 export function ChatPanel() {
   const { contextType, contextId, contextLabel } = useAiContext();
@@ -42,10 +44,23 @@ export function ChatPanel() {
     return () => window.removeEventListener(AI_ANALYZE_EVENT, handler);
   }, [sendMessage]);
 
-  // Execute navigation when lastAction changes
+  // Execute frontend actions when lastAction changes
   useEffect(() => {
-    if (lastAction?.type === "navigate") {
+    if (!lastAction) return;
+
+    if (lastAction.type === "navigate") {
       setTimeout(() => navigate(lastAction.path), 500);
+    } else if (lastAction.type === "generate_report") {
+      // Open report in new tab for print/PDF
+      window.open(lastAction.path, "_blank");
+      toast.success(lastAction.description || "Relatório gerado");
+    } else if (lastAction.type.startsWith("filter_")) {
+      // Navigate to the target page first, then emit the filter command
+      navigate(lastAction.path);
+      setTimeout(() => {
+        emitAiCommand({ type: lastAction.type, params: lastAction.params || {} });
+        toast.success(lastAction.description || "Filtros aplicados");
+      }, 300);
     }
   }, [lastAction, navigate]);
 
@@ -182,6 +197,41 @@ export function ChatPanel() {
                       <ExternalLink className="h-3 w-3" />
                       Ir para: {msg.action.description || msg.action.path}
                     </button>
+                  )}
+
+                  {/* Filter action */}
+                  {msg.action?.type?.startsWith("filter_") && (
+                    <button
+                      onClick={() => {
+                        navigate(msg.action!.path);
+                        setTimeout(() => {
+                          emitAiCommand({ type: msg.action!.type, params: msg.action!.params || {} });
+                          toast.success(msg.action!.description || "Filtros aplicados");
+                        }, 300);
+                      }}
+                      className="mt-1.5 text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {msg.action.description || "Aplicar filtros"}
+                    </button>
+                  )}
+
+                  {/* Report generation action */}
+                  {msg.action?.type === "generate_report" && (
+                    <div className="mt-2 p-2.5 bg-background rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <FileDown className="h-4 w-4 text-blue-600" />
+                        <p className="text-xs font-medium text-blue-800">
+                          {msg.action.description || "Relatório Financeiro"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => window.open(msg.action!.path, "_blank")}
+                        className="w-full text-center text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      >
+                        Abrir Relatório
+                      </button>
+                    </div>
                   )}
 
                   {/* Tool results */}
