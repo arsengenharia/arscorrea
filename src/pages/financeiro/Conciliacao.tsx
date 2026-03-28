@@ -30,6 +30,7 @@ import { Upload, Link2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import { FinanceiroTabs } from "./Financeiro";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -64,28 +65,6 @@ interface FinancialEntry {
   situacao: string;
   bank_account_id: string | null;
   project: { name: string } | null;
-}
-
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: BankTransaction["status"] }) {
-  if (status === "conciliado") {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800">
-        Conciliado
-      </span>
-    );
-  }
-  if (status === "nao_identificado") {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-800">
-        Não identificado
-      </span>
-    );
-  }
-  return (
-    <Badge variant="outline">Pendente</Badge>
-  );
 }
 
 // ─── Manual Match Dialog ──────────────────────────────────────────────────────

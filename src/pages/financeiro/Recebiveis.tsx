@@ -6,6 +6,8 @@ import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,12 +71,9 @@ function getDisplayStatus(payment: ContractPayment): "recebido" | "vencido" | "p
   return "pendente";
 }
 
-function StatusBadge({ payment }: { payment: ContractPayment }) {
+function PaymentStatusBadge({ payment }: { payment: ContractPayment }) {
   const s = getDisplayStatus(payment);
-  if (s === "recebido") return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">Recebido</Badge>;
-  if (s === "vencido") return <Badge variant="destructive">Vencido</Badge>;
-  if (s === "parcial") return <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">Parcial</Badge>;
-  return <Badge variant="outline">Pendente</Badge>;
+  return <StatusBadge status={s} />;
 }
 
 function KindBadge({ kind }: { kind: string }) {
@@ -446,53 +445,10 @@ export default function Recebiveis() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-md bg-blue-50">
-                  <HandCoins className="h-4 w-4 text-blue-600" />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">Total a Receber</span>
-              </div>
-              <p className="text-xl font-bold text-foreground">{formatBRL(totalAReceber)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-md bg-rose-50">
-                  <AlertTriangle className="h-4 w-4 text-rose-600" />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">Vencido</span>
-              </div>
-              <p className="text-xl font-bold text-rose-600">{formatBRL(totalVencido)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-md bg-amber-50">
-                  <Clock className="h-4 w-4 text-amber-600" />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">A Vencer (30d)</span>
-              </div>
-              <p className="text-xl font-bold text-foreground">{formatBRL(totalAVencer30)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-md bg-emerald-50">
-                  <TrendingUp className="h-4 w-4 text-emerald-600" />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">Recebido (30d)</span>
-              </div>
-              <p className="text-xl font-bold text-emerald-600">{formatBRL(totalRecebido30)}</p>
-            </CardContent>
-          </Card>
+          <KpiCard icon={HandCoins} iconBg="blue" label="Total a Receber" value={formatBRL(totalAReceber)} />
+          <KpiCard icon={AlertTriangle} iconBg="rose" label="Vencido" value={formatBRL(totalVencido)} valueClassName="text-rose-600" />
+          <KpiCard icon={Clock} iconBg="amber" label="A Vencer (30d)" value={formatBRL(totalAVencer30)} />
+          <KpiCard icon={TrendingUp} iconBg="emerald" label="Recebido (30d)" value={formatBRL(totalRecebido30)} valueClassName="text-emerald-600" />
         </div>
 
         {/* Filters */}
@@ -607,7 +563,7 @@ export default function Recebiveis() {
                           {formatBRL(saldo)}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge payment={p} />
+                          <PaymentStatusBadge payment={p} />
                         </TableCell>
                         <TableCell>
                           {!isRecebido && (

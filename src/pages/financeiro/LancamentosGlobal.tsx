@@ -35,18 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatBRL, formatDate } from "@/lib/formatters";
-
-const situacaoBadgeVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  pendente: "secondary",
-  conciliado: "default",
-  divergente: "destructive",
-};
-
-const situacaoLabel: Record<string, string> = {
-  pendente: "Pendente",
-  conciliado: "Conciliado",
-  divergente: "Divergente",
-};
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function LancamentosGlobal() {
   const queryClient = useQueryClient();
@@ -368,9 +357,7 @@ export default function LancamentosGlobal() {
                       {formatBRL(entry.valor)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={situacaoBadgeVariant[entry.situacao] ?? "outline"}>
-                        {situacaoLabel[entry.situacao] ?? entry.situacao}
-                      </Badge>
+                      <StatusBadge status={entry.situacao} />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

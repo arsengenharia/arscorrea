@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -41,75 +43,6 @@ const tipoLabels: Record<string, string> = {
   outro: "Outro",
 };
 
-function severityBadge(sev: string) {
-  switch (sev) {
-    case "critica":
-      return (
-        <span className="inline-flex items-center rounded-full bg-red-600 text-white text-xs font-semibold px-2.5 py-0.5">
-          Crítica
-        </span>
-      );
-    case "alta":
-      return (
-        <span className="inline-flex items-center rounded-full bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 border border-orange-200">
-          Alta
-        </span>
-      );
-    case "media":
-      return (
-        <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 border border-amber-200">
-          Média
-        </span>
-      );
-    case "baixa":
-      return (
-        <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-700 text-xs font-semibold px-2.5 py-0.5 border border-gray-300">
-          Baixa
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5">
-          {sev}
-        </span>
-      );
-  }
-}
-
-function statusBadge(status: string) {
-  switch (status) {
-    case "aberta":
-      return (
-        <span className="inline-flex items-center rounded-full border border-slate-300 text-slate-700 text-xs font-medium px-2.5 py-0.5">
-          Aberta
-        </span>
-      );
-    case "em_analise":
-      return (
-        <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 border border-amber-200">
-          Em Análise
-        </span>
-      );
-    case "resolvida":
-      return (
-        <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 border border-green-200">
-          Resolvida
-        </span>
-      );
-    case "ignorada":
-      return (
-        <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-0.5">
-          Ignorada
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 text-xs px-2.5 py-0.5">
-          {status}
-        </span>
-      );
-  }
-}
 
 function formatCurrency(value: number | null | undefined) {
   if (value == null) return "—";
@@ -231,58 +164,10 @@ export default function Anomalias() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="shadow-sm border-slate-100">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-50">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Abertas</p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {totalAbertas}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-slate-100">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-50">
-                <ShieldAlert className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Críticas</p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {totalCriticas}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-slate-100">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-50">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Resolvidas</p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {totalResolvidas}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-slate-100">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-50">
-                <Calendar className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Esta Semana</p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {totalEstaSemana}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <KpiCard icon={AlertTriangle} iconBg="amber" label="Total Abertas" value={totalAbertas} />
+          <KpiCard icon={ShieldAlert} iconBg="red" label="Críticas" value={totalCriticas} />
+          <KpiCard icon={CheckCircle2} iconBg="green" label="Resolvidas" value={totalResolvidas} />
+          <KpiCard icon={Calendar} iconBg="blue" label="Esta Semana" value={totalEstaSemana} />
         </div>
 
         {/* Filters */}
@@ -388,7 +273,7 @@ export default function Anomalias() {
                             : "—"}
                         </td>
                         <td className="px-4 py-3">
-                          {severityBadge(anomaly.severidade)}
+                          <StatusBadge status={anomaly.severidade} />
                         </td>
                         <td className="px-4 py-3 text-slate-600 max-w-[160px]">
                           {tipoLabels[anomaly.tipo] ?? anomaly.tipo}
@@ -424,7 +309,7 @@ export default function Anomalias() {
                             : null}
                         </td>
                         <td className="px-4 py-3">
-                          {statusBadge(anomaly.status)}
+                          <StatusBadge status={anomaly.status} />
                         </td>
                         <td className="px-4 py-3">
                           {anomaly.status !== "resolvida" &&

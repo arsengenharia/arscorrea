@@ -6,6 +6,7 @@ import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatPercent } from "@/lib/formatters";
+import { KpiCard } from "@/components/ui/kpi-card";
 
 import {
   Card,
@@ -158,74 +159,10 @@ export default function VisaoGeral() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Receita Total */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {loadingProjects ? "—" : formatBRL(totalReceita)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {projects.length} obra{projects.length !== 1 ? "s" : ""} ativa{projects.length !== 1 ? "s" : ""}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Custo Total */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Custo Total</CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {loadingProjects ? "—" : formatBRL(totalCusto)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Saldo Global */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Global</CardTitle>
-              <Wallet className={`h-4 w-4 ${totalSaldo >= 0 ? "text-green-500" : "text-red-500"}`} />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${
-                  totalSaldo >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {loadingProjects ? "—" : formatBRL(totalSaldo)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Margem média: {loadingProjects ? "—" : formatPercent(margemMedia)}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Pendências */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendências</CardTitle>
-              <Clock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${
-                  totalPendencias > 0 ? "text-amber-600" : "text-green-600"
-                }`}
-              >
-                {totalPendencias}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {pendenciasLabel}
-              </p>
-            </CardContent>
-          </Card>
+          <KpiCard icon={TrendingUp} iconBg="emerald" label="Receita Total" value={loadingProjects ? "—" : formatBRL(totalReceita)} valueClassName="text-green-600" subtitle={`${projects.length} obra${projects.length !== 1 ? "s" : ""} ativa${projects.length !== 1 ? "s" : ""}`} />
+          <KpiCard icon={TrendingDown} iconBg="rose" label="Custo Total" value={loadingProjects ? "—" : formatBRL(totalCusto)} valueClassName="text-red-600" />
+          <KpiCard icon={Wallet} iconBg="blue" label="Saldo Global" value={loadingProjects ? "—" : formatBRL(totalSaldo)} valueClassName={totalSaldo >= 0 ? "text-green-600" : "text-red-600"} subtitle={`Margem média: ${loadingProjects ? "—" : formatPercent(margemMedia)}`} />
+          <KpiCard icon={Clock} iconBg="amber" label="Pendências" value={totalPendencias} valueClassName={totalPendencias > 0 ? "text-amber-600" : "text-green-600"} subtitle={pendenciasLabel} />
         </div>
 
         {/* Alert Badges */}

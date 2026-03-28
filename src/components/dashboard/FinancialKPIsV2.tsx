@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, BarChart3, FileCheck } from "lucide-react";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -65,90 +66,12 @@ export function FinancialKPIsV2() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-emerald-50">
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Receita Total</span>
-          </div>
-          <p className="text-xl font-bold text-foreground">{fmt(data.totalReceita)}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{data.totalObras} obras ativas</p>
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-rose-50">
-              <TrendingDown className="h-4 w-4 text-rose-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Custo Total</span>
-          </div>
-          <p className="text-xl font-bold text-foreground">{fmt(data.totalCusto)}</p>
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-blue-50">
-              <Wallet className="h-4 w-4 text-blue-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Saldo Global</span>
-          </div>
-          <p className="text-xl font-bold text-foreground">{fmt(data.totalSaldo)}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Margem: {data.margemMedia.toFixed(1)}%</p>
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Alertas</span>
-          </div>
-          <p className={`text-xl font-bold ${alertCount > 0 ? "text-red-600" : "text-green-600"}`}>
-            {alertCount}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {data.obrasNegativas > 0 ? `${data.obrasNegativas} com saldo negativo` : "Tudo OK"}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-purple-50">
-              <BarChart3 className="h-4 w-4 text-purple-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Nao Conciliados</span>
-          </div>
-          <p className={`text-xl font-bold ${data.entriesPendentes > 0 ? "text-amber-600" : "text-green-600"}`}>
-            {data.entriesPendentes}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">lancamentos pendentes</p>
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-sky-50">
-              <FileCheck className="h-4 w-4 text-sky-600" />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">NF-e Pendentes</span>
-          </div>
-          <p className={`text-xl font-bold ${data.nfePendentes > 0 ? "text-amber-600" : "text-green-600"}`}>
-            {data.nfePendentes}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">aguardando revisao</p>
-        </CardContent>
-      </Card>
+      <KpiCard icon={TrendingUp} iconBg="emerald" label="Receita Total" value={fmt(data.totalReceita)} subtitle={`${data.totalObras} obras ativas`} />
+      <KpiCard icon={TrendingDown} iconBg="rose" label="Custo Total" value={fmt(data.totalCusto)} />
+      <KpiCard icon={Wallet} iconBg="blue" label="Saldo Global" value={fmt(data.totalSaldo)} subtitle={`Margem: ${data.margemMedia.toFixed(1)}%`} />
+      <KpiCard icon={AlertTriangle} iconBg="amber" label="Alertas" value={alertCount} valueClassName={alertCount > 0 ? "text-red-600" : "text-green-600"} subtitle={data.obrasNegativas > 0 ? `${data.obrasNegativas} com saldo negativo` : "Tudo OK"} />
+      <KpiCard icon={BarChart3} iconBg="purple" label="Nao Conciliados" value={data.entriesPendentes} valueClassName={data.entriesPendentes > 0 ? "text-amber-600" : "text-green-600"} subtitle="lancamentos pendentes" />
+      <KpiCard icon={FileCheck} iconBg="sky" label="NF-e Pendentes" value={data.nfePendentes} valueClassName={data.nfePendentes > 0 ? "text-amber-600" : "text-green-600"} subtitle="aguardando revisao" />
     </div>
   );
 }

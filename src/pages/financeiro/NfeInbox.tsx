@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,20 +12,6 @@ import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
 import { NfeReviewDialog } from "@/components/financeiro/NfeReviewDialog";
 import { NfeUploadArea } from "@/components/financeiro/NfeUploadArea";
 import { NfeManualEntryDialog } from "@/components/financeiro/NfeManualEntryDialog";
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    recebido: { label: "Recebido", className: "bg-blue-100 text-blue-800" },
-    processando: { label: "Processando", className: "bg-yellow-100 text-yellow-800" },
-    aguardando_revisao: { label: "Aguardando Revisao", className: "bg-amber-100 text-amber-800" },
-    aprovado: { label: "Aprovado", className: "bg-green-100 text-green-800" },
-    rejeitado: { label: "Rejeitado", className: "bg-red-100 text-red-800" },
-    duplicata: { label: "Duplicata", className: "bg-gray-100 text-gray-800" },
-    erro: { label: "Erro", className: "bg-red-100 text-red-800" },
-  };
-  const s = map[status] ?? { label: status, className: "" };
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.className}`}>{s.label}</span>;
-}
 
 function OrigemBadge({ origem }: { origem: string }) {
   if (origem === "email") return <Badge variant="outline"><Mail className="h-3 w-3 mr-1" />Email</Badge>;

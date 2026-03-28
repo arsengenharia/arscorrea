@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import {
   BarChart,
   Bar,
@@ -386,98 +387,16 @@ export default function Indicadores() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* IEC Médio Global */}
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-md bg-blue-50">
-                      <BarChart3 className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      IEC Médio Global
-                    </span>
-                  </div>
-                  <p
-                    className={`text-xl font-bold ${
-                      weightedIec > 1 ? "text-rose-600" : "text-foreground"
-                    }`}
-                  >
-                    {weightedIec.toFixed(3)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Média ponderada por custo
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Obras com IEC > 1 */}
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-md bg-rose-50">
-                      <AlertTriangle className="h-4 w-4 text-rose-600" />
-                    </div>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      Obras com IEC &gt; 1
-                    </span>
-                  </div>
-                  <p className="text-xl font-bold text-foreground">
-                    {obrasIecAlto.length}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">
-                      / {filteredProjects.length}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {obrasIecAlto.length > 0
-                      ? obrasIecAlto.map((p) => abbrev(p.name, 14)).join(", ")
-                      : "Nenhuma obra em alerta"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Margem Média */}
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-md bg-emerald-50">
-                      <TrendingUp className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      Margem Média
-                    </span>
-                  </div>
-                  <p
-                    className={`text-xl font-bold ${
-                      avgMargem < 0 ? "text-rose-600" : "text-foreground"
-                    }`}
-                  >
-                    {formatPercent(avgMargem)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Média simples entre obras
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Orçamento vs Realizado */}
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-md bg-amber-50">
-                      <Wallet className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      Orçamento Total
-                    </span>
-                  </div>
-                  <p className="text-xl font-bold text-foreground">
-                    {formatBRL(totalOrcamento)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Realizado: {formatBRL(totalCusto)}
-                  </p>
-                </CardContent>
-              </Card>
+              <KpiCard icon={BarChart3} iconBg="blue" label="IEC Médio Global" value={weightedIec.toFixed(3)} valueClassName={weightedIec > 1 ? "text-rose-600" : undefined} subtitle="Média ponderada por custo" />
+              <KpiCard
+                icon={AlertTriangle}
+                iconBg="rose"
+                label="Obras com IEC > 1"
+                value={`${obrasIecAlto.length} / ${filteredProjects.length}`}
+                subtitle={obrasIecAlto.length > 0 ? obrasIecAlto.map((p) => abbrev(p.name, 14)).join(", ") : "Nenhuma obra em alerta"}
+              />
+              <KpiCard icon={TrendingUp} iconBg="emerald" label="Margem Média" value={formatPercent(avgMargem)} valueClassName={avgMargem < 0 ? "text-rose-600" : undefined} subtitle="Média simples entre obras" />
+              <KpiCard icon={Wallet} iconBg="amber" label="Orçamento Total" value={formatBRL(totalOrcamento)} subtitle={`Realizado: ${formatBRL(totalCusto)}`} />
             </div>
 
             {/* Charts Grid */}
