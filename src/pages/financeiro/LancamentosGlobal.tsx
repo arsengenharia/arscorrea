@@ -2,11 +2,12 @@ import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package, FileText } from "lucide-react";
 import { useAiCommandListener } from "@/hooks/useAiCommands";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
 import { LancamentoForm } from "@/components/financeiro/LancamentoForm";
+import { NfeManualEntryDialog } from "@/components/financeiro/NfeManualEntryDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -52,6 +53,7 @@ export default function LancamentosGlobal() {
   const queryClient = useQueryClient();
 
   const [formOpen, setFormOpen] = useState(false);
+  const [nfeManualOpen, setNfeManualOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [filterProject, setFilterProject] = useState("all");
@@ -122,26 +124,7 @@ export default function LancamentosGlobal() {
         });
       }
 
-      // Strategy 3: for entries with supplier_id, check items by supplier + project
-      // (catches items from manual NF-e entries that bypass nfe_inbox)
-      const expandedEntries = entries.filter((e: any) => ids.includes(e.id) && e.tipo_documento === "NF-e");
-      let supplierItems: any[] = [];
-      for (const entry of expandedEntries) {
-        if (entry.supplier_id && !(directItems || []).some((i: any) => i.financial_entry_id === entry.id) && !indirectItems.some((i: any) => i.financial_entry_id === entry.id)) {
-          const { data } = await supabase
-            .from("nfe_items" as any)
-            .select("*, catalog:item_catalog(nome_padrao, categoria, unidade_padrao)")
-            .eq("supplier_id", entry.supplier_id)
-            .is("financial_entry_id", null)
-            .order("valor_total", { ascending: false })
-            .limit(20);
-          if (data) {
-            supplierItems.push(...data.map((i: any) => ({ ...i, financial_entry_id: entry.id })));
-          }
-        }
-      }
-
-      return [...(directItems || []), ...indirectItems, ...supplierItems];
+      return [...(directItems || []), ...indirectItems];
     },
     enabled: expandedRows.size > 0,
   });
@@ -241,10 +224,14 @@ export default function LancamentosGlobal() {
         {/* Header row */}
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">Lançamentos</h3>
-          <Button onClick={handleNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Lançamento
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setNfeManualOpen(true)}>
+              <FileText className="h-4 w-4 mr-2" /> Digitar NF-e
+            </Button>
+            <Button onClick={handleNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -481,6 +468,12 @@ export default function LancamentosGlobal() {
             </TableBody>
           </Table>
         </div>
+
+        <NfeManualEntryDialog
+          open={nfeManualOpen}
+          onOpenChange={setNfeManualOpen}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ["all-entries"] })}
+        />
 
         {/* LancamentoForm — no projectId when creating new */}
         <LancamentoForm

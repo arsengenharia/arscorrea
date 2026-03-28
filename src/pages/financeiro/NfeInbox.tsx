@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Upload, Eye } from "lucide-react";
+import { Mail, Upload, Eye, FileText } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import { FinanceiroTabs } from "./Financeiro";
 import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
 import { NfeReviewDialog } from "@/components/financeiro/NfeReviewDialog";
 import { NfeUploadArea } from "@/components/financeiro/NfeUploadArea";
+import { NfeManualEntryDialog } from "@/components/financeiro/NfeManualEntryDialog";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
@@ -33,6 +34,7 @@ function OrigemBadge({ origem }: { origem: string }) {
 export default function NfeInbox() {
   const [reviewItem, setReviewItem] = useState<NfeInboxItem | null>(null);
   const [activeTab, setActiveTab] = useState("pendentes");
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
 
   const { items: pendentes, loading: loadingPendentes, refetch: refetchPendentes } =
     useNfeInbox("aguardando_revisao");
@@ -106,11 +108,16 @@ export default function NfeInbox() {
 
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">Notas Fiscais Eletronicas</h3>
-          {pendentes.length > 0 && (
-            <Badge className="bg-amber-100 text-amber-800">
-              {pendentes.length} pendente{pendentes.length > 1 ? "s" : ""}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {pendentes.length > 0 && (
+              <Badge className="bg-amber-100 text-amber-800">
+                {pendentes.length} pendente{pendentes.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setManualEntryOpen(true)}>
+              <FileText className="h-4 w-4 mr-1" /> Digitar NF-e
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -141,6 +148,12 @@ export default function NfeInbox() {
         open={!!reviewItem}
         onClose={() => setReviewItem(null)}
         onProcessed={handleProcessed}
+      />
+
+      <NfeManualEntryDialog
+        open={manualEntryOpen}
+        onOpenChange={setManualEntryOpen}
+        onSaved={() => { refetchPendentes(); refetchHistorico(); }}
       />
     </Layout>
   );

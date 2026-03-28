@@ -546,6 +546,13 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
 
             {/* NF-e fields — shown only when tipo_documento is "NF-e" */}
             {watchTipoDoc === "NF-e" && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm space-y-2">
+                <p className="font-medium text-blue-900">Para NF-e com rastreamento de itens, use o fluxo dedicado:</p>
+                <p className="text-blue-700">Aba NF-e → Upload XML ou Digitar NF-e Manualmente</p>
+                <p className="text-xs text-blue-600">Ou continue aqui para um lançamento rápido sem itens granulares.</p>
+              </div>
+            )}
+            {watchTipoDoc === "NF-e" && (
               <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg border border-dashed">
                 <FormField control={form.control} name="supplier_cnpj" render={({ field }) => (
                   <FormItem>

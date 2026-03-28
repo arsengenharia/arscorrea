@@ -75,6 +75,25 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
     enabled: open,
   });
 
+  // Duplicate detection query
+  const { data: potentialDuplicates = [] } = useQuery({
+    queryKey: ["nfe-duplicates", item?.supplier_id, item?.valor_total],
+    queryFn: async () => {
+      if (!item?.supplier_id || !item?.valor_total) return [];
+      const tolerance = Number(item.valor_total) * 0.05; // 5% tolerance
+      const { data } = await supabase
+        .from("project_financial_entries" as any)
+        .select("id, data, valor, tipo_documento, project:projects(name)")
+        .eq("supplier_id", item.supplier_id)
+        .gte("valor", -(Number(item.valor_total) + tolerance))
+        .lte("valor", -(Number(item.valor_total) - tolerance))
+        .order("data", { ascending: false })
+        .limit(5);
+      return data as any[] || [];
+    },
+    enabled: open && !!item?.supplier_id && !!item?.valor_total,
+  });
+
   // Pre-fill category when item changes
   if (item && !categoriaCodigo && item.categoria_sugerida) {
     setCategoriaCodigo(item.categoria_sugerida);
@@ -249,6 +268,21 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Duplicate detection warning */}
+        {potentialDuplicates.length > 0 && (
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <p className="text-sm font-medium text-amber-800 mb-1">
+              ⚠️ Possível duplicata — {potentialDuplicates.length} lançamento(s) similar(es) encontrado(s):
+            </p>
+            {potentialDuplicates.map((d: any) => (
+              <p key={d.id} className="text-xs text-amber-700">
+                • {formatBRL(Math.abs(Number(d.valor)))} em {formatDate(d.data)} — {d.project?.name || "—"} ({d.tipo_documento})
+              </p>
+            ))}
+            <p className="text-xs text-amber-600 mt-1">Verifique se esta NF-e já foi lançada manualmente.</p>
           </div>
         )}
 
