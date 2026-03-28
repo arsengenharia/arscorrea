@@ -49,7 +49,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status] || { label: status, className: "bg-slate-100 text-slate-800 border-slate-200" };
+  const config = statusConfig[status] || { label: status, className: "bg-slate-100 text-slate-900 border-slate-200" };
   return (
     <span className={cn(
       "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border",

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, DollarSign, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 import { FinanceiroCards } from "@/components/financeiro/FinanceiroCards";
 import { CostByCategoryChart } from "@/components/financeiro/CostByCategoryChart";
 import { CurvaSChart } from "@/components/financeiro/CurvaSChart";
@@ -126,16 +127,29 @@ export default function FinanceiroDashboard() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/obras/${projectId}`)}
+              onClick={() => navigate("/financeiro/visao-geral")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
+                <button onClick={() => navigate("/financeiro/visao-geral")} className="hover:text-primary transition-colors">
+                  Financeiro
+                </button>
+                <span>/</span>
+                <button onClick={() => navigate("/financeiro/visao-geral")} className="hover:text-primary transition-colors">
+                  Visão Geral
+                </button>
+                <span>/</span>
+                <span className="text-foreground font-medium truncate max-w-[200px]">{project?.name}</span>
+              </div>
               <h2 className="text-2xl font-bold tracking-tight">Dashboard Financeiro</h2>
               <p className="text-sm text-muted-foreground">{project.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <AnalyzeButton prompt="Analise a performance financeira desta obra: custos, receitas, margem, IEC, anomalias e recomendações." label="Analisar" />
             <FinanceiroPDFButton
               projectName={project.name}
               totalRecebido={totalRecebido}
@@ -159,17 +173,17 @@ export default function FinanceiroDashboard() {
         {(saldo < 0 || (iecAtual !== null && iecAtual > 1) || pendentes > 0) && (
           <div className="flex flex-wrap gap-2">
             {saldo < 0 && (
-              <span className="inline-flex items-center rounded-full bg-red-100 text-red-800 text-xs font-medium px-3 py-1 border border-red-200">
+              <span className="inline-flex items-center rounded-full bg-red-100 text-red-900 text-xs font-medium px-3 py-1 border border-red-200">
                 Saldo negativo
               </span>
             )}
             {iecAtual !== null && iecAtual > 1 && (
-              <span className="inline-flex items-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-3 py-1 border border-orange-200">
+              <span className="inline-flex items-center rounded-full bg-orange-100 text-orange-900 text-xs font-medium px-3 py-1 border border-orange-200">
                 IEC acima de 1.0 — custo acima do previsto
               </span>
             )}
             {pendentes > 0 && (
-              <span className="inline-flex items-center rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 border border-yellow-200">
+              <span className="inline-flex items-center rounded-full bg-yellow-100 text-yellow-900 text-xs font-medium px-3 py-1 border border-yellow-200">
                 {pendentes} lançamento{pendentes > 1 ? "s" : ""} pendente{pendentes > 1 ? "s" : ""}
               </span>
             )}

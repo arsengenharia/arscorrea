@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Upload, Eye, FileText } from "lucide-react";
+import { Mail, Upload, Eye, FileText, FileCheck } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import { FinanceiroTabs } from "./Financeiro";
 import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
@@ -33,7 +33,7 @@ export default function NfeInbox() {
     refetchHistorico();
   };
 
-  const renderTable = (items: NfeInboxItem[], loading: boolean, showActions: boolean) => (
+  const renderTable = (items: NfeInboxItem[], loading: boolean, showActions: boolean, emptyState?: React.ReactNode) => (
     <div className="border rounded-lg">
       <Table>
         <TableHeader>
@@ -53,7 +53,9 @@ export default function NfeInbox() {
           {loading ? (
             <TableRow><TableCell colSpan={showActions ? 9 : 8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
           ) : items.length === 0 ? (
-            <TableRow><TableCell colSpan={showActions ? 9 : 8} className="text-center py-8 text-muted-foreground">Nenhuma nota fiscal encontrada</TableCell></TableRow>
+            <TableRow><TableCell colSpan={showActions ? 9 : 8}>
+              {emptyState ?? <div className="text-center py-8 text-muted-foreground">Nenhuma nota fiscal encontrada</div>}
+            </TableCell></TableRow>
           ) : items.map((item) => (
             <TableRow key={item.id}>
               <TableCell className="text-sm">{formatDate(item.created_at?.substring(0, 10))}</TableCell>
@@ -117,7 +119,16 @@ export default function NfeInbox() {
           </TabsList>
 
           <TabsContent value="pendentes" className="mt-4">
-            {renderTable(pendentes, loadingPendentes, true)}
+            {renderTable(pendentes, loadingPendentes, true, (
+              <div className="text-center py-12">
+                <FileCheck className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">Nenhuma NF-e pendente</p>
+                <p className="text-xs text-muted-foreground mt-1">Notas fiscais chegam por email ou upload manual.</p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => setActiveTab("upload")}>
+                  Upload Manual
+                </Button>
+              </div>
+            ))}
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">

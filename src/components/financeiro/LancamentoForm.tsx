@@ -513,7 +513,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
                 {/* Submit */}
                 <div className="flex justify-end gap-4 pt-2">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                  <Button type="submit">{form.formState.isSubmitting ? "Salvando..." : "Registrar"}</Button>
+                  <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Salvando..." : "Registrar"}</Button>
                 </div>
               </div>
             ) : (
@@ -923,7 +923,7 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit">{isEditing ? "Salvar" : "Registrar"}</Button>
+                  <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Salvando..." : isEditing ? "Salvar" : "Registrar"}</Button>
                 </div>
               </div>
             )}

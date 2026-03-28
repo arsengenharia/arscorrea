@@ -5,7 +5,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Landmark } from "lucide-react";
 import { CategoryForm } from "@/components/financeiro/CategoryForm";
 import { BankAccountForm } from "@/components/financeiro/BankAccountForm";
 import { formatBRL, formatDate } from "@/lib/formatters";
@@ -183,8 +183,15 @@ export default function Configuracoes() {
                   </TableRow>
                 ) : accounts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Nenhuma conta encontrada
+                    <TableCell colSpan={8}>
+                      <div className="text-center py-12">
+                        <Landmark className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">Nenhuma conta cadastrada</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cadastre a primeira conta bancária para registrar lançamentos.</p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => { setEditingAccount(null); setAccountFormOpen(true); }}>
+                          Nova Conta
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

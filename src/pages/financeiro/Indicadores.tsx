@@ -29,6 +29,7 @@ import {
 import { formatBRL, formatPercent } from "@/lib/formatters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
@@ -346,6 +347,7 @@ export default function Indicadores() {
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Indicadores</h3>
               <div className="flex items-center gap-3">
+                <AnalyzeButton prompt="Explique os indicadores financeiros: IEC, margens, orçamento vs realizado, e identifique as obras que precisam de atenção." label="Analisar" />
                 <span className="text-sm text-muted-foreground">Visualizar:</span>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                   <SelectTrigger className="w-64">

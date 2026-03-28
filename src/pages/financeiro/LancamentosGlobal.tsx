@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { Pencil, Trash2, Plus, Paperclip, ChevronDown, ChevronRight, Package, Receipt } from "lucide-react";
 import { useAiCommandListener } from "@/hooks/useAiCommands";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
@@ -272,8 +272,15 @@ export default function LancamentosGlobal() {
               )}
               {!isLoading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    Nenhum lançamento encontrado
+                  <TableCell colSpan={8}>
+                    <div className="text-center py-12">
+                      <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                      <p className="text-sm font-medium text-muted-foreground">Nenhum lançamento encontrado</p>
+                      <p className="text-xs text-muted-foreground mt-1">Registre o primeiro lançamento financeiro.</p>
+                      <Button variant="outline" size="sm" className="mt-4" onClick={handleNew}>
+                        Novo Lançamento
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

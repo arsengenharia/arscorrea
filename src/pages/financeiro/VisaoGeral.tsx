@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle, Building } from "lucide-react";
 
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
@@ -23,7 +23,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ConsolidatedPDFButton } from "@/components/financeiro/ConsolidatedPDFButton";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -145,15 +147,18 @@ export default function VisaoGeral() {
       <div className="w-full max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
-          {projects.length > 0 && (
-            <ConsolidatedPDFButton
-              projects={projects}
-              totalReceita={totalReceita}
-              totalCusto={totalCusto}
-              totalSaldo={totalSaldo}
-              margemMedia={margemMedia}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <AnalyzeButton prompt="Analise a saúde financeira geral: receitas, custos, saldos, margens, anomalias e recomendações." label="Analisar" />
+            {projects.length > 0 && (
+              <ConsolidatedPDFButton
+                projects={projects}
+                totalReceita={totalReceita}
+                totalCusto={totalCusto}
+                totalSaldo={totalSaldo}
+                margemMedia={margemMedia}
+              />
+            )}
+          </div>
         </div>
         <FinanceiroTabs />
 
@@ -181,13 +186,13 @@ export default function VisaoGeral() {
               </Badge>
             )}
             {alertData?.nfeStale ? (
-              <Badge className="bg-yellow-100 text-yellow-800">
+              <Badge className="bg-yellow-100 text-yellow-900">
                 <Clock className="w-3 h-3 mr-1" />
                 {alertData.nfeStale} NF-e pendente{alertData.nfeStale > 1 ? "s" : ""} há mais de 24h
               </Badge>
             ) : null}
             {alertData?.entriesStale ? (
-              <Badge className="bg-yellow-100 text-yellow-800">
+              <Badge className="bg-yellow-100 text-yellow-900">
                 <Clock className="w-3 h-3 mr-1" />
                 {alertData.entriesStale} lançamento{alertData.entriesStale > 1 ? "s" : ""} sem conciliação há mais de 7 dias
               </Badge>
@@ -221,8 +226,15 @@ export default function VisaoGeral() {
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhuma obra ativa encontrada.
+                    <TableCell colSpan={8}>
+                      <div className="text-center py-12">
+                        <Building className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">Nenhuma obra ativa</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cadastre uma obra para acompanhar o financeiro.</p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/obras/nova")}>
+                          Nova Obra
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

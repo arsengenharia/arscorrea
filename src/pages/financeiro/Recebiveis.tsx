@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAiCommandListener } from "@/hooks/useAiCommands";
 import { Layout } from "@/components/layout/Layout";
@@ -33,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { HandCoins, AlertTriangle, Clock, TrendingUp } from "lucide-react";
+
 import { toast } from "sonner";
 import { formatBRL, formatDate } from "@/lib/formatters";
 
@@ -347,6 +349,7 @@ function RegistrarRecebimentoDialog({
 
 export default function Recebiveis() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterProject, setFilterProject] = useState("all");
@@ -522,8 +525,15 @@ export default function Recebiveis() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
-                      Nenhum recebível encontrado.
+                    <TableCell colSpan={10}>
+                      <div className="text-center py-12">
+                        <HandCoins className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">Nenhuma parcela encontrada</p>
+                        <p className="text-xs text-muted-foreground mt-1">As parcelas aparecem quando contratos são criados com cronograma de pagamento.</p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/contratos")}>
+                          Ir para Contratos
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
