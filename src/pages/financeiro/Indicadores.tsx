@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
@@ -22,8 +23,11 @@ import {
   AlertTriangle,
   TrendingUp,
   Wallet,
+  Building,
 } from "lucide-react";
 import { formatBRL, formatPercent } from "@/lib/formatters";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
@@ -165,6 +169,8 @@ function abbrev(name: string, maxLen = 22): string {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Indicadores() {
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ["projects-indicators"],
     queryFn: fetchProjects,
@@ -185,31 +191,38 @@ export default function Indicadores() {
     queryFn: fetchCategorySummary,
   });
 
+  // Filter data when a specific project is selected
+  const isFiltered = selectedProjectId !== "all";
+  const filteredProjects = isFiltered ? projects.filter((p: any) => p.id === selectedProjectId) : projects;
+  const filteredBudgetVsActual = isFiltered ? budgetVsActual.filter((b: any) => b.project_id === selectedProjectId) : budgetVsActual;
+  const filteredMonthly = isFiltered ? monthlyData.filter((m: any) => m.project_id === selectedProjectId) : monthlyData;
+  // Category summary is global — for filtered view, we need to compute from budget/monthly
+
   // ── KPI derivations ─────────────────────────────────────────────────────────
 
   // Weighted avg IEC: sum(custo_realizado * iec) / sum(custo_realizado)
-  const totalCusto = projects.reduce(
+  const totalCusto = filteredProjects.reduce(
     (acc, p) => acc + (p.custo_realizado ?? 0),
     0
   );
   const weightedIec =
     totalCusto > 0
-      ? projects.reduce(
+      ? filteredProjects.reduce(
           (acc, p) =>
             acc + (p.iec_atual ?? 0) * (p.custo_realizado ?? 0),
           0
         ) / totalCusto
       : 0;
 
-  const obrasIecAlto = projects.filter((p) => (p.iec_atual ?? 0) > 1);
+  const obrasIecAlto = filteredProjects.filter((p) => (p.iec_atual ?? 0) > 1);
 
   const avgMargem =
-    projects.length > 0
-      ? projects.reduce((acc, p) => acc + (p.margem_atual ?? 0), 0) /
-        projects.length
+    filteredProjects.length > 0
+      ? filteredProjects.reduce((acc, p) => acc + (p.margem_atual ?? 0), 0) /
+        filteredProjects.length
       : 0;
 
-  const totalOrcamento = projects.reduce(
+  const totalOrcamento = filteredProjects.reduce(
     (acc, p) => acc + (p.orcamento_previsto ?? 0),
     0
   );
@@ -217,7 +230,7 @@ export default function Indicadores() {
   // ── Chart data derivations ──────────────────────────────────────────────────
 
   // Chart 1 & 2: IEC and margem per project (sorted by IEC desc)
-  const iecChartData = [...projects]
+  const iecChartData = [...filteredProjects]
     .sort((a, b) => (b.iec_atual ?? 0) - (a.iec_atual ?? 0))
     .map((p) => ({
       name: abbrev(p.name),
@@ -226,7 +239,7 @@ export default function Indicadores() {
     }));
 
   // Chart 3: Orcamento vs Realizado per project
-  const budgetChartData = projects.map((p) => ({
+  const budgetChartData = filteredProjects.map((p) => ({
     name: abbrev(p.name),
     orcamento: p.orcamento_previsto ?? 0,
     realizado: p.custo_realizado ?? 0,
@@ -234,7 +247,7 @@ export default function Indicadores() {
 
   // Chart 4: Monthly aggregated cost
   const monthlyAggMap: Record<string, number> = {};
-  for (const row of monthlyData) {
+  for (const row of filteredMonthly) {
     const mes = row.mes ?? "";
     monthlyAggMap[mes] = (monthlyAggMap[mes] ?? 0) + (row.total_custo ?? 0);
   }
@@ -246,22 +259,42 @@ export default function Indicadores() {
     }));
 
   // Chart 5: Top categories by cost
-  const topCategories = [...categorySummary]
-    .sort((a, b) => (b.total_realizado ?? 0) - (a.total_realizado ?? 0))
-    .slice(0, 12)
-    .map((c) => ({
-      name: abbrev(c.categoria_nome ?? c.nome ?? "—", 24),
-      total: c.total_realizado ?? 0,
-      cor: c.cor_hex ?? COLOR_BLUE,
-    }));
+  // When filtered, compute from filteredBudgetVsActual; otherwise use categorySummary
+  const topCategories = isFiltered
+    ? (() => {
+        const catMap: Record<string, { name: string; total: number; cor: string }> = {};
+        for (const row of filteredBudgetVsActual) {
+          const key = row.categoria_id ?? row.categoria_nome ?? row.nome ?? "?";
+          if (!catMap[key]) {
+            catMap[key] = {
+              name: abbrev(row.categoria_nome ?? row.nome ?? "—", 24),
+              total: 0,
+              cor: row.cor_hex ?? COLOR_BLUE,
+            };
+          }
+          catMap[key].total += row.realizado ?? 0;
+        }
+        return Object.values(catMap)
+          .filter((c) => c.total > 0)
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 12);
+      })()
+    : [...categorySummary]
+        .sort((a, b) => (b.total_realizado ?? 0) - (a.total_realizado ?? 0))
+        .slice(0, 12)
+        .map((c) => ({
+          name: abbrev(c.categoria_nome ?? c.nome ?? "—", 24),
+          total: c.total_realizado ?? 0,
+          cor: c.cor_hex ?? COLOR_BLUE,
+        }));
 
   // Chart 6: Budget vs actual per category from v_budget_vs_actual
-  // Aggregate across projects
+  // Aggregate across filtered projects
   const catBudgetMap: Record<
     string,
     { nome: string; orcamento: number; realizado: number }
   > = {};
-  for (const row of budgetVsActual) {
+  for (const row of filteredBudgetVsActual) {
     const key = row.categoria_id ?? row.categoria_nome ?? row.nome ?? "?";
     if (!catBudgetMap[key]) {
       catBudgetMap[key] = {
@@ -277,6 +310,14 @@ export default function Indicadores() {
     .filter((c) => c.orcamento > 0)
     .sort((a, b) => b.orcamento - a.orcamento)
     .slice(0, 10);
+
+  // Chart titles adjusted for filtered view
+  const iecChartTitle = isFiltered && filteredProjects.length > 0
+    ? `IEC — ${filteredProjects[0].name}`
+    : "IEC por Obra";
+  const margemChartTitle = isFiltered && filteredProjects.length > 0
+    ? `Margem — ${filteredProjects[0].name}`
+    : "Margem por Obra (%)";
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -300,6 +341,49 @@ export default function Indicadores() {
           </div>
         ) : (
           <>
+            {/* Project selector */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Indicadores</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Visualizar:</span>
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Todas as obras" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      📊 Visão Geral (todas as obras)
+                    </SelectItem>
+                    {projects.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedProjectId !== "all" && (
+                  <Badge variant="secondary" className="text-xs cursor-pointer" onClick={() => setSelectedProjectId("all")}>
+                    ✕ Limpar filtro
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Summary banner when a project is selected */}
+            {isFiltered && filteredProjects.length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">
+                    Indicadores de: {filteredProjects[0].name}
+                  </span>
+                </div>
+                <span className="text-xs text-blue-600">
+                  Saldo: {formatBRL(Number(filteredProjects[0].saldo_atual) || 0)} · Margem: {formatPercent(Number(filteredProjects[0].margem_atual) || 0)}
+                </span>
+              </div>
+            )}
+
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* IEC Médio Global */}
@@ -340,7 +424,7 @@ export default function Indicadores() {
                   <p className="text-xl font-bold text-foreground">
                     {obrasIecAlto.length}
                     <span className="text-sm font-normal text-muted-foreground ml-1">
-                      / {projects.length}
+                      / {filteredProjects.length}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -402,7 +486,7 @@ export default function Indicadores() {
               <ChartCard
                 icon={BarChart3}
                 iconColor="blue"
-                title="IEC por Obra"
+                title={iecChartTitle}
               >
                 <BarChart
                   data={iecChartData}
@@ -444,7 +528,7 @@ export default function Indicadores() {
               <ChartCard
                 icon={TrendingUp}
                 iconColor="emerald"
-                title="Margem por Obra (%)"
+                title={margemChartTitle}
               >
                 <BarChart
                   data={iecChartData}
