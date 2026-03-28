@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChevronRight, FileText, Package, Trash2, Plus } from "lucide-react";
+import { formatBRL, formatDate } from "@/lib/formatters";
 
 const schema = z.object({
   project_id: z.string().optional(),
@@ -42,10 +44,21 @@ interface LancamentoFormProps {
   onSaved: () => void;
 }
 
+interface ManualItem {
+  key: string;
+  descricao: string;
+  quantidade: number;
+  unidade: string;
+  valor_unitario: number;
+  valor_total: number;
+}
+
 export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }: LancamentoFormProps) {
   const isEditing = !!entry;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedNfeId, setSelectedNfeId] = useState("");
+  const [manualItems, setManualItems] = useState<ManualItem[]>([]);
 
   const { data: projectsList = [] } = useQuery({
     queryKey: ["projects-for-entry"],
@@ -97,6 +110,20 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
       if (error) throw error;
       return data as any[];
     },
+  });
+
+  const { data: approvedNfes = [] } = useQuery({
+    queryKey: ["approved-nfes-for-link"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("nfe_inbox" as any)
+        .select("id, numero_nota, razao_social, cnpj, valor_total, data_emissao, financial_entry_id, supplier:suppliers(trade_name)")
+        .eq("status", "aprovado")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return data as any[] || [];
+    },
+    enabled: open,
   });
 
   const form = useForm<FormValues>({
@@ -159,6 +186,8 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
       });
     }
     setSelectedFile(null);
+    setSelectedNfeId("");
+    setManualItems([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [entry, open]);
 
@@ -212,6 +241,17 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
     },
     enabled: !!resolvedProjectId && !!isRevenueCategory,
   });
+
+  const updateManualItem = (key: string, field: string, value: any) => {
+    setManualItems(prev => prev.map(item => {
+      if (item.key !== key) return item;
+      const updated = { ...item, [field]: value };
+      if (field === "quantidade" || field === "valor_unitario") {
+        updated.valor_total = Number(updated.quantidade) * Number(updated.valor_unitario);
+      }
+      return updated;
+    }));
+  };
 
   const onSubmit = async (values: FormValues) => {
     const resolvedProjectId = projectId || values.project_id;
@@ -267,13 +307,18 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         arquivoUrl = path;
       }
 
+      let observacoesValue = values.observacoes || null;
+      if (selectedNfeId) {
+        observacoesValue = ((observacoesValue || "") + ` [NF-e ref: ${selectedNfeId}]`).trim();
+      }
+
       const payload: any = {
         ...values,
         project_id: resolvedProjectId,
         supplier_id: resolvedSupplierId,
         numero_documento: values.numero_documento || null,
         nota_fiscal: values.nota_fiscal || null,
-        observacoes: values.observacoes || null,
+        observacoes: observacoesValue,
         arquivo_url: arquivoUrl,
         supplier_cnpj: undefined,
         supplier_name: undefined,
@@ -288,11 +333,30 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
         if (error) throw error;
         toast.success("Lançamento atualizado!");
       } else {
-        const { error } = await supabase
+        const { data: createdEntry, error } = await supabase
           .from("project_financial_entries" as any)
-          .insert(payload as any);
+          .insert(payload as any)
+          .select("id")
+          .single();
         if (error) throw error;
         toast.success("Lançamento registrado!");
+
+        // Save manual items
+        if (manualItems.length > 0 && createdEntry) {
+          const itemRows = manualItems.filter(i => i.descricao.trim()).map(i => ({
+            financial_entry_id: (createdEntry as any).id,
+            nfe_inbox_id: selectedNfeId || null,
+            descricao_original: i.descricao,
+            quantidade: i.quantidade,
+            unidade: i.unidade,
+            valor_unitario: i.valor_unitario,
+            valor_total: i.valor_total,
+            project_id: resolvedProjectId,
+            supplier_id: resolvedSupplierId,
+          }));
+
+          await supabase.from("nfe_items" as any).insert(itemRows);
+        }
       }
 
       // Auto-sync contract payment status
@@ -490,6 +554,41 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
               )}
             />
 
+            {/* Vincular NF-e — collapsible */}
+            <details className="group">
+              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Vincular a uma NF-e aprovada
+              </summary>
+              <div className="mt-2 pl-4 border-l-2 border-muted">
+                <Select value={selectedNfeId} onValueChange={(v) => {
+                  setSelectedNfeId(v === "none" ? "" : v);
+                  if (v && v !== "none") {
+                    const nfe = approvedNfes.find((n: any) => n.id === v);
+                    if (nfe) {
+                      form.setValue("valor", -(Math.abs(Number(nfe.valor_total))));
+                      form.setValue("tipo_documento", "NF-e");
+                      form.setValue("nota_fiscal", nfe.numero_nota || "");
+                      if (nfe.data_emissao) form.setValue("data", nfe.data_emissao);
+                    }
+                  }
+                }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="(opcional) selecione uma NF-e" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {approvedNfes.map((nfe: any) => (
+                      <SelectItem key={nfe.id} value={nfe.id}>
+                        NF {nfe.numero_nota} — {nfe.razao_social || nfe.supplier?.trade_name || "?"} — {formatBRL(Number(nfe.valor_total))} — {nfe.data_emissao ? formatDate(nfe.data_emissao) : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Vincula este lançamento a uma NF-e já aprovada no sistema.</p>
+              </div>
+            </details>
+
             {/* Row 3: Data | Valor | Tipo Documento */}
             <div className="grid grid-cols-3 gap-4">
               <FormField
@@ -544,30 +643,65 @@ export function LancamentoForm({ open, onOpenChange, projectId, entry, onSaved }
               />
             </div>
 
-            {/* NF-e fields — shown only when tipo_documento is "NF-e" */}
-            {watchTipoDoc === "NF-e" && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm space-y-2">
-                <p className="font-medium text-blue-900">Para NF-e com rastreamento de itens, use o fluxo dedicado:</p>
-                <p className="text-blue-700">Aba NF-e → Upload XML ou Digitar NF-e Manualmente</p>
-                <p className="text-xs text-blue-600">Ou continue aqui para um lançamento rápido sem itens granulares.</p>
+            {/* Itens manuais — collapsible */}
+            <details className="group">
+              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                Adicionar itens ao lançamento
+              </summary>
+              <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
+                <p className="text-xs text-muted-foreground">Para compras sem NF-e ou com negociação informal.</p>
+
+                {manualItems.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="text-[11px]">
+                          <TableHead className="py-1.5">Descrição</TableHead>
+                          <TableHead className="py-1.5 w-16">Qtd</TableHead>
+                          <TableHead className="py-1.5 w-14">Un</TableHead>
+                          <TableHead className="py-1.5 w-24">Vlr Unit</TableHead>
+                          <TableHead className="py-1.5 w-24">Total</TableHead>
+                          <TableHead className="py-1.5 w-8"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {manualItems.map((item) => (
+                          <TableRow key={item.key}>
+                            <TableCell className="py-1">
+                              <Input value={item.descricao} onChange={e => updateManualItem(item.key, "descricao", e.target.value)} placeholder="Descrição" className="h-7 text-sm" />
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Input type="number" value={item.quantidade} onChange={e => updateManualItem(item.key, "quantidade", Number(e.target.value))} className="h-7 text-sm w-16" />
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Input value={item.unidade} onChange={e => updateManualItem(item.key, "unidade", e.target.value)} placeholder="un" className="h-7 text-sm w-14" />
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Input type="number" step="0.01" value={item.valor_unitario} onChange={e => updateManualItem(item.key, "valor_unitario", Number(e.target.value))} className="h-7 text-sm" />
+                            </TableCell>
+                            <TableCell className="py-1 text-sm font-mono">{formatBRL(item.valor_total)}</TableCell>
+                            <TableCell className="py-1">
+                              <Button variant="ghost" size="icon" type="button" className="h-6 w-6" onClick={() => setManualItems(prev => prev.filter(i => i.key !== item.key))}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <Button variant="outline" size="sm" type="button" onClick={() => setManualItems(prev => [...prev, { key: Math.random().toString(36).slice(2), descricao: "", quantidade: 1, unidade: "un", valor_unitario: 0, valor_total: 0 }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar Item
+                </Button>
+
+                {manualItems.length > 0 && (
+                  <p className="text-xs font-medium">Total dos itens: {formatBRL(manualItems.reduce((s, i) => s + i.valor_total, 0))}</p>
+                )}
               </div>
-            )}
-            {watchTipoDoc === "NF-e" && (
-              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg border border-dashed">
-                <FormField control={form.control} name="supplier_cnpj" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CNPJ do Fornecedor</FormLabel>
-                    <FormControl><Input placeholder="00.000.000/0000-00" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="supplier_name" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Fornecedor</FormLabel>
-                    <FormControl><Input placeholder="Razão social" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-              </div>
-            )}
+            </details>
 
             {/* Nota Fiscal */}
             <FormField
