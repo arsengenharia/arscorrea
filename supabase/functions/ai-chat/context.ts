@@ -1,10 +1,117 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// ---------------------------------------------------------------------------
+// Question-type detection — best-effort classification of user intent
+// ---------------------------------------------------------------------------
+export function detectQuestionType(
+  message: string
+): "data" | "analysis" | "action" | "comparison" | "projection" | "general" {
+  const lower = message.toLowerCase();
+
+  // Data questions — asking for a specific value
+  if (
+    /^(qual|quanto|quantos|quantas|quando|onde|quem)\b/.test(lower) &&
+    lower.length < 80
+  )
+    return "data";
+  if (
+    /\b(saldo|valor|total|custo|receita|margem|quantidade)\b/.test(lower) &&
+    !/\b(analis|compar|projet|preve)\b/.test(lower)
+  )
+    return "data";
+
+  // Comparison
+  if (
+    /\b(compar[ae]|diferença|versus|vs\.?|melhor|pior|entre)\b/.test(lower)
+  )
+    return "comparison";
+
+  // Projection
+  if (
+    /\b(projet[ae]|preve[jr]|estim[ae]|projeção|previsão|tendência|cenário|futuro)\b/.test(
+      lower
+    )
+  )
+    return "projection";
+
+  // Action
+  if (
+    /\b(ger[ae]|cri[ae]|filt[re]|naveg|abr[aei]|envie|atualize|delete|mude|altere)\b/.test(
+      lower
+    )
+  )
+    return "action";
+
+  // Analysis
+  if (
+    /\b(analis|investig|resum|diagnóstic|avali[ae]|audit|verifi|identifi|detect|problema|risco)\b/.test(
+      lower
+    )
+  )
+    return "analysis";
+
+  return "general";
+}
+
+// ---------------------------------------------------------------------------
+// Type-specific prompt addenda
+// ---------------------------------------------------------------------------
+const typeInstructions: Record<string, string> = {
+  data: `
+## Formato desta resposta
+O usuario fez uma pergunta de dado. Responda de forma DIRETA e CURTA:
+- Valor em destaque (negrito)
+- Fonte do dado (tabela/view)
+- Periodo de referencia se aplicavel
+- Sem formato achado/evidencia/impacto/recomendacao
+Exemplo: "O saldo da obra Alvinopolis e **R$ 45.230,00** (receitas - custos, atualizado em 27/03)."`,
+
+  analysis: `
+## Formato desta resposta
+O usuario pediu uma analise. Use o formato estruturado:
+**Achado:** [o que foi detectado]
+**Evidencia:** [dados que sustentam — cite tabela, valores, datas]
+**Impacto:** [consequencia para a obra/empresa]
+**Recomendacao:** [o que fazer — acao especifica]`,
+
+  action: `
+## Formato desta resposta
+O usuario pediu uma acao. Antes de executar:
+1. Confirme o que vai fazer
+2. Mostre os parametros que vai usar
+3. Peca confirmacao explicita se a acao e destrutiva ou irreversivel
+Para acoes simples (filtrar, navegar), execute direto e confirme o resultado.`,
+
+  comparison: `
+## Formato desta resposta
+O usuario pediu uma comparacao. Use formato de tabela:
+| Criterio | Item A | Item B |
+|----------|--------|--------|
+| ...      | ...    | ...    |
+
+Apos a tabela, destaque as diferencas mais relevantes em 1-2 frases.`,
+
+  projection: `
+## Formato desta resposta
+O usuario pediu uma projecao. Inclua:
+1. **Dados base:** valores atuais que fundamentam a projecao
+2. **Projecao:** cenario provavel com valores estimados
+3. **Premissas:** o que esta sendo assumido
+4. **Ressalvas:** fatores que podem alterar a projecao
+⚠️ Sempre deixe claro que projecoes sao estimativas baseadas em dados historicos.`,
+
+  general: "", // No additional instructions
+};
+
+// ---------------------------------------------------------------------------
+// Build the full system prompt
+// ---------------------------------------------------------------------------
 export async function buildSystemPrompt(
   supabase: SupabaseClient,
   contextType: string,
   contextId: string | null,
-  userId: string
+  userId: string,
+  userMessage?: string
 ): Promise<{ systemPrompt: string; contextData: any }> {
   // Call the ai_build_context RPC
   const { data: ctx } = await supabase.rpc("ai_build_context", {
@@ -118,5 +225,10 @@ ${anomalySection}
 - Nivel de detalhe: ${prefs.nivel_detalhe || "normal"}
 ${prefs.apelidos && Object.keys(prefs.apelidos).length > 0 ? "- Apelidos: " + JSON.stringify(prefs.apelidos) : ""}`;
 
-  return { systemPrompt, contextData };
+  // Append question-type-specific formatting instructions
+  const questionType = userMessage ? detectQuestionType(userMessage) : "general";
+  const extra = typeInstructions[questionType] || "";
+  const finalPrompt = extra ? systemPrompt + "\n" + extra : systemPrompt;
+
+  return { systemPrompt: finalPrompt, contextData };
 }

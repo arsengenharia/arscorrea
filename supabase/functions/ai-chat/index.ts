@@ -59,9 +59,10 @@ Deno.serve(async (req) => {
       supabase, conversation_id || null, user.id, context_type, context_id
     );
 
-    // Build context
+    // Build context (pass current message for question-type detection)
+    const currentMessage = message || confirm_tool?.message || "";
     const { systemPrompt, contextData } = await buildSystemPrompt(
-      supabase, conversation.context_type, conversation.context_id, user.id
+      supabase, conversation.context_type, conversation.context_id, user.id, currentMessage
     );
 
     // Load tools for user's role
@@ -210,11 +211,25 @@ Deno.serve(async (req) => {
       await supabase.from("ai_conversations").update({ title }).eq("id", conversation.id);
     }
 
-    // Check for navigation actions in tool results
-    let navigationAction = null;
+    // Check for frontend actions in tool results (navigate, filter, etc.)
+    let frontendAction = null;
     for (const tr of toolResults) {
       if (tr.result?.action === "navigate") {
-        navigationAction = { type: "navigate", path: tr.result.path, description: tr.result.description };
+        frontendAction = { type: "navigate", path: tr.result.path, description: tr.result.description };
+      } else if (tr.result?.action === "filter_entries") {
+        const { action, ...params } = tr.result;
+        frontendAction = { type: "filter_entries", path: "/financeiro/lancamentos", description: "Filtros aplicados nos lançamentos", params };
+      } else if (tr.result?.action === "filter_recebiveis") {
+        const { action, ...params } = tr.result;
+        frontendAction = { type: "filter_recebiveis", path: "/financeiro/recebiveis", description: "Filtros aplicados nos recebíveis", params };
+      } else if (tr.result?.action === "generate_report") {
+        frontendAction = {
+          type: "generate_report",
+          path: tr.result.path,
+          description: tr.result.description,
+          project_id: tr.result.project_id,
+          report_type: tr.result.report_type,
+        };
       }
     }
 
@@ -223,7 +238,7 @@ Deno.serve(async (req) => {
       response: assistantText,
       tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       tool_results: toolResults.length > 0 ? toolResults : undefined,
-      action: navigationAction,
+      action: frontendAction,
       usage: response.usage,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

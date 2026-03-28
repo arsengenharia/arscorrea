@@ -1,0 +1,5 @@
+-- Sprint 4.2: Prompt por tipo de pergunta
+-- This is a code-only change (context.ts + index.ts).
+-- Question-type detection adjusts the AI system prompt format per question category:
+--   data | analysis | action | comparison | projection | general
+-- No database changes required.
