@@ -65,6 +65,25 @@ export async function executeTool(
 
     if (tool.function_type === "composite") {
       // Composite tools return instructions for the frontend, not DB results
+      if (tool.function_name === "generate_report") {
+        // Fetch project name for the report link description
+        const { data: proj } = await supabase
+          .from("projects")
+          .select("name")
+          .eq("id", toolInput.project_id)
+          .single();
+        const projectName = proj?.name || "Projeto";
+        const reportType = toolInput.report_type || "financeiro";
+        return {
+          result: {
+            action: "generate_report",
+            project_id: toolInput.project_id,
+            report_type: reportType,
+            path: `/relatorio/${toolInput.project_id}?tipo=${reportType}`,
+            description: `Relatório ${reportType} — ${projectName}`,
+          },
+        };
+      }
       return { result: { action: tool.function_name, ...toolInput } };
     }
 
