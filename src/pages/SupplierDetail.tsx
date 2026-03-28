@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, DollarSign, FileText, Receipt } from "lucide-react";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import {
   BarChart,
@@ -181,6 +182,10 @@ export default function SupplierDetail() {
               <Badge variant={supplier.ativo ? "default" : "outline"}>
                 {supplier.ativo ? "Ativo" : "Inativo"}
               </Badge>
+              <AnalyzeButton
+                prompt="Analise o histórico deste fornecedor: total pago, obras atendidas, evolução de preços, e recomendações."
+                label="Analisar Fornecedor"
+              />
             </div>
             {supplier.legal_name && (
               <p className="text-muted-foreground mt-1">{supplier.legal_name}</p>

@@ -63,6 +63,11 @@ export async function executeTool(
       return { result: data };
     }
 
+    if (tool.function_type === "composite") {
+      // Composite tools return instructions for the frontend, not DB results
+      return { result: { action: tool.function_name, ...toolInput } };
+    }
+
     if (tool.function_type === "edge_function") {
       const { data, error } = await supabase.functions.invoke(tool.function_name, {
         body: toolInput,

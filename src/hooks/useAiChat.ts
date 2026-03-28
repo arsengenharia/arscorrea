@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ChatMessage {
@@ -7,6 +7,7 @@ export interface ChatMessage {
   content: string;
   pending_tool?: { name: string; display_name: string; input: any };
   tool_results?: any[];
+  action?: { type: string; path: string; description?: string };
   timestamp: Date;
 }
 
@@ -14,6 +15,7 @@ export function useAiChat(contextType?: string, contextId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastAction, setLastAction] = useState<{ type: string; path: string; description?: string } | null>(null);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg: ChatMessage = {
@@ -47,9 +49,13 @@ export function useAiChat(contextType?: string, contextId?: string) {
         content: data.response,
         pending_tool: data.pending_tool,
         tool_results: data.tool_results,
+        action: data.action,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
+      if (data.action) {
+        setLastAction(data.action);
+      }
     } catch (err: any) {
       const errMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -104,5 +110,5 @@ export function useAiChat(contextType?: string, contextId?: string) {
     setConversationId(null);
   }, []);
 
-  return { messages, loading, sendMessage, confirmTool, clearChat, conversationId };
+  return { messages, loading, sendMessage, confirmTool, clearChat, conversationId, lastAction };
 }

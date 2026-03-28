@@ -210,11 +210,20 @@ Deno.serve(async (req) => {
       await supabase.from("ai_conversations").update({ title }).eq("id", conversation.id);
     }
 
+    // Check for navigation actions in tool results
+    let navigationAction = null;
+    for (const tr of toolResults) {
+      if (tr.result?.action === "navigate") {
+        navigationAction = { type: "navigate", path: tr.result.path, description: tr.result.description };
+      }
+    }
+
     return new Response(JSON.stringify({
       conversation_id: conversation.id,
       response: assistantText,
       tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       tool_results: toolResults.length > 0 ? toolResults : undefined,
+      action: navigationAction,
       usage: response.usage,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

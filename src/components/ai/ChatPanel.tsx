@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAiChat, type ChatMessage } from "@/hooks/useAiChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, X, Send, Loader2, RotateCcw, CheckCircle, XCircle } from "lucide-react";
+import { Bot, X, Send, Loader2, RotateCcw, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAiContext } from "@/contexts/AiContext";
+import { AI_ANALYZE_EVENT } from "./AnalyzeButton";
 
 export function ChatPanel() {
   const { contextType, contextId, contextLabel } = useAiContext();
@@ -14,7 +16,8 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { messages, loading, sendMessage, confirmTool, clearChat } = useAiChat(contextType, contextId);
+  const navigate = useNavigate();
+  const { messages, loading, sendMessage, confirmTool, clearChat, lastAction } = useAiChat(contextType, contextId);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -25,6 +28,26 @@ export function ChatPanel() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Listen for analyze events from AnalyzeButton
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.prompt) {
+        setOpen(true);
+        setTimeout(() => sendMessage(detail.prompt), 100);
+      }
+    };
+    window.addEventListener(AI_ANALYZE_EVENT, handler);
+    return () => window.removeEventListener(AI_ANALYZE_EVENT, handler);
+  }, [sendMessage]);
+
+  // Execute navigation when lastAction changes
+  useEffect(() => {
+    if (lastAction?.type === "navigate") {
+      setTimeout(() => navigate(lastAction.path), 500);
+    }
+  }, [lastAction, navigate]);
 
   const handleSend = () => {
     if (!input.trim() || loading) return;
@@ -148,6 +171,17 @@ export function ChatPanel() {
                         </Button>
                       </div>
                     </div>
+                  )}
+
+                  {/* Navigation action */}
+                  {msg.action?.type === "navigate" && (
+                    <button
+                      onClick={() => navigate(msg.action!.path)}
+                      className="mt-1.5 text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ir para: {msg.action.description || msg.action.path}
+                    </button>
                   )}
 
                   {/* Tool results */}

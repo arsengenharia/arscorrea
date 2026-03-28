@@ -16,6 +16,7 @@ import {
   Ruler,
 } from "lucide-react";
 import { ManagePortalAccessDialog } from "@/components/projects/ManagePortalAccessDialog";
+import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,6 +222,10 @@ export function ProjectDetails() {
 
                 {/* Ações Principais Group */}
                 <div className="flex gap-1">
+                  <AnalyzeButton
+                    prompt="Faça uma análise completa desta obra: status, financeiro, etapas, riscos e recomendações."
+                    label="Analisar"
+                  />
                   <ProjectPDFViewer project={project} />
 
                   <Link to={`/obras/${projectId}/etapas/adicionar`}>
