@@ -6,13 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, X, Send, Loader2, RotateCcw, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAiContext } from "@/contexts/AiContext";
 
-interface ChatPanelProps {
-  contextType?: string;
-  contextId?: string;
-}
-
-export function ChatPanel({ contextType, contextId }: ChatPanelProps) {
+export function ChatPanel() {
+  const { contextType, contextId, contextLabel } = useAiContext();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -85,7 +82,7 @@ export function ChatPanel({ contextType, contextId }: ChatPanelProps) {
           {contextType && contextType !== "general" && (
             <div className="px-3 py-1.5 bg-muted/50 border-b">
               <Badge variant="secondary" className="text-[10px]">
-                Contexto: {contextType} {contextId?.substring(0, 8)}
+                Contexto: {contextLabel} {contextId?.substring(0, 8)}
               </Badge>
             </div>
           )}
