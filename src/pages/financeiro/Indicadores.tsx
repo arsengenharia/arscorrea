@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { FinanceiroTabs } from "./Financeiro";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import {
@@ -33,7 +32,6 @@ import { formatBRL, formatPercent } from "@/lib/formatters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
-import { ProgressBaselineEditor } from "@/components/financeiro/ProgressBaselineEditor";
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
@@ -216,7 +214,6 @@ const COLOR_TEAL = "#5eead4";
 
 export default function Indicadores() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
-  const [baselineEditorOpen, setBaselineEditorOpen] = useState(false);
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ["projects-indicators"],
@@ -429,9 +426,6 @@ export default function Indicadores() {
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Indicadores</h3>
               <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" onClick={() => setBaselineEditorOpen(true)}>
-                  <CalendarClock className="h-3.5 w-3.5 mr-1.5" /> Baseline IFEC
-                </Button>
                 <AnalyzeButton prompt="Explique os indicadores financeiros: IEC, IFEC, margens, orçamento vs realizado, e identifique as obras que precisam de atenção." label="Analisar" />
                 <span className="text-sm text-muted-foreground">Visualizar:</span>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
@@ -878,10 +872,6 @@ export default function Indicadores() {
             </div>
           </>
         )}
-        <ProgressBaselineEditor
-          open={baselineEditorOpen}
-          onOpenChange={setBaselineEditorOpen}
-        />
       </div>
     </Layout>
   );
