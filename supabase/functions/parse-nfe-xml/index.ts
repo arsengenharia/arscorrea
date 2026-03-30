@@ -199,7 +199,84 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
       }
     }
 
-    // ── Step 3: Find/create supplier ──
+    // ── Step 3: If Haiku couldn't extract (CIDFont/scanned PDF), use Sonnet Vision ──
+    if ((!cnpj || !valorTotal) && Deno.env.get("AWS_ACCESS_KEY_ID")) {
+      try {
+        const region = Deno.env.get("AWS_REGION") || "us-east-1";
+        const { AwsClient } = await import("https://esm.sh/aws4fetch@1.0.20");
+        const aws = new AwsClient({
+          accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID")!,
+          secretAccessKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
+          region,
+          service: "bedrock",
+        });
+
+        // Encode PDF as base64 for Sonnet (supports PDF documents)
+        const { encodeBase64 } = await import("https://deno.land/std@0.224.0/encoding/base64.ts");
+        const b64 = encodeBase64(pdfBytes.slice(0, 2 * 1024 * 1024)); // max 2MB
+
+        // Sonnet 4 supports PDF natively
+        // Use cross-region inference profile (required for on-demand)
+        const visionUrl = `https://bedrock-runtime.${region}.amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1:0/invoke`;
+
+        const vResp = await aws.fetch(visionUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            anthropic_version: "bedrock-2023-05-31",
+            max_tokens: 2000,
+            messages: [{
+              role: "user",
+              content: [
+                { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } },
+                { type: "text", text: 'Extraia todos os dados desta NF-e/DANFE brasileira. Responda APENAS com JSON valido:\n{"cnpj":"14 digitos sem pontuacao do EMITENTE","razao_social":"nome do emitente","numero_nota":"numero","data_emissao":"YYYY-MM-DD","valor_total":0.00,"chave_nfe":"44 digitos ou null","itens":[{"xProd":"descricao","NCM":"8 digitos","qCom":1,"uCom":"UN","vUnCom":0.00,"vProd":0.00}]}' }
+              ]
+            }],
+          }),
+        });
+
+        if (vResp.ok) {
+          const vResult = await vResp.json();
+          const vText = vResult.content?.[0]?.text || "{}";
+          const jsonStr = vText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          try {
+            const parsed = JSON.parse(jsonStr);
+            cnpj = parsed.cnpj || cnpj;
+            razaoSocial = parsed.razao_social || razaoSocial;
+            numeroNota = parsed.numero_nota || numeroNota;
+            dataEmissao = parsed.data_emissao || dataEmissao;
+            valorTotal = parsed.valor_total ? Number(parsed.valor_total) : valorTotal;
+            chaveNfe = parsed.chave_nfe || chaveNfe;
+            itens = (parsed.itens?.length > 0) ? parsed.itens : itens;
+            extractionMode = "pdf_vision";
+          } catch { /* JSON parse failed */ }
+
+          await supabase.from("ai_query_log").insert({
+            module: "nfe_vision", prompt: "Sonnet PDF Vision",
+            response: vText.substring(0, 2000), model: "claude-sonnet-4",
+            tokens_input: vResult.usage?.input_tokens, tokens_output: vResult.usage?.output_tokens,
+            success: extractionMode === "pdf_vision",
+            context_type: "nfe_inbox", context_id: nfe_inbox_id,
+          });
+        } else {
+          const errBody = await vResp.text();
+          await supabase.from("ai_query_log").insert({
+            module: "nfe_vision", prompt: "Sonnet Vision ERROR " + vResp.status,
+            response: errBody.substring(0, 2000), success: false,
+            error_message: errBody.substring(0, 200),
+            context_type: "nfe_inbox", context_id: nfe_inbox_id,
+          });
+        }
+      } catch (vErr) {
+        await supabase.from("ai_query_log").insert({
+          module: "nfe_vision", prompt: "Vision EXCEPTION",
+          success: false, error_message: String(vErr).substring(0, 500),
+          context_type: "nfe_inbox", context_id: nfe_inbox_id,
+        });
+      }
+    }
+
+    // ── Step 5: Find/create supplier ──
     let supplierId = null;
     if (cnpj) {
       const cleanCnpj = cnpj.replace(/\D/g, "");
@@ -216,7 +293,7 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
       }
     }
 
-    // ── Step 4: Dedup check ──
+    // ── Step 6: Dedup check ──
     if (chaveNfe) {
       const { data: existing } = await supabase.from("project_financial_entries").select("id").eq("chave_nfe", chaveNfe).maybeSingle();
       if (existing) {
@@ -228,7 +305,7 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
     const { data: obras } = await supabase.from("projects").select("id, name")
       .in("status", ["Pendente", "Em Andamento", "pendente", "em andamento", "em_andamento", "iniciado"]).order("name");
 
-    const confianca = extractionMode === "pdf_ai" ? 0.80 : 0.30;
+    const confianca = extractionMode === "pdf_vision" ? 0.90 : extractionMode === "pdf_ai" ? 0.80 : 0.30;
 
     await supabase.from("nfe_inbox").update({
       status: "aguardando_revisao", supplier_id: supplierId, razao_social: razaoSocial,
