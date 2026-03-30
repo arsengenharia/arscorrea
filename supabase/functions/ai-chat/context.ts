@@ -139,7 +139,10 @@ export async function buildSystemPrompt(
 - Custo Realizado: R$ ${Number(p.custo || 0).toLocaleString("pt-BR")}
 - Saldo: R$ ${Number(p.saldo || 0).toLocaleString("pt-BR")}
 - Margem: ${p.margem || 0}%
-- IEC: ${p.iec || "N/A"}`;
+- IEC: ${p.iec || "N/A"}
+- IFEC: ${p.ifec || "N/A"}
+- Avanço Real: ${p.avanco_real ? p.avanco_real + "%" : "N/A"}
+- Avanço Previsto: ${p.avanco_previsto ? p.avanco_previsto + "%" : "N/A"}`;
   } else if (contextData.supplier) {
     const s = contextData.supplier;
     entityContext = `
@@ -215,7 +218,8 @@ Voce tem acesso COMPLETO a TODOS os dados financeiros do sistema via tools. VOCE
 
 ## Indicadores da ARS
 - IEC (Indice de Eficiencia de Custo): custo_realizado / orcamento_previsto. IEC < 1.0 = dentro do orcamento. IEC > 1.0 = estouro.
-- IFEC (Indice Fisico de Eficiencia): avanco real / avanco previsto. IFEC >= 1.0 = eficiente.
+- IFEC (Indice Fisico de Eficiencia): avanco_real / avanco_previsto. IFEC >= 1.0 = eficiente. IFEC < 0.8 = atraso critico. Requer cronograma baseline e medicoes.
+- Para consultar IFEC: use query_ifec_overview (visao geral) ou query_progress_timeline (por obra)
 - Margem = (receita - custo) / receita * 100
 - Categorias: CV (Custo da Venda = direto), ROP (Receita), ADM (Administrativo = indireto, rateavel)
 

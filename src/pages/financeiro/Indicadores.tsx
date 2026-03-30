@@ -25,19 +25,45 @@ import {
   TrendingUp,
   Wallet,
   Building,
+  Activity,
+  CalendarClock,
 } from "lucide-react";
 import { formatBRL, formatPercent } from "@/lib/formatters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
+import { ProgressBaselineEditor } from "@/components/financeiro/ProgressBaselineEditor";
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
+
+async function fetchIfecOverview() {
+  const { data, error } = await supabase
+    .from("v_ifec_overview" as any)
+    .select("*");
+  if (error) {
+    // View may not exist yet — fallback gracefully
+    console.warn("v_ifec_overview not available:", error.message);
+    return [];
+  }
+  return (data ?? []) as any[];
+}
+
+async function fetchProgressTimeline(projectId?: string) {
+  const query = supabase
+    .from("v_progress_timeline" as any)
+    .select("*")
+    .order("mes", { ascending: true });
+  if (projectId) query.eq("project_id", projectId);
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []) as any[];
+}
 
 async function fetchProjects() {
   const { data, error } = await supabase
     .from("projects")
     .select(
-      "id, name, status, orcamento_previsto, custo_realizado, receita_realizada, saldo_atual, margem_atual, iec_atual"
+      "id, name, status, orcamento_previsto, custo_realizado, receita_realizada, saldo_atual, margem_atual, iec_atual, ifec_atual, avanco_real, avanco_previsto"
     )
     .in("status", [
       "Pendente",
@@ -114,6 +140,20 @@ function IecTooltip({ active, payload, label }: any) {
   );
 }
 
+function IfecTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-slate-200 rounded-md shadow-md px-3 py-2 text-xs">
+      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.dataKey} style={{ color: p.color }}>
+          {p.name}: {typeof p.value === "number" ? (p.dataKey.includes("percentual") ? `${p.value}%` : p.value.toFixed(3)) : p.value ?? "—"}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function MargemTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const val = payload[0]?.value ?? 0;
@@ -170,8 +210,12 @@ function abbrev(name: string, maxLen = 22): string {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const COLOR_VIOLET = "#a78bfa";
+const COLOR_TEAL = "#5eead4";
+
 export default function Indicadores() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [baselineEditorOpen, setBaselineEditorOpen] = useState(false);
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ["projects-indicators"],
@@ -191,6 +235,16 @@ export default function Indicadores() {
   const { data: categorySummary = [] } = useQuery({
     queryKey: ["v-category-summary-costs"],
     queryFn: fetchCategorySummary,
+  });
+
+  const { data: ifecOverview = [] } = useQuery({
+    queryKey: ["v-ifec-overview"],
+    queryFn: fetchIfecOverview,
+  });
+
+  const { data: progressTimeline = [] } = useQuery({
+    queryKey: ["v-progress-timeline", selectedProjectId !== "all" ? selectedProjectId : undefined],
+    queryFn: () => fetchProgressTimeline(selectedProjectId !== "all" ? selectedProjectId : undefined),
   });
 
   // Filter data when a specific project is selected
@@ -228,6 +282,33 @@ export default function Indicadores() {
     (acc, p) => acc + (p.orcamento_previsto ?? 0),
     0
   );
+
+  // IFEC KPIs
+  const projectsWithIfec = filteredProjects.filter((p: any) => p.ifec_atual != null);
+  const avgIfec = projectsWithIfec.length > 0
+    ? projectsWithIfec.reduce((acc: number, p: any) => acc + (p.ifec_atual ?? 0), 0) / projectsWithIfec.length
+    : 0;
+  const obrasIfecBaixo = projectsWithIfec.filter((p: any) => (p.ifec_atual ?? 0) < 0.8);
+  const obrasComBaseline = filteredProjects.filter((p: any) => p.avanco_previsto != null).length;
+
+  // IFEC chart data
+  const ifecChartData = [...filteredProjects]
+    .filter((p: any) => p.ifec_atual != null || p.iec_atual != null)
+    .sort((a: any, b: any) => (b.ifec_atual ?? 0) - (a.ifec_atual ?? 0))
+    .map((p: any) => ({
+      name: abbrev(p.name),
+      ifec: parseFloat(((p.ifec_atual ?? 0) as number).toFixed(3)),
+      iec: parseFloat(((p.iec_atual ?? 0) as number).toFixed(3)),
+      avanco_real: p.avanco_real ?? 0,
+      avanco_previsto: p.avanco_previsto ?? 0,
+    }));
+
+  // Progress timeline chart data (previsto vs real over time)
+  const timelineChartData = progressTimeline.map((row: any) => ({
+    mes: (row.mes ?? "").slice(0, 7),
+    previsto: row.percentual_previsto ?? 0,
+    real: row.percentual_real ?? null,
+  }));
 
   // ── Chart data derivations ──────────────────────────────────────────────────
 
@@ -347,7 +428,10 @@ export default function Indicadores() {
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Indicadores</h3>
               <div className="flex items-center gap-3">
-                <AnalyzeButton prompt="Explique os indicadores financeiros: IEC, margens, orçamento vs realizado, e identifique as obras que precisam de atenção." label="Analisar" />
+                <Button variant="outline" size="sm" onClick={() => setBaselineEditorOpen(true)}>
+                  <CalendarClock className="h-3.5 w-3.5 mr-1.5" /> Baseline IFEC
+                </Button>
+                <AnalyzeButton prompt="Explique os indicadores financeiros: IEC, IFEC, margens, orçamento vs realizado, e identifique as obras que precisam de atenção." label="Analisar" />
                 <span className="text-sm text-muted-foreground">Visualizar:</span>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                   <SelectTrigger className="w-64">
@@ -400,6 +484,46 @@ export default function Indicadores() {
               <KpiCard icon={TrendingUp} iconBg="emerald" label="Margem Média" value={formatPercent(avgMargem)} valueClassName={avgMargem < 0 ? "text-rose-600" : undefined} subtitle="Média simples entre obras" />
               <KpiCard icon={Wallet} iconBg="amber" label="Orçamento Total" value={formatBRL(totalOrcamento)} subtitle={`Realizado: ${formatBRL(totalCusto)}`} />
             </div>
+
+            {/* IFEC KPI Cards */}
+            {(projectsWithIfec.length > 0 || obrasComBaseline > 0) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KpiCard
+                  icon={Activity}
+                  iconBg="violet"
+                  label="IFEC Médio"
+                  value={projectsWithIfec.length > 0 ? avgIfec.toFixed(3) : "—"}
+                  valueClassName={avgIfec > 0 && avgIfec < 0.8 ? "text-rose-600" : avgIfec >= 1 ? "text-emerald-600" : undefined}
+                  subtitle={projectsWithIfec.length > 0 ? "Média simples entre obras" : "Configure baselines para calcular"}
+                />
+                <KpiCard
+                  icon={AlertTriangle}
+                  iconBg="amber"
+                  label="IFEC < 0.8 (Atraso)"
+                  value={`${obrasIfecBaixo.length} / ${projectsWithIfec.length}`}
+                  subtitle={obrasIfecBaixo.length > 0 ? obrasIfecBaixo.map((p: any) => abbrev(p.name, 14)).join(", ") : "Nenhuma obra atrasada"}
+                />
+                <KpiCard
+                  icon={CalendarClock}
+                  iconBg="blue"
+                  label="Obras com Baseline"
+                  value={`${obrasComBaseline} / ${filteredProjects.length}`}
+                  subtitle="Cronograma previsto definido"
+                />
+                <KpiCard
+                  icon={Activity}
+                  iconBg="emerald"
+                  label="Saúde das Obras"
+                  value={(() => {
+                    const saudaveis = filteredProjects.filter((p: any) =>
+                      p.ifec_atual != null && p.iec_atual != null && p.ifec_atual >= 1.0 && p.iec_atual <= 1.0
+                    ).length;
+                    return `${saudaveis} / ${filteredProjects.length}`;
+                  })()}
+                  subtitle="IEC ≤ 1.0 e IFEC ≥ 1.0"
+                />
+              </div>
+            )}
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -656,9 +780,107 @@ export default function Indicadores() {
                   />
                 </BarChart>
               </ChartCard>
+
+              {/* Chart 7: IEC vs IFEC por Obra */}
+              {ifecChartData.length > 0 && (
+                <ChartCard
+                  icon={Activity}
+                  iconColor="violet"
+                  title="IEC vs IFEC por Obra"
+                >
+                  <BarChart
+                    data={ifecChartData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 20, left: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      domain={[0, "auto"]}
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => v.toFixed(2)}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={130}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip content={<IfecTooltip />} />
+                    <Legend
+                      iconType="square"
+                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                    />
+                    <ReferenceLine
+                      x={1}
+                      stroke={COLOR_REF}
+                      strokeDasharray="4 3"
+                      label={{ value: "1.0", position: "top", fontSize: 10, fill: COLOR_REF }}
+                    />
+                    <Bar dataKey="iec" name="IEC (Custo)" fill={COLOR_ROSE} radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="ifec" name="IFEC (Físico)" fill={COLOR_VIOLET} radius={[0, 3, 3, 0]} />
+                  </BarChart>
+                </ChartCard>
+              )}
+
+              {/* Chart 8: Avanço Previsto vs Real (Timeline) */}
+              {timelineChartData.length > 0 && (
+                <ChartCard
+                  icon={CalendarClock}
+                  iconColor="blue"
+                  title={isFiltered && filteredProjects.length > 0
+                    ? `Avanço Físico — ${filteredProjects[0].name}`
+                    : "Avanço Físico Previsto vs Real"
+                  }
+                >
+                  <LineChart
+                    data={timelineChartData}
+                    margin={{ top: 4, right: 20, left: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="mes"
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => v.slice(5, 7) + "/" + v.slice(2, 4)}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      domain={[0, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip content={<IfecTooltip />} />
+                    <Legend
+                      iconType="line"
+                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="previsto"
+                      name="% Previsto"
+                      stroke={COLOR_BLUE}
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ r: 3, fill: COLOR_BLUE }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="real"
+                      name="% Real"
+                      stroke={COLOR_TEAL}
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: COLOR_TEAL }}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ChartCard>
+              )}
             </div>
           </>
         )}
+        <ProgressBaselineEditor
+          open={baselineEditorOpen}
+          onOpenChange={setBaselineEditorOpen}
+        />
       </div>
     </Layout>
   );
