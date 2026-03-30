@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
+// AwsClient loaded dynamically to avoid boot errors
 
 Deno.serve(async (req) => {
   const { nfe_inbox_id } = await req.json();
@@ -24,30 +24,84 @@ Deno.serve(async (req) => {
     let extractionMode = "pdf_manual";
 
     // ── Step 1: Extract native text from PDF (FREE) ──
+    // Most DANFEs use FlateDecode compression. We decompress streams first.
     const raw = new TextDecoder("latin1").decode(pdfBytes);
     const textParts: string[] = [];
-    const btEt = /BT\s([\s\S]*?)ET/g;
-    let m;
-    while ((m = btEt.exec(raw)) !== null) {
-      const strRe = /\(([^)]*)\)/g;
-      let sm;
-      while ((sm = strRe.exec(m[1])) !== null) {
-        const t = sm[1].replace(/\\n/g, " ").trim();
-        if (t.length > 0) textParts.push(t);
+
+    // Method A: Decompress FlateDecode streams with pako and extract text
+    try {
+      const pako = await import("https://esm.sh/pako@2.1.0");
+
+      const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+      let streamMatch;
+      while ((streamMatch = streamRegex.exec(raw)) !== null) {
+        try {
+          const preCtx = raw.substring(Math.max(0, streamMatch.index - 200), streamMatch.index);
+          const compressed = new Uint8Array(streamMatch[1].split("").map(c => c.charCodeAt(0)));
+
+          let decompressed: string;
+          if (preCtx.includes("FlateDecode")) {
+            const inflated = pako.inflate(compressed);
+            decompressed = new TextDecoder("latin1").decode(inflated);
+          } else {
+            decompressed = streamMatch[1];
+          }
+
+          // Extract text from BT/ET blocks
+          const btRe = /BT\s([\s\S]*?)ET/g;
+          let bm;
+          while ((bm = btRe.exec(decompressed)) !== null) {
+            // Parenthesized strings
+            const pRe = /\(([^)]*)\)/g;
+            let pm;
+            while ((pm = pRe.exec(bm[1])) !== null) {
+              const t = pm[1].replace(/\\n/g, " ").replace(/\\\\/g, "\\").trim();
+              if (t.length > 0) textParts.push(t);
+            }
+            // TJ arrays
+            const tjRe = /\[([\s\S]*?)\]\s*TJ/g;
+            let tjm;
+            while ((tjm = tjRe.exec(bm[1])) !== null) {
+              const inner = /\(([^)]*)\)/g;
+              let im;
+              let combined = "";
+              while ((im = inner.exec(tjm[1])) !== null) combined += im[1];
+              if (combined.trim().length > 0) textParts.push(combined.trim());
+            }
+          }
+        } catch { /* skip bad streams */ }
+      }
+    } catch { /* pako import failed — skip decompression */ }
+
+    // Method B: Direct BT/ET on uncompressed content (fallback)
+    if (textParts.join("").length < 50) {
+      const btEt = /BT\s([\s\S]*?)ET/g;
+      let m;
+      while ((m = btEt.exec(raw)) !== null) {
+        const strRe = /\(([^)]*)\)/g;
+        let sm;
+        while ((sm = strRe.exec(m[1])) !== null) {
+          const t = sm[1].replace(/\\n/g, " ").trim();
+          if (t.length > 0) textParts.push(t);
+        }
       }
     }
+
+    // Method C: Readable ASCII fallback
     if (textParts.join("").length < 50) {
       const readable = raw.match(/[\x20-\x7E\xC0-\xFF]{8,}/g) || [];
       textParts.push(...readable.filter(s =>
         !s.includes("stream") && !s.includes("endobj") && !s.includes("/Type") && !s.includes("/Filter")
       ));
     }
+
     const extractedText = textParts.join(" ").replace(/\s+/g, " ").trim();
 
     // ── Step 2: If text found, send to Haiku via Bedrock for intelligent parsing ──
     if (extractedText.length > 80 && Deno.env.get("AWS_ACCESS_KEY_ID")) {
       try {
         const region = Deno.env.get("AWS_REGION") || "us-east-1";
+        const { AwsClient } = await import("https://esm.sh/aws4fetch@1.0.20");
         const aws = new AwsClient({
           accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID")!,
           secretAccessKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
