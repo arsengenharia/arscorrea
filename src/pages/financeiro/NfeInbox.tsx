@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Upload, Eye, FileText, FileCheck } from "lucide-react";
+import { Mail, Upload, Eye, FileText, FileCheck, RefreshCw } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import { FinanceiroTabs } from "./Financeiro";
 import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
@@ -22,6 +22,7 @@ export default function NfeInbox() {
   const [reviewItem, setReviewItem] = useState<NfeInboxItem | null>(null);
   const [activeTab, setActiveTab] = useState("pendentes");
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const { items: pendentes, loading: loadingPendentes, refetch: refetchPendentes } =
     useNfeInbox("aguardando_revisao");
@@ -31,6 +32,26 @@ export default function NfeInbox() {
   const handleProcessed = () => {
     refetchPendentes();
     refetchHistorico();
+  };
+
+  const handleSyncEmail = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-nfe-from-email", { body: {} });
+      if (error) throw error;
+      const processed = data?.processed || 0;
+      if (processed > 0) {
+        toast.success(`${processed} NF-e(s) encontrada(s) no email`);
+        refetchPendentes();
+        refetchHistorico();
+      } else {
+        toast.info("Nenhuma NF-e nova no email");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar: " + (err.message || "verifique a conexão"));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const renderTable = (items: NfeInboxItem[], loading: boolean, showActions: boolean, emptyState?: React.ReactNode) => (
@@ -103,6 +124,15 @@ export default function NfeInbox() {
                 {pendentes.length} pendente{pendentes.length > 1 ? "s" : ""}
               </Badge>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={syncing}
+              onClick={handleSyncEmail}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sincronizando..." : "Sincronizar Email"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setManualEntryOpen(true)}>
               <FileText className="h-4 w-4 mr-1" /> Digitar NF-e
             </Button>
