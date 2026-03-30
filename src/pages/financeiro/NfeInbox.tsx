@@ -3,10 +3,9 @@ import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Upload, Eye, FileText, FileCheck, RefreshCw } from "lucide-react";
+import { Mail, Upload, Eye, FileText, FileCheck, RefreshCw, Paperclip, Trash2 } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import { FinanceiroTabs } from "./Financeiro";
 import { useNfeInbox, type NfeInboxItem } from "@/hooks/useNfeInbox";
@@ -26,6 +25,7 @@ export default function NfeInbox() {
   const [activeTab, setActiveTab] = useState("pendentes");
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [emails, setEmails] = useState<any[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
@@ -77,6 +77,23 @@ export default function NfeInbox() {
   };
 
   const handleProcessEmail = async (uid: string, filename: string) => {
+    // Check for duplicate by filename pattern
+    if (filename) {
+      const { data: existing } = await supabase
+        .from("nfe_inbox" as any)
+        .select("id, numero_nota, cnpj, status")
+        .or(`arquivo_path.ilike.%${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}%`);
+
+      if (existing && existing.length > 0) {
+        const confirmed = window.confirm(
+          `Atenção: Um arquivo similar "${filename}" já foi importado anteriormente (${existing.length} registro(s) encontrado(s)).\n\n` +
+          existing.map((e: any) => `• Status: ${e.status} | CNPJ: ${e.cnpj || "—"} | Nota: ${e.numero_nota || "—"}`).join("\n") +
+          "\n\nDeseja importar mesmo assim?"
+        );
+        if (!confirmed) return;
+      }
+    }
+
     setProcessingUid(uid);
     try {
       const { data, error } = await supabase.functions.invoke("fetch-nfe-from-email", {
@@ -94,7 +111,28 @@ export default function NfeInbox() {
     }
   };
 
-  const renderTable = (items: NfeInboxItem[], loading: boolean, showActions: boolean, emptyState?: React.ReactNode) => (
+  const handleDeleteNfe = async (id: string) => {
+    if (!window.confirm("Excluir este registro de NF-e? Esta ação não pode ser desfeita.")) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("nfe_inbox" as any).delete().eq("id", id);
+      if (error) throw error;
+      toast.success("NF-e excluída");
+      refetchHistorico();
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || ""));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const renderTable = (
+    items: NfeInboxItem[],
+    loading: boolean,
+    showActions: boolean,
+    emptyState?: React.ReactNode,
+    showDelete: boolean = false
+  ) => (
     <div className="border rounded-lg">
       <Table>
         <TableHeader>
@@ -108,13 +146,14 @@ export default function NfeInbox() {
             <TableHead>Origem</TableHead>
             <TableHead>Status</TableHead>
             {showActions && <TableHead className="w-[80px]"></TableHead>}
+            {showDelete && <TableHead className="w-[80px]"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableRow><TableCell colSpan={showActions ? 9 : 8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={showActions || showDelete ? 9 : 8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
           ) : items.length === 0 ? (
-            <TableRow><TableCell colSpan={showActions ? 9 : 8}>
+            <TableRow><TableCell colSpan={showActions || showDelete ? 9 : 8}>
               {emptyState ?? <div className="text-center py-8 text-muted-foreground">Nenhuma nota fiscal encontrada</div>}
             </TableCell></TableRow>
           ) : items.map((item) => (
@@ -140,6 +179,18 @@ export default function NfeInbox() {
                 <TableCell>
                   <Button size="sm" variant="outline" onPointerUp={(e) => e.stopPropagation()} onClick={() => setTimeout(() => setReviewItem(item), 0)}>
                     <Eye className="h-3 w-3 mr-1" /> Revisar
+                  </Button>
+                </TableCell>
+              )}
+              {showDelete && (
+                <TableCell>
+                  <Button
+                    size="sm" variant="ghost"
+                    className="text-destructive hover:text-destructive h-7"
+                    disabled={deletingId === item.id}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteNfe(item.id); }}
+                  >
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </TableCell>
               )}
@@ -205,7 +256,7 @@ export default function NfeInbox() {
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">
-            {renderTable(historico, loadingHistorico, false)}
+            {renderTable(historico, loadingHistorico, false, undefined, true)}
           </TabsContent>
 
           <TabsContent value="upload" className="mt-4">
@@ -215,9 +266,14 @@ export default function NfeInbox() {
           <TabsContent value="inbox" className="mt-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Emails recebidos em nfe@ars.eng.br
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted-foreground">nfe@ars.eng.br</p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>{emails.filter((e: any) => !e.seen).length} não lidos</span>
+                    <span>·</span>
+                    <span>{emails.length} total</span>
+                  </div>
+                </div>
                 <Button variant="outline" size="sm" onClick={fetchEmailList} disabled={loadingEmails}>
                   <RefreshCw className={`h-4 w-4 mr-1 ${loadingEmails ? "animate-spin" : ""}`} />
                   Atualizar
@@ -229,63 +285,92 @@ export default function NfeInbox() {
               ) : emails.length === 0 ? (
                 <div className="text-center py-12">
                   <Mail className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">Nenhum email encontrado</p>
+                  <p className="text-sm font-medium text-muted-foreground">Caixa vazia</p>
                   <p className="text-xs text-muted-foreground mt-1">Clique em Atualizar para buscar emails</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {emails.map((email: any) => (
-                    <Card key={email.uid} className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <p className="text-sm font-medium truncate">{email.subject || "(sem assunto)"}</p>
-                            {!email.seen && <Badge className="bg-blue-100 text-blue-800 text-[10px]">Novo</Badge>}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            De: {email.from} · {email.date ? new Date(email.date).toLocaleString("pt-BR") : ""}
-                          </p>
-                          {email.attachments && email.attachments.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {email.attachments.map((att: any, i: number) => {
-                                const isXml = att.filename?.toLowerCase().endsWith(".xml");
-                                const isPdf = att.filename?.toLowerCase().endsWith(".pdf");
-                                const isNfe = isXml || isPdf;
-                                return (
-                                  <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs border ${isNfe ? "bg-blue-50 border-blue-200" : "bg-muted border-muted-foreground/20"}`}>
-                                    <FileText className="h-3 w-3" />
-                                    <span className="truncate max-w-[200px]">{att.filename || "anexo"}</span>
-                                    {isNfe && (
-                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-green-50 text-green-700 border-green-200">
-                                        {isXml ? "XML" : "PDF"}
-                                      </Badge>
-                                    )}
-                                    {isNfe && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 px-1 text-[10px]"
-                                        disabled={processingUid === email.uid}
-                                        onClick={() => handleProcessEmail(email.uid, att.filename)}
-                                      >
-                                        {processingUid === email.uid ? "..." : "Importar"}
-                                      </Button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {(!email.attachments || email.attachments.length === 0) && (
-                            <p className="text-xs text-muted-foreground mt-1 italic">Sem anexos</p>
+                <div className="border rounded-lg divide-y">
+                  {emails.map((email: any) => {
+                    const nfeAtts = (email.attachments || []).filter((a: any) => {
+                      const fn = (a.filename || "").toLowerCase();
+                      return fn.endsWith(".xml") || fn.endsWith(".pdf");
+                    });
+                    const hasNfe = nfeAtts.length > 0;
+                    // Check if already imported by matching remetente + assunto
+                    const isImported = historico.some((h: any) =>
+                      h.email_remetente === email.from && h.email_assunto === email.subject
+                    );
+
+                    return (
+                      <div
+                        key={email.uid}
+                        className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${!email.seen ? "bg-blue-50/50" : ""}`}
+                      >
+                        {/* Status dot */}
+                        <div className="flex-shrink-0">
+                          {!email.seen ? (
+                            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" title="Não lido" />
+                          ) : (
+                            <div className="h-2.5 w-2.5 rounded-full bg-transparent" />
                           )}
                         </div>
+
+                        {/* Email content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm truncate ${!email.seen ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                              {email.subject || "(sem assunto)"}
+                            </p>
+                            {isImported && (
+                              <Badge className="bg-green-100 text-green-800 text-[10px] flex-shrink-0">Importado</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {email.from}
+                          </p>
+                        </div>
+
+                        {/* Attachments badge */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {nfeAtts.length > 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              <Paperclip className="h-2.5 w-2.5 mr-0.5" />
+                              {nfeAtts.length} {nfeAtts.length === 1 ? "arquivo" : "arquivos"}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Date */}
+                        <div className="text-xs text-muted-foreground flex-shrink-0 w-20 text-right">
+                          {email.date ? new Date(email.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : ""}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex-shrink-0">
+                          {hasNfe && !isImported ? (
+                            <Button
+                              size="sm" variant="outline" className="h-7 text-xs"
+                              disabled={processingUid === email.uid}
+                              onClick={() => handleProcessEmail(email.uid, "")}
+                            >
+                              {processingUid === email.uid ? "..." : "Importar"}
+                            </Button>
+                          ) : hasNfe && isImported ? (
+                            <span className="text-[10px] text-green-600">✓</span>
+                          ) : null}
+                        </div>
                       </div>
-                    </Card>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
+
+              {/* Legend */}
+              <div className="flex gap-4 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-blue-500" /> Não lido</span>
+                <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-800 text-[9px] px-1 py-0">Importado</Badge> Já no sistema</span>
+                <span className="flex items-center gap-1"><Paperclip className="h-2.5 w-2.5" /> Tem anexos NF-e</span>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
