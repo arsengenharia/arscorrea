@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ChatMessage {
@@ -11,11 +11,59 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+const CONV_KEY = "ars_chat_conversation_id";
+
 export function useAiChat(contextType?: string, contextId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    try { return localStorage.getItem(CONV_KEY); } catch { return null; }
+  });
   const [loading, setLoading] = useState(false);
   const [lastAction, setLastAction] = useState<{ type: string; path: string; description?: string; params?: Record<string, any> } | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  // Persist conversationId
+  useEffect(() => {
+    try {
+      if (conversationId) localStorage.setItem(CONV_KEY, conversationId);
+      else localStorage.removeItem(CONV_KEY);
+    } catch { /* ignore */ }
+  }, [conversationId]);
+
+  // Load conversation history from backend on mount
+  useEffect(() => {
+    if (!conversationId || historyLoaded) return;
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("ai_messages" as any)
+          .select("id, role, content, created_at")
+          .eq("conversation_id", conversationId)
+          .in("role", ["user", "assistant"])
+          .order("created_at", { ascending: true })
+          .limit(50);
+
+        if (data && data.length > 0) {
+          const restored: ChatMessage[] = (data as any[]).map((m) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.content || "",
+            timestamp: new Date(m.created_at),
+          }));
+          setMessages(restored);
+        } else {
+          // Conversation may have been deleted or invalid
+          setConversationId(null);
+        }
+      } catch {
+        // If fetch fails, start fresh
+        setConversationId(null);
+      } finally {
+        setHistoryLoaded(true);
+      }
+    })();
+  }, [conversationId, historyLoaded]);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg: ChatMessage = {
@@ -39,7 +87,7 @@ export function useAiChat(contextType?: string, contextId?: string) {
 
       if (error) throw error;
 
-      if (data.conversation_id && !conversationId) {
+      if (data.conversation_id && data.conversation_id !== conversationId) {
         setConversationId(data.conversation_id);
       }
 
@@ -108,6 +156,7 @@ export function useAiChat(contextType?: string, contextId?: string) {
   const clearChat = useCallback(() => {
     setMessages([]);
     setConversationId(null);
+    setHistoryLoaded(false);
   }, []);
 
   return { messages, loading, sendMessage, confirmTool, clearChat, conversationId, lastAction };

@@ -44,25 +44,8 @@ export function ChatPanel() {
     return () => window.removeEventListener(AI_ANALYZE_EVENT, handler);
   }, [sendMessage]);
 
-  // Execute frontend actions when lastAction changes
-  useEffect(() => {
-    if (!lastAction) return;
-
-    if (lastAction.type === "navigate") {
-      setTimeout(() => navigate(lastAction.path), 500);
-    } else if (lastAction.type === "generate_report") {
-      // Open report in new tab for print/PDF
-      window.open(lastAction.path, "_blank");
-      toast.success(lastAction.description || "Relatório gerado");
-    } else if (lastAction.type.startsWith("filter_")) {
-      // Navigate to the target page first, then emit the filter command
-      navigate(lastAction.path);
-      setTimeout(() => {
-        emitAiCommand({ type: lastAction.type, params: lastAction.params || {} });
-        toast.success(lastAction.description || "Filtros aplicados");
-      }, 300);
-    }
-  }, [lastAction, navigate]);
+  // NOTE: Navigation actions are NOT auto-executed — they render as clickable links in the message bubble.
+  // Only filter and report actions are shown inline. This prevents the chat from auto-redirecting the user.
 
   const handleSend = () => {
     if (!input.trim() || loading) return;
