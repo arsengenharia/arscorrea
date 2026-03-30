@@ -218,17 +218,26 @@ Deno.serve(async (req) => {
       const isConfirmation = /\b(sim|exatamente|isso mesmo|correto|perfeito)\b/.test(lowerMsg) && toolCalls.length > 0;
 
       if (isCorrection && message) {
-        await supabase.from("ai_knowledge").insert({
+        const { error: knErr } = await supabase.from("ai_knowledge").insert({
           tipo: "correcao",
-          conteudo: `Usuario corrigiu: "${message}". Resposta ajustada: "${assistantText.substring(0, 200)}"`,
-          scope_type: conversation.context_type || "global",
-          scope_id: conversation.context_id,
+          conteudo: `Usuario corrigiu: "${message.substring(0, 300)}". Resposta: "${assistantText.substring(0, 200)}"`,
+          scope_type: (conversation.context_type === "general" || !conversation.context_type) ? "global" : conversation.context_type,
+          scope_id: conversation.context_id || null,
           user_id: userId,
           conversation_id: conversation.id,
           confianca: 0.9,
         });
+        // Log the result regardless
+        await supabase.from("ai_query_log").insert({
+          module: "knowledge_learn",
+          prompt: knErr ? "FAILED: " + knErr.message : "SUCCESS",
+          response: message?.substring(0, 200),
+          success: !knErr,
+          error_message: knErr?.message,
+          user_id: userId,
+        });
       }
-    } catch { /* don't fail on learning errors */ }
+    } catch (learnErr) { console.error("Learn error:", learnErr); }
 
     // Log
     await logAiQuery(supabase, {
