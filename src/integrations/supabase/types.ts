@@ -14,6 +14,562 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          context_id: string | null
+          context_snapshot: Json | null
+          context_type: string | null
+          created_at: string
+          id: string
+          last_message_at: string | null
+          message_count: number
+          status: string
+          title: string | null
+          total_tokens: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          context_id?: string | null
+          context_snapshot?: Json | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          status?: string
+          title?: string | null
+          total_tokens?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          context_id?: string | null
+          context_snapshot?: Json | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          status?: string
+          title?: string | null
+          total_tokens?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge: {
+        Row: {
+          ativo: boolean
+          confianca: number
+          conteudo: string
+          conversation_id: string | null
+          created_at: string
+          embedding: string | null
+          id: string
+          message_id: string | null
+          scope_id: string | null
+          scope_type: string | null
+          tipo: string
+          ultimo_uso: string | null
+          updated_at: string | null
+          user_id: string | null
+          vezes_usado: number
+        }
+        Insert: {
+          ativo?: boolean
+          confianca?: number
+          conteudo: string
+          conversation_id?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          message_id?: string | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tipo: string
+          ultimo_uso?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vezes_usado?: number
+        }
+        Update: {
+          ativo?: boolean
+          confianca?: number
+          conteudo?: string
+          conversation_id?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          message_id?: string | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tipo?: string
+          ultimo_uso?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vezes_usado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          action_audit_id: number | null
+          content: string
+          context_used: Json | null
+          conversation_id: string
+          created_at: string
+          id: string
+          latency_ms: number | null
+          model: string | null
+          role: string
+          sources: Json | null
+          tokens_input: number | null
+          tokens_output: number | null
+          tool_input: Json | null
+          tool_name: string | null
+          tool_output: Json | null
+        }
+        Insert: {
+          action_audit_id?: number | null
+          content: string
+          context_used?: Json | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role: string
+          sources?: Json | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
+        }
+        Update: {
+          action_audit_id?: number | null
+          content?: string
+          context_used?: Json | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role?: string
+          sources?: Json | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_query_log: {
+        Row: {
+          context_id: string | null
+          context_type: string | null
+          created_at: string
+          error_message: string | null
+          id: number
+          latency_ms: number | null
+          model: string | null
+          module: string
+          prompt: string
+          response: string | null
+          success: boolean
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string | null
+        }
+        Insert: {
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: number
+          latency_ms?: number | null
+          model?: string | null
+          module: string
+          prompt: string
+          response?: string | null
+          success?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: number
+          latency_ms?: number | null
+          model?: string | null
+          module?: string
+          prompt?: string
+          response?: string | null
+          success?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_tool_registry: {
+        Row: {
+          ativo: boolean
+          category: string
+          created_at: string
+          description: string
+          display_name: string
+          function_name: string
+          function_type: string
+          id: string
+          name: string
+          parameters_schema: Json
+          required_roles: string[]
+          requires_confirmation: boolean
+          return_schema: Json | null
+          risk_level: string
+        }
+        Insert: {
+          ativo?: boolean
+          category: string
+          created_at?: string
+          description: string
+          display_name: string
+          function_name: string
+          function_type: string
+          id?: string
+          name: string
+          parameters_schema: Json
+          required_roles?: string[]
+          requires_confirmation?: boolean
+          return_schema?: Json | null
+          risk_level?: string
+        }
+        Update: {
+          ativo?: boolean
+          category?: string
+          created_at?: string
+          description?: string
+          display_name?: string
+          function_name?: string
+          function_type?: string
+          id?: string
+          name?: string
+          parameters_schema?: Json
+          required_roles?: string[]
+          requires_confirmation?: boolean
+          return_schema?: Json | null
+          risk_level?: string
+        }
+        Relationships: []
+      }
+      ai_user_preferences: {
+        Row: {
+          alertar_anomalias: boolean
+          alertar_vencimentos: boolean
+          apelidos: Json | null
+          created_at: string
+          formato_moeda: string
+          id: string
+          idioma: string
+          nivel_detalhe: string
+          preferencias_extra: Json | null
+          projeto_padrao: string | null
+          resumo_diario: boolean
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          apelidos?: Json | null
+          created_at?: string
+          formato_moeda?: string
+          id?: string
+          idioma?: string
+          nivel_detalhe?: string
+          preferencias_extra?: Json | null
+          projeto_padrao?: string | null
+          resumo_diario?: boolean
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alertar_anomalias?: boolean
+          alertar_vencimentos?: boolean
+          apelidos?: Json | null
+          created_at?: string
+          formato_moeda?: string
+          id?: string
+          idioma?: string
+          nivel_detalhe?: string
+          preferencias_extra?: Json | null
+          projeto_padrao?: string | null
+          resumo_diario?: boolean
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
+            columns: ["projeto_padrao"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "ai_user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anomalies: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          descricao: string
+          detectado_por: string
+          entry_id: string | null
+          evidencia_json: Json | null
+          id: string
+          nfe_inbox_id: string | null
+          percentual_desvio: number | null
+          project_id: string | null
+          resolucao_nota: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          severidade: string
+          status: string
+          supplier_id: string | null
+          tipo: string
+          titulo: string
+          valor_encontrado: number | null
+          valor_esperado: number | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          descricao: string
+          detectado_por?: string
+          entry_id?: string | null
+          evidencia_json?: Json | null
+          id?: string
+          nfe_inbox_id?: string | null
+          percentual_desvio?: number | null
+          project_id?: string | null
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          status?: string
+          supplier_id?: string | null
+          tipo: string
+          titulo: string
+          valor_encontrado?: number | null
+          valor_esperado?: number | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          descricao?: string
+          detectado_por?: string
+          entry_id?: string | null
+          evidencia_json?: Json | null
+          id?: string
+          nfe_inbox_id?: string | null
+          percentual_desvio?: number | null
+          project_id?: string | null
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          status?: string
+          supplier_id?: string | null
+          tipo?: string
+          titulo?: string
+          valor_encontrado?: number | null
+          valor_esperado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anomalies_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anomalies_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anomalies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anomalies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "anomalies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "anomalies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "anomalies_resolvido_por_fkey"
+            columns: ["resolvido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anomalies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anomalies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "anomalies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          changed_fields: string[] | null
+          created_at: string
+          id: number
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: number
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: number
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           agencia: string | null
@@ -25,6 +581,7 @@ export type Database = {
           descricao: string | null
           id: string
           saldo_inicial: number
+          updated_at: string | null
         }
         Insert: {
           agencia?: string | null
@@ -36,6 +593,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           saldo_inicial?: number
+          updated_at?: string | null
         }
         Update: {
           agencia?: string | null
@@ -47,6 +605,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           saldo_inicial?: number
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -109,6 +668,7 @@ export type Database = {
           lancamento_id: string | null
           status_conciliacao: string
           tipo_origem: string
+          updated_at: string | null
           valor: number
         }
         Insert: {
@@ -120,6 +680,7 @@ export type Database = {
           lancamento_id?: string | null
           status_conciliacao?: string
           tipo_origem: string
+          updated_at?: string | null
           valor: number
         }
         Update: {
@@ -131,6 +692,7 @@ export type Database = {
           lancamento_id?: string | null
           status_conciliacao?: string
           tipo_origem?: string
+          updated_at?: string | null
           valor?: number
         }
         Relationships: [
@@ -307,6 +869,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "client_portal_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "client_portal_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -541,118 +1124,6 @@ export type Database = {
           },
         ]
       }
-      medicoes: {
-        Row: {
-          id: string
-          project_id: string
-          contract_id: string | null
-          numero: number
-          periodo_inicio: string
-          periodo_fim: string
-          valor_medido: number
-          valor_acumulado: number | null
-          percentual_fisico: number | null
-          status: string
-          responsavel: string | null
-          aprovado_por: string | null
-          aprovado_em: string | null
-          observacoes: string | null
-          documento_url: string | null
-          financial_entry_id: string | null
-          contract_payment_id: string | null
-          created_at: string
-          updated_at: string | null
-          created_by: string | null
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          contract_id?: string | null
-          numero: number
-          periodo_inicio: string
-          periodo_fim: string
-          valor_medido: number
-          valor_acumulado?: number | null
-          percentual_fisico?: number | null
-          status?: string
-          responsavel?: string | null
-          aprovado_por?: string | null
-          aprovado_em?: string | null
-          observacoes?: string | null
-          documento_url?: string | null
-          financial_entry_id?: string | null
-          contract_payment_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-          created_by?: string | null
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          contract_id?: string | null
-          numero?: number
-          periodo_inicio?: string
-          periodo_fim?: string
-          valor_medido?: number
-          valor_acumulado?: number | null
-          percentual_fisico?: number | null
-          status?: string
-          responsavel?: string | null
-          aprovado_por?: string | null
-          aprovado_em?: string | null
-          observacoes?: string | null
-          documento_url?: string | null
-          financial_entry_id?: string | null
-          contract_payment_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-          created_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "medicoes_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "medicoes_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "medicoes_aprovado_por_fkey"
-            columns: ["aprovado_por"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "medicoes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "medicoes_financial_entry_id_fkey"
-            columns: ["financial_entry_id"]
-            isOneToOne: false
-            referencedRelation: "project_financial_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "medicoes_contract_payment_id_fkey"
-            columns: ["contract_payment_id"]
-            isOneToOne: false
-            referencedRelation: "contract_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contracts: {
         Row: {
           additive_value: number | null
@@ -747,11 +1218,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contracts_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "contracts_proposal_id_fkey"
@@ -815,7 +1314,153 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cost_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
         ]
+      }
+      document_summaries: {
+        Row: {
+          content_text: string | null
+          created_at: string
+          filename: string | null
+          id: string
+          keywords: string[] | null
+          project_id: string | null
+          source_id: string
+          source_type: string
+          summary: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          content_text?: string | null
+          created_at?: string
+          filename?: string | null
+          id?: string
+          keywords?: string[] | null
+          project_id?: string | null
+          source_id: string
+          source_type: string
+          summary?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          content_text?: string | null
+          created_at?: string
+          filename?: string | null
+          id?: string
+          keywords?: string[] | null
+          project_id?: string | null
+          source_id?: string
+          source_type?: string
+          summary?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "document_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "document_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "document_summaries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_summaries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "document_summaries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
+          },
+        ]
+      }
+      financial_categories: {
+        Row: {
+          ativo: boolean
+          codigo: string | null
+          cor_hex: string
+          created_at: string
+          e_receita: boolean
+          id: string
+          nome: string
+          prefixo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string | null
+          cor_hex: string
+          created_at?: string
+          e_receita?: boolean
+          id?: string
+          nome: string
+          prefixo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string | null
+          cor_hex?: string
+          created_at?: string
+          e_receita?: boolean
+          id?: string
+          nome?: string
+          prefixo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       item_catalog: {
         Row: {
@@ -853,69 +1498,219 @@ export type Database = {
         }
         Relationships: []
       }
-      financial_categories: {
+      margin_snapshots: {
         Row: {
-          ativo: boolean
-          cor_hex: string
+          avanco_previsto: number | null
+          avanco_real: number | null
           created_at: string
-          e_receita: boolean
+          custo: number
           id: string
-          nome: string
-          prefixo: string
+          iec: number | null
+          ifec: number | null
+          margem: number | null
+          mes: string
+          project_id: string
+          receita: number
+          saldo: number
         }
         Insert: {
-          ativo?: boolean
-          cor_hex: string
+          avanco_previsto?: number | null
+          avanco_real?: number | null
           created_at?: string
-          e_receita?: boolean
+          custo?: number
           id?: string
-          nome: string
-          prefixo: string
+          iec?: number | null
+          ifec?: number | null
+          margem?: number | null
+          mes: string
+          project_id: string
+          receita?: number
+          saldo?: number
         }
         Update: {
-          ativo?: boolean
-          cor_hex?: string
+          avanco_previsto?: number | null
+          avanco_real?: number | null
           created_at?: string
-          e_receita?: boolean
+          custo?: number
           id?: string
-          nome?: string
-          prefixo?: string
+          iec?: number | null
+          ifec?: number | null
+          margem?: number | null
+          mes?: string
+          project_id?: string
+          receita?: number
+          saldo?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "margin_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "margin_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "margin_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "margin_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
-      notifications: {
+      medicoes: {
         Row: {
-          created_at: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          contract_id: string | null
+          contract_payment_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_url: string | null
+          financial_entry_id: string | null
           id: string
-          message: string | null
-          read: boolean | null
-          title: string
-          user_id: string
+          numero: number
+          observacoes: string | null
+          percentual_fisico: number | null
+          periodo_fim: string
+          periodo_inicio: string
+          project_id: string
+          responsavel: string | null
+          status: string
+          updated_at: string | null
+          valor_acumulado: number | null
+          valor_medido: number
         }
         Insert: {
-          created_at?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          contract_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
           id?: string
-          message?: string | null
-          read?: boolean | null
-          title: string
-          user_id: string
+          numero: number
+          observacoes?: string | null
+          percentual_fisico?: number | null
+          periodo_fim: string
+          periodo_inicio: string
+          project_id: string
+          responsavel?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_acumulado?: number | null
+          valor_medido: number
         }
         Update: {
-          created_at?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          contract_id?: string | null
+          contract_payment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_url?: string | null
+          financial_entry_id?: string | null
           id?: string
-          message?: string | null
-          read?: boolean | null
-          title?: string
-          user_id?: string
+          numero?: number
+          observacoes?: string | null
+          percentual_fisico?: number | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          project_id?: string
+          responsavel?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_acumulado?: number | null
+          valor_medido?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "medicoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_contract_payment_id_fkey"
+            columns: ["contract_payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "medicoes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       nfe_inbox: {
         Row: {
           ai_confianca: number | null
           ai_justificativa: string | null
           arquivo_path: string
-          arquivo_tipo: string
+          arquivo_tipo: Database["public"]["Enums"]["nfe_arquivo_tipo"]
           bank_account_id_selecionado: string | null
           categoria_final: string | null
           categoria_sugerida: string | null
@@ -930,22 +1725,23 @@ export type Database = {
           id: string
           itens_json: Json | null
           numero_nota: string | null
-          observacao: string | null
           obras_ativas_json: Json | null
-          origem: string
+          observacao: string | null
+          origem: Database["public"]["Enums"]["nfe_origem"]
           project_id_selecionado: string | null
           razao_social: string | null
           revisado_em: string | null
           revisado_por: string | null
-          status: string
+          status: Database["public"]["Enums"]["nfe_status"]
           supplier_id: string | null
+          updated_at: string | null
           valor_total: number | null
         }
         Insert: {
           ai_confianca?: number | null
           ai_justificativa?: string | null
           arquivo_path: string
-          arquivo_tipo: string
+          arquivo_tipo: Database["public"]["Enums"]["nfe_arquivo_tipo"]
           bank_account_id_selecionado?: string | null
           categoria_final?: string | null
           categoria_sugerida?: string | null
@@ -960,22 +1756,23 @@ export type Database = {
           id?: string
           itens_json?: Json | null
           numero_nota?: string | null
-          observacao?: string | null
           obras_ativas_json?: Json | null
-          origem: string
+          observacao?: string | null
+          origem: Database["public"]["Enums"]["nfe_origem"]
           project_id_selecionado?: string | null
           razao_social?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["nfe_status"]
           supplier_id?: string | null
+          updated_at?: string | null
           valor_total?: number | null
         }
         Update: {
           ai_confianca?: number | null
           ai_justificativa?: string | null
           arquivo_path?: string
-          arquivo_tipo?: string
+          arquivo_tipo?: Database["public"]["Enums"]["nfe_arquivo_tipo"]
           bank_account_id_selecionado?: string | null
           categoria_final?: string | null
           categoria_sugerida?: string | null
@@ -990,15 +1787,16 @@ export type Database = {
           id?: string
           itens_json?: Json | null
           numero_nota?: string | null
-          observacao?: string | null
           obras_ativas_json?: Json | null
-          origem?: string
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["nfe_origem"]
           project_id_selecionado?: string | null
           razao_social?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["nfe_status"]
           supplier_id?: string | null
+          updated_at?: string | null
           valor_total?: number | null
         }
         Relationships: [
@@ -1024,6 +1822,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfe_inbox_project_id_selecionado_fkey"
+            columns: ["project_id_selecionado"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_project_id_selecionado_fkey"
+            columns: ["project_id_selecionado"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_project_id_selecionado_fkey"
+            columns: ["project_id_selecionado"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "nfe_inbox_revisado_por_fkey"
             columns: ["revisado_por"]
             isOneToOne: false
@@ -1036,6 +1855,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "nfe_inbox_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
           },
         ]
       }
@@ -1110,6 +1943,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfe_items_item_catalog_id_fkey"
+            columns: ["item_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["catalog_id"]
+          },
+          {
             foreignKeyName: "nfe_items_nfe_inbox_id_fkey"
             columns: ["nfe_inbox_id"]
             isOneToOne: false
@@ -1124,13 +1964,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfe_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "nfe_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "nfe_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "nfe_items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nfe_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "nfe_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
+          },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          read: boolean | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       portal_event_photos: {
         Row: {
@@ -1212,6 +2114,27 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "portal_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "portal_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "portal_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       profiles: {
@@ -1240,33 +2163,54 @@ export type Database = {
       }
       project_budgets: {
         Row: {
-          id: string
-          project_id: string
           category_id: string
-          valor_previsto: number
-          observacoes: string | null
           created_at: string
+          id: string
+          observacoes: string | null
+          project_id: string
           updated_at: string | null
+          valor_previsto: number
         }
         Insert: {
-          id?: string
-          project_id: string
           category_id: string
-          valor_previsto: number
-          observacoes?: string | null
           created_at?: string
+          id?: string
+          observacoes?: string | null
+          project_id: string
           updated_at?: string | null
+          valor_previsto: number
         }
         Update: {
-          id?: string
-          project_id?: string
           category_id?: string
-          valor_previsto?: number
-          observacoes?: string | null
           created_at?: string
+          id?: string
+          observacoes?: string | null
+          project_id?: string
           updated_at?: string | null
+          valor_previsto?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "project_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "project_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_category_summary"
+            referencedColumns: ["category_id"]
+          },
           {
             foreignKeyName: "project_budgets_project_id_fkey"
             columns: ["project_id"]
@@ -1275,11 +2219,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "project_budgets_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: "project_budgets_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1329,11 +2287,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "project_costs_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_costs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "project_costs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
           },
         ]
       }
@@ -1376,6 +2369,34 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_financial_entries: {
@@ -1388,6 +2409,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           data: string
+          data_pagamento: string | null
+          data_vencimento: string | null
           id: string
           is_comprometido: boolean
           nota_fiscal: string | null
@@ -1397,6 +2420,8 @@ export type Database = {
           situacao: string
           supplier_id: string | null
           tipo_documento: string
+          updated_at: string | null
+          updated_by: string | null
           valor: number
         }
         Insert: {
@@ -1408,6 +2433,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
           id?: string
           is_comprometido?: boolean
           nota_fiscal?: string | null
@@ -1417,6 +2444,8 @@ export type Database = {
           situacao?: string
           supplier_id?: string | null
           tipo_documento: string
+          updated_at?: string | null
+          updated_by?: string | null
           valor: number
         }
         Update: {
@@ -1428,6 +2457,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
           id?: string
           is_comprometido?: boolean
           nota_fiscal?: string | null
@@ -1437,6 +2468,8 @@ export type Database = {
           situacao?: string
           supplier_id?: string | null
           tipo_documento?: string
+          updated_at?: string | null
+          updated_by?: string | null
           valor?: number
         }
         Relationships: [
@@ -1453,6 +2486,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "financial_categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_category_summary"
+            referencedColumns: ["category_id"]
           },
           {
             foreignKeyName: "project_financial_entries_contract_payment_id_fkey"
@@ -1476,11 +2523,122 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_financial_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "project_financial_entries_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_price_analysis"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_summary"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "project_financial_entries_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_progress_baseline: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          mes: string
+          observacao: string | null
+          percentual_previsto: number
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mes: string
+          observacao?: string | null
+          percentual_previsto: number
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mes?: string
+          observacao?: string | null
+          percentual_previsto?: number
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_progress_baseline_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1522,6 +2680,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1567,17 +2746,41 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_revenues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_revenues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_revenues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       projects: {
         Row: {
+          avanco_previsto: number | null
+          avanco_real: number | null
           bank_account_id: string | null
           client_id: string
           created_at: string
           custo_realizado: number | null
           end_date: string | null
-          iec_atual: number | null
           id: string
+          iec_atual: number | null
+          ifec_atual: number | null
           margem_atual: number | null
           name: string
           orcamento_previsto: number | null
@@ -1589,13 +2792,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avanco_previsto?: number | null
+          avanco_real?: number | null
           bank_account_id?: string | null
           client_id: string
           created_at?: string
           custo_realizado?: number | null
           end_date?: string | null
-          iec_atual?: number | null
           id?: string
+          iec_atual?: number | null
+          ifec_atual?: number | null
           margem_atual?: number | null
           name: string
           orcamento_previsto?: number | null
@@ -1607,13 +2813,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avanco_previsto?: number | null
+          avanco_real?: number | null
           bank_account_id?: string | null
           client_id?: string
           created_at?: string
           custo_realizado?: number | null
           end_date?: string | null
-          iec_atual?: number | null
           id?: string
+          iec_atual?: number | null
+          ifec_atual?: number | null
           margem_atual?: number | null
           name?: string
           orcamento_previsto?: number | null
@@ -1879,6 +3088,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "proposals_stage_id_fkey"
             columns: ["stage_id"]
             isOneToOne: false
@@ -1960,6 +3190,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -2044,310 +3295,19 @@ export type Database = {
             referencedRelation: "financial_categories"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      ai_conversations: {
-        Row: {
-          id: string
-          user_id: string
-          title: string | null
-          status: string
-          context_type: string | null
-          context_id: string | null
-          context_snapshot: Json | null
-          message_count: number
-          total_tokens: number
-          last_message_at: string | null
-          created_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          title?: string | null
-          status?: string
-          context_type?: string | null
-          context_id?: string | null
-          context_snapshot?: Json | null
-          message_count?: number
-          total_tokens?: number
-          last_message_at?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          title?: string | null
-          status?: string
-          context_type?: string | null
-          context_id?: string | null
-          context_snapshot?: Json | null
-          message_count?: number
-          total_tokens?: number
-          last_message_at?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "ai_conversations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "suppliers_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_knowledge: {
-        Row: {
-          id: string
-          tipo: string
-          conteudo: string
-          embedding: string | null
-          scope_type: string | null
-          scope_id: string | null
-          user_id: string | null
-          ativo: boolean
-          confianca: number
-          vezes_usado: number
-          ultimo_uso: string | null
-          conversation_id: string | null
-          message_id: string | null
-          created_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          tipo: string
-          conteudo: string
-          embedding?: string | null
-          scope_type?: string | null
-          scope_id?: string | null
-          user_id?: string | null
-          ativo?: boolean
-          confianca?: number
-          vezes_usado?: number
-          ultimo_uso?: string | null
-          conversation_id?: string | null
-          message_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          tipo?: string
-          conteudo?: string
-          embedding?: string | null
-          scope_type?: string | null
-          scope_id?: string | null
-          user_id?: string | null
-          ativo?: boolean
-          confianca?: number
-          vezes_usado?: number
-          ultimo_uso?: string | null
-          conversation_id?: string | null
-          message_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_knowledge_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["category_id"]
           },
           {
-            foreignKeyName: "ai_knowledge_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "suppliers_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
             isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_knowledge_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "ai_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_messages: {
-        Row: {
-          id: string
-          conversation_id: string
-          role: string
-          content: string
-          context_used: Json | null
-          sources: Json | null
-          tool_name: string | null
-          tool_input: Json | null
-          tool_output: Json | null
-          model: string | null
-          tokens_input: number | null
-          tokens_output: number | null
-          latency_ms: number | null
-          action_audit_id: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          conversation_id: string
-          role: string
-          content: string
-          context_used?: Json | null
-          sources?: Json | null
-          tool_name?: string | null
-          tool_input?: Json | null
-          tool_output?: Json | null
-          model?: string | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          latency_ms?: number | null
-          action_audit_id?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          conversation_id?: string
-          role?: string
-          content?: string
-          context_used?: Json | null
-          sources?: Json | null
-          tool_name?: string | null
-          tool_input?: Json | null
-          tool_output?: Json | null
-          model?: string | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          latency_ms?: number | null
-          action_audit_id?: number | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_tool_registry: {
-        Row: {
-          id: string
-          name: string
-          display_name: string
-          description: string
-          category: string
-          function_type: string
-          function_name: string
-          parameters_schema: Json
-          return_schema: Json | null
-          required_roles: string[]
-          ativo: boolean
-          requires_confirmation: boolean
-          risk_level: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          display_name: string
-          description: string
-          category: string
-          function_type: string
-          function_name: string
-          parameters_schema: Json
-          return_schema?: Json | null
-          required_roles?: string[]
-          ativo?: boolean
-          requires_confirmation?: boolean
-          risk_level?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          display_name?: string
-          description?: string
-          category?: string
-          function_type?: string
-          function_name?: string
-          parameters_schema?: Json
-          return_schema?: Json | null
-          required_roles?: string[]
-          ativo?: boolean
-          requires_confirmation?: boolean
-          risk_level?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      ai_user_preferences: {
-        Row: {
-          id: string
-          user_id: string
-          idioma: string
-          formato_moeda: string
-          projeto_padrao: string | null
-          nivel_detalhe: string
-          alertar_anomalias: boolean
-          alertar_vencimentos: boolean
-          resumo_diario: boolean
-          apelidos: Json
-          preferencias_extra: Json
-          created_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          idioma?: string
-          formato_moeda?: string
-          projeto_padrao?: string | null
-          nivel_detalhe?: string
-          alertar_anomalias?: boolean
-          alertar_vencimentos?: boolean
-          resumo_diario?: boolean
-          apelidos?: Json
-          preferencias_extra?: Json
-          created_at?: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          idioma?: string
-          formato_moeda?: string
-          projeto_padrao?: string | null
-          nivel_detalhe?: string
-          alertar_anomalias?: boolean
-          alertar_vencimentos?: boolean
-          resumo_diario?: boolean
-          apelidos?: Json
-          preferencias_extra?: Json
-          created_at?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_user_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_user_preferences_projeto_padrao_fkey"
-            columns: ["projeto_padrao"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedRelation: "v_category_summary"
+            referencedColumns: ["category_id"]
           },
         ]
       }
@@ -2373,143 +3333,214 @@ export type Database = {
         Relationships: []
       }
     }
-      ai_query_log: {
-        Row: {
-          id: string
-          created_at: string
-          user_id: string | null
-          query_text: string
-          response_text: string | null
-          tokens_used: number | null
-          model: string | null
-          duration_ms: number | null
-          context: Json | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          user_id?: string | null
-          query_text: string
-          response_text?: string | null
-          tokens_used?: number | null
-          model?: string | null
-          duration_ms?: number | null
-          context?: Json | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          user_id?: string | null
-          query_text?: string
-          response_text?: string | null
-          tokens_used?: number | null
-          model?: string | null
-          duration_ms?: number | null
-          context?: Json | null
-        }
-        Relationships: []
-      }
-      anomalies: {
-        Row: {
-          id: string
-          created_at: string
-          project_id: string | null
-          supplier_id: string | null
-          lancamento_id: string | null
-          nfe_id: string | null
-          tipo: string
-          severidade: string
-          titulo: string
-          descricao: string | null
-          valor_detectado: number | null
-          valor_referencia: number | null
-          status: string
-          resolucao_nota: string | null
-          resolvida_em: string | null
-          resolvida_por: string | null
-          metadata: Json | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          project_id?: string | null
-          supplier_id?: string | null
-          lancamento_id?: string | null
-          nfe_id?: string | null
-          tipo: string
-          severidade: string
-          titulo: string
-          descricao?: string | null
-          valor_detectado?: number | null
-          valor_referencia?: number | null
-          status?: string
-          resolucao_nota?: string | null
-          resolvida_em?: string | null
-          resolvida_por?: string | null
-          metadata?: Json | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          project_id?: string | null
-          supplier_id?: string | null
-          lancamento_id?: string | null
-          nfe_id?: string | null
-          tipo?: string
-          severidade?: string
-          titulo?: string
-          descricao?: string | null
-          valor_detectado?: number | null
-          valor_referencia?: number | null
-          status?: string
-          resolucao_nota?: string | null
-          resolvida_em?: string | null
-          resolvida_por?: string | null
-          metadata?: Json | null
-        }
-        Relationships: []
-      }
-      margin_snapshots: {
-        Row: {
-          id: string
-          created_at: string
-          project_id: string
-          mes: string
-          receita: number | null
-          custo: number | null
-          saldo: number | null
-          margem: number | null
-          iec: number | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          project_id: string
-          mes: string
-          receita?: number | null
-          custo?: number | null
-          saldo?: number | null
-          margem?: number | null
-          iec?: number | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          project_id?: string
-          mes?: string
-          receita?: number | null
-          custo?: number | null
-          saldo?: number | null
-          margem?: number | null
-          iec?: number | null
-        }
-        Relationships: []
-      }
-    }
     Views: {
-      [_ in never]: never
+      v_budget_vs_actual: {
+        Row: {
+          categoria: string | null
+          category_id: string | null
+          cor_hex: string | null
+          diferenca: number | null
+          iec_categoria: number | null
+          orcamento: number | null
+          prefixo: string | null
+          project_id: string | null
+          project_name: string | null
+          realizado: number | null
+        }
+        Relationships: []
+      }
+      v_cash_flow_projection: {
+        Row: {
+          cliente: string | null
+          contrato: string | null
+          data_prevista: string | null
+          faixa: string | null
+          project_id: string | null
+          project_name: string | null
+          saldo_a_receber: number | null
+          status: string | null
+          tipo: string | null
+          valor_previsto: number | null
+          valor_recebido: number | null
+        }
+        Relationships: []
+      }
+      v_category_summary: {
+        Row: {
+          category_id: string | null
+          codigo: string | null
+          cor_hex: string | null
+          e_receita: boolean | null
+          nome: string | null
+          prefixo: string | null
+          qtd_fornecedores: number | null
+          qtd_lancamentos: number | null
+          qtd_obras: number | null
+          total_custo: number | null
+          total_receita: number | null
+        }
+        Relationships: []
+      }
+      v_ifec_overview: {
+        Row: {
+          avanco_previsto: number | null
+          avanco_real: number | null
+          custo_realizado: number | null
+          end_date: string | null
+          iec_atual: number | null
+          iec_status: string | null
+          ifec_atual: number | null
+          ifec_status: string | null
+          orcamento_previsto: number | null
+          project_id: string | null
+          project_name: string | null
+          saude_obra: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          avanco_previsto?: number | null
+          avanco_real?: number | null
+          custo_realizado?: number | null
+          end_date?: string | null
+          iec_atual?: number | null
+          iec_status?: never
+          ifec_atual?: number | null
+          ifec_status?: never
+          orcamento_previsto?: number | null
+          project_id?: string | null
+          project_name?: string | null
+          saude_obra?: never
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          avanco_previsto?: number | null
+          avanco_real?: number | null
+          custo_realizado?: number | null
+          end_date?: string | null
+          iec_atual?: number | null
+          iec_status?: never
+          ifec_atual?: number | null
+          ifec_status?: never
+          orcamento_previsto?: number | null
+          project_id?: string | null
+          project_name?: string | null
+          saude_obra?: never
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      v_item_price_analysis: {
+        Row: {
+          catalog_id: string | null
+          categoria: string | null
+          desvio_padrao: number | null
+          fornecedor: string | null
+          ncm: string | null
+          nome_padrao: string | null
+          preco_maximo: number | null
+          preco_medio: number | null
+          preco_minimo: number | null
+          qtd_compras: number | null
+          supplier_id: string | null
+          ultima_compra: string | null
+          unidade_padrao: string | null
+        }
+        Relationships: []
+      }
+      v_monthly_by_project: {
+        Row: {
+          categoria: string | null
+          category_id: string | null
+          custo: number | null
+          mes: string | null
+          project_id: string | null
+          project_name: string | null
+          qtd_lancamentos: number | null
+          receita: number | null
+          saldo: number | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
+      v_progress_timeline: {
+        Row: {
+          mes: string | null
+          percentual_previsto: number | null
+          percentual_real: number | null
+          project_id: string | null
+          project_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_vs_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_cash_flow_projection"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_progress_baseline_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_ifec_overview"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
+      v_supplier_summary: {
+        Row: {
+          cnpj: string | null
+          primeiro_lancamento: string | null
+          qtd_lancamentos: number | null
+          qtd_obras: number | null
+          supplier_id: string | null
+          ticket_medio: number | null
+          total_pago: number | null
+          trade_name: string | null
+          ultimo_lancamento: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      ai_build_context: {
+        Args: {
+          p_context_id?: string
+          p_context_type?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
+      calc_project_balance: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      capture_margin_snapshots: { Args: never; Returns: number }
+      detect_data_quality_issues: { Args: never; Returns: number }
+      detect_financial_anomalies: { Args: never; Returns: number }
+      detect_price_outliers: { Args: never; Returns: number }
+      get_avanco_previsto: {
+        Args: { p_date?: string; p_project_id: string }
+        Returns: number
+      }
+      get_avanco_real: { Args: { p_project_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2527,7 +3558,17 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "client"
+      app_role: "admin" | "client" | "financeiro"
+      nfe_arquivo_tipo: "xml" | "pdf"
+      nfe_origem: "email" | "upload_manual" | "entrada_manual"
+      nfe_status:
+        | "recebido"
+        | "processando"
+        | "aguardando_revisao"
+        | "aprovado"
+        | "rejeitado"
+        | "duplicata"
+        | "erro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2655,7 +3696,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "client"],
+      app_role: ["admin", "client", "financeiro"],
+      nfe_arquivo_tipo: ["xml", "pdf"],
+      nfe_origem: ["email", "upload_manual", "entrada_manual"],
+      nfe_status: [
+        "recebido",
+        "processando",
+        "aguardando_revisao",
+        "aprovado",
+        "rejeitado",
+        "duplicata",
+        "erro",
+      ],
     },
   },
 } as const
