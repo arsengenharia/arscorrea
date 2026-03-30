@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Bot, XCircle } from "lucide-react";
+import { ExternalLink, Bot, XCircle, UserPlus, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import type { NfeInboxItem } from "@/hooks/useNfeInbox";
@@ -94,6 +95,73 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
     enabled: open && !!item?.supplier_id && !!item?.valor_total,
   });
 
+  // Check if supplier exists
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [supplierFormData, setSupplierFormData] = useState({ trade_name: "", document: "", phone: "", email: "", chave_pix: "" });
+  const queryClient = useQueryClient();
+
+  const { data: existingSupplier } = useQuery({
+    queryKey: ["nfe-supplier-check", item?.cnpj],
+    queryFn: async () => {
+      if (!item?.cnpj) return null;
+      const cleanCnpj = item.cnpj.replace(/\D/g, "");
+      if (cleanCnpj.length < 11) return null;
+      const { data } = await supabase
+        .from("suppliers")
+        .select("id, trade_name, document, phone, email, chave_pix, tipo")
+        .eq("document", cleanCnpj)
+        .maybeSingle();
+      return data;
+    },
+    enabled: open && !!item?.cnpj,
+  });
+
+  const supplierStatus = !item?.cnpj ? "no_cnpj" : existingSupplier ? "exists" : "not_found";
+
+  // Pre-fill supplier form with NF-e data
+  if (item && supplierStatus === "not_found" && !supplierFormData.trade_name && item.razao_social) {
+    setSupplierFormData({
+      trade_name: item.razao_social || "",
+      document: item.cnpj?.replace(/\D/g, "") || "",
+      phone: "",
+      email: "",
+      chave_pix: "",
+    });
+  }
+
+  const handleCreateSupplier = async () => {
+    if (!supplierFormData.trade_name.trim()) { toast.error("Nome é obrigatório"); return; }
+    try {
+      const { error } = await supabase.from("suppliers").insert({
+        trade_name: supplierFormData.trade_name,
+        legal_name: supplierFormData.trade_name,
+        document: supplierFormData.document || null,
+        phone: supplierFormData.phone || null,
+        email: supplierFormData.email || null,
+        chave_pix: supplierFormData.chave_pix || null,
+        tipo: "Juridica",
+        ativo: true,
+      } as any);
+      if (error) throw error;
+
+      // Update nfe_inbox with new supplier_id
+      const { data: newSup } = await supabase
+        .from("suppliers")
+        .select("id")
+        .eq("document", supplierFormData.document)
+        .single();
+      if (newSup) {
+        await supabase.from("nfe_inbox" as any).update({ supplier_id: newSup.id }).eq("id", item!.id);
+      }
+
+      toast.success("Fornecedor cadastrado!");
+      setShowSupplierForm(false);
+      queryClient.invalidateQueries({ queryKey: ["nfe-supplier-check"] });
+    } catch (err: any) {
+      toast.error("Erro: " + (err.message || ""));
+    }
+  };
+
   // Pre-fill category when item changes
   if (item && !categoriaCodigo && item.categoria_sugerida) {
     setCategoriaCodigo(item.categoria_sugerida);
@@ -161,6 +229,8 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
     setBankAccountId("");
     setCategoriaCodigo("");
     setObservacoes("");
+    setShowSupplierForm(false);
+    setSupplierFormData({ trade_name: "", document: "", phone: "", email: "", chave_pix: "" });
   };
 
   if (!item) return null;
@@ -180,7 +250,17 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
           <CardContent className="pt-4 pb-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">Fornecedor</p>
-              <p className="font-medium">{item.razao_social || "—"}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="font-medium">{item.razao_social || "—"}</p>
+                {supplierStatus === "exists" && (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" title="Cadastrado no sistema" />
+                )}
+                {supplierStatus === "not_found" && (
+                  <Badge className="bg-amber-100 text-amber-800 text-[9px] px-1 py-0 cursor-pointer" onClick={() => setShowSupplierForm(true)}>
+                    Novo
+                  </Badge>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-muted-foreground text-xs">CNPJ</p>
@@ -284,6 +364,75 @@ export function NfeReviewDialog({ item, open, onClose, onProcessed }: NfeReviewD
             ))}
             <p className="text-xs text-amber-600 mt-1">Verifique se esta NF-e já foi lançada manualmente.</p>
           </div>
+        )}
+
+        {/* Supplier registration prompt */}
+        {supplierStatus === "not_found" && !showSupplierForm && (
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-amber-600" />
+              <div>
+                <p className="text-sm font-medium text-amber-900">Fornecedor não cadastrado</p>
+                <p className="text-xs text-amber-700">"{item.razao_social}" (CNPJ: {item.cnpj}) não existe no sistema.</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setShowSupplierForm(true)}>
+              Cadastrar
+            </Button>
+          </div>
+        )}
+
+        {supplierStatus === "exists" && existingSupplier && (
+          <div className="p-2 bg-green-50 rounded-lg border border-green-200 flex items-center gap-2 text-xs">
+            <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+            <span className="text-green-800">Fornecedor cadastrado: <strong>{existingSupplier.trade_name}</strong></span>
+            {existingSupplier.phone && <span className="text-green-600">· {existingSupplier.phone}</span>}
+          </div>
+        )}
+
+        {/* Inline supplier registration form */}
+        {showSupplierForm && (
+          <Card className="border-amber-200 bg-amber-50/30">
+            <CardContent className="pt-4 pb-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  <UserPlus className="h-4 w-4" /> Cadastrar Fornecedor
+                </p>
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowSupplierForm(false)}>Cancelar</Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome Fantasia *</Label>
+                  <Input className="h-8 text-sm" value={supplierFormData.trade_name}
+                    onChange={e => setSupplierFormData(p => ({ ...p, trade_name: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">CNPJ</Label>
+                  <Input className="h-8 text-sm font-mono" value={supplierFormData.document} disabled />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Telefone</Label>
+                  <Input className="h-8 text-sm" placeholder="(31) 9999-0000" value={supplierFormData.phone}
+                    onChange={e => setSupplierFormData(p => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input className="h-8 text-sm" placeholder="email@fornecedor.com" value={supplierFormData.email}
+                    onChange={e => setSupplierFormData(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Chave Pix</Label>
+                  <Input className="h-8 text-sm" placeholder="CPF, CNPJ, email" value={supplierFormData.chave_pix}
+                    onChange={e => setSupplierFormData(p => ({ ...p, chave_pix: e.target.value }))} />
+                </div>
+              </div>
+              <Button size="sm" onClick={handleCreateSupplier}>
+                <UserPlus className="h-3.5 w-3.5 mr-1" /> Cadastrar e Vincular
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Editable fields */}
