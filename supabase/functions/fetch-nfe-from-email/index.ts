@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ImapFlow } from "npm:imapflow@1.0.162";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +15,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  const { ImapFlow } = await import("npm:imapflow@1.0.162");
   const client = new ImapFlow({
     host: Deno.env.get("IMAP_HOST") || "imap.hostinger.com",
     port: Number(Deno.env.get("IMAP_PORT") || "993"),
