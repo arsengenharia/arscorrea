@@ -73,6 +73,25 @@ Deno.serve(async (req) => {
       supabase, conversation_id || null, user.id, context_type, context_id
     );
 
+    // Update user preferences — track most used project
+    try {
+      if (context_type === "project" && context_id) {
+        const { data: pref } = await supabase.from("ai_user_preferences")
+          .select("id, projeto_padrao")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!pref) {
+          // Create preferences for new user
+          await supabase.from("ai_user_preferences").insert({
+            user_id: userId,
+            projeto_padrao: context_id,
+          });
+        }
+        // Don't update every time — just on first creation
+      }
+    } catch { /* ignore */ }
+
     // Build context (pass current message for question-type detection)
     const currentMessage = message || confirm_tool?.message || "";
     const { systemPrompt, contextData } = await buildSystemPrompt(
@@ -187,6 +206,29 @@ Deno.serve(async (req) => {
       sources: toolResults.length > 0 ? toolResults : undefined,
       context_used: contextData,
     });
+
+    // Auto-learn from conversation
+    try {
+      const lowerMsg = (message || "").toLowerCase();
+
+      // Detect corrections: "não, o X é Y", "errado, na verdade", "corrija"
+      const isCorrection = /\b(n[aã]o|errado|incorreto|corrija|na verdade|o certo|o correto)\b/.test(lowerMsg);
+
+      // Detect confirmations of non-obvious facts: "sim, exatamente", "isso mesmo"
+      const isConfirmation = /\b(sim|exatamente|isso mesmo|correto|perfeito)\b/.test(lowerMsg) && toolCalls.length > 0;
+
+      if (isCorrection && message) {
+        await supabase.from("ai_knowledge").insert({
+          tipo: "correcao",
+          conteudo: `Usuario corrigiu: "${message}". Resposta ajustada: "${assistantText.substring(0, 200)}"`,
+          scope_type: conversation.context_type || "global",
+          scope_id: conversation.context_id,
+          user_id: userId,
+          conversation_id: conversation.id,
+          confianca: 0.9,
+        });
+      }
+    } catch { /* don't fail on learning errors */ }
 
     // Log
     await logAiQuery(supabase, {

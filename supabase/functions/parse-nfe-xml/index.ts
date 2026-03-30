@@ -319,6 +319,22 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
         : "PDF sem texto suficiente — preencha manualmente.",
     }).eq("id", nfe_inbox_id);
 
+    // Index document for search
+    try {
+      const keywords = [cnpj, razaoSocial, numeroNota, chaveNfe].filter(Boolean);
+      if (itens.length > 0) keywords.push(...itens.map((i: any) => i.xProd).filter(Boolean));
+
+      await supabase.from("document_summaries").insert({
+        source_type: "nfe_inbox",
+        source_id: nfe_inbox_id,
+        filename: inbox.arquivo_path?.split("/").pop() || null,
+        content_text: extractedText?.substring(0, 5000) || null,
+        summary: `NF-e ${numeroNota || "?"} de ${razaoSocial || "?"} (CNPJ ${cnpj || "?"}) no valor de R$ ${valorTotal || 0}`,
+        keywords: keywords.slice(0, 20),
+        supplier_id: supplierId,
+      });
+    } catch { /* ignore indexing errors */ }
+
     return new Response(JSON.stringify({ mode: extractionMode, chars: extractedText.length }), {
       headers: { "Content-Type": "application/json" }
     });
@@ -377,6 +393,22 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
     chave_nfe: chaveNfe || null, categoria_sugerida: "materiais_obra", ai_confianca: 1.0,
     itens_json: itens, obras_ativas_json: obras,
   }).eq("id", nfe_inbox_id);
+
+  // Index document for search
+  try {
+    const keywords = [cnpj, razaoSocial, numeroNota, chaveNfe].filter(Boolean);
+    keywords.push(...itens.map((i: any) => i.xProd).filter(Boolean));
+
+    await supabase.from("document_summaries").insert({
+      source_type: "nfe_inbox",
+      source_id: nfe_inbox_id,
+      filename: inbox.arquivo_path?.split("/").pop() || null,
+      content_text: itens.map((i: any) => `${i.xProd} NCM:${i.NCM} R$${i.vProd}`).join("; "),
+      summary: `NF-e ${numeroNota} de ${razaoSocial} (${cnpj}) - ${itens.length} itens - R$ ${valorTotal}`,
+      keywords: keywords.slice(0, 20),
+      supplier_id: supplierId,
+    });
+  } catch { /* ignore */ }
 
   return new Response(JSON.stringify({ mode: "xml", items: itens.length }), { headers: { "Content-Type": "application/json" } });
 });
