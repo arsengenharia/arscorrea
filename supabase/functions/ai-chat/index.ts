@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       await saveMessage(supabase, conversation.id, "user", message);
     }
 
-    // Call Bedrock with agentic tool loop (max 5 iterations)
+    // Call Bedrock with agentic tool loop (max 3 iterations)
     const bedrockTools = tools.map(t => ({
       name: t.name,
       description: t.description,
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
 
-    for (let iteration = 0; iteration < 5; iteration++) {
+    for (let iteration = 0; iteration < 3; iteration++) {
       const resp = await callBedrock(systemPrompt, currentMessages, bedrockTools.length > 0 ? bedrockTools : undefined);
       totalInputTokens += resp.usage.input_tokens;
       totalOutputTokens += resp.usage.output_tokens;
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
         // Truncate large results
         let resultStr = "";
         try { resultStr = JSON.stringify(result.result ?? result.error ?? "no data"); } catch { resultStr = "error"; }
-        if (resultStr.length > 3000) resultStr = resultStr.substring(0, 3000) + "...[truncado]";
+        if (resultStr.length > 1500) resultStr = resultStr.substring(0, 1500) + "...[truncado]";
 
         toolResultContents.push({
           type: "tool_result",

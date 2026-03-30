@@ -51,7 +51,7 @@ export async function callBedrock(
     anthropic_version: "bedrock-2023-05-31",
     system: systemPrompt,
     messages,
-    max_tokens: 4096,
+    max_tokens: 2048,
   };
 
   if (tools && tools.length > 0) {
