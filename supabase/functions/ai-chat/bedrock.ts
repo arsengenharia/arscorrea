@@ -37,7 +37,8 @@ export async function callBedrock(
   tools?: BedrockTool[]
 ): Promise<BedrockResponse> {
   const region = Deno.env.get("AWS_REGION") || "us-east-1";
-  const modelId = "us.anthropic.claude-3-5-haiku-20241022-v1:0";
+  // Sonnet for chat (better reasoning with tools), Haiku only for OCR text parsing
+  const modelId = "us.anthropic.claude-sonnet-4-20250514-v1:0";
 
   const aws = new AwsClient({
     accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID")!,

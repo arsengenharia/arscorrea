@@ -96,66 +96,58 @@ Deno.serve(async (req) => {
       await saveMessage(supabase, conversation.id, "user", message);
     }
 
-    // Call Bedrock
+    // Call Bedrock with agentic tool loop (max 5 iterations)
     const bedrockTools = tools.map(t => ({
       name: t.name,
       description: t.description,
       input_schema: t.input_schema,
     }));
 
-    const response = await callBedrock(systemPrompt, messages, bedrockTools.length > 0 ? bedrockTools : undefined);
-
-    const latencyMs = Date.now() - startTime;
-
-    // Process response
     let assistantText = "";
     let toolCalls: any[] = [];
     let toolResults: any[] = [];
+    let currentMessages = [...messages];
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
 
-    for (const block of response.content) {
-      if (block.type === "text") {
-        assistantText += block.text;
-      } else if (block.type === "tool_use") {
+    for (let iteration = 0; iteration < 5; iteration++) {
+      const resp = await callBedrock(systemPrompt, currentMessages, bedrockTools.length > 0 ? bedrockTools : undefined);
+      totalInputTokens += resp.usage.input_tokens;
+      totalOutputTokens += resp.usage.output_tokens;
+
+      // Collect text from this response
+      for (const block of resp.content) {
+        if (block.type === "text") {
+          assistantText += (assistantText && block.text ? "\n\n" : "") + (block.text || "");
+        }
+      }
+
+      // If no tool use, we're done
+      if (resp.stop_reason !== "tool_use") break;
+
+      // Process tool calls
+      const toolUseBlocks = resp.content.filter((b: any) => b.type === "tool_use");
+      if (toolUseBlocks.length === 0) break;
+
+      // Add assistant response to messages
+      currentMessages.push({ role: "assistant", content: resp.content });
+
+      // Process each tool call and collect results
+      const toolResultContents: any[] = [];
+
+      for (const block of toolUseBlocks) {
         const toolDef = tools.find(t => t.name === block.name);
 
         // Check if tool requires confirmation
         if (toolDef?.requires_confirmation && !confirm_tool) {
-          // Return pending confirmation
-          await saveMessage(supabase, conversation.id, "assistant", assistantText || "Preciso da sua confirmacao para executar esta acao.", {
-            model: "claude-sonnet-4-6",
-            tokens_input: response.usage.input_tokens,
-            tokens_output: response.usage.output_tokens,
-            latency_ms: latencyMs,
-            tool_name: block.name,
-            tool_input: block.input,
-            context_used: contextData,
+          await saveMessage(supabase, conversation.id, "assistant", assistantText || "Preciso da sua confirmacao.", {
+            model: "claude-sonnet-4", tool_name: block.name, tool_input: block.input,
           });
-
-          await logAiQuery(supabase, {
-            module: "chat",
-            prompt: message,
-            response: assistantText,
-            model: "claude-sonnet-4-6",
-            tokens_input: response.usage.input_tokens,
-            tokens_output: response.usage.output_tokens,
-            latency_ms: latencyMs,
-            context_type: conversation.context_type,
-            context_id: conversation.context_id,
-            user_id: user.id,
-            success: true,
-          });
-
           return new Response(JSON.stringify({
             conversation_id: conversation.id,
             response: assistantText || "Posso executar esta acao para voce:",
-            pending_tool: {
-              name: block.name,
-              display_name: toolDef.description,
-              input: block.input,
-            },
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+            pending_tool: { name: block.name, display_name: toolDef.description, input: block.input },
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         // Execute tool
@@ -163,36 +155,28 @@ Deno.serve(async (req) => {
         toolCalls.push({ name: block.name, input: block.input });
         toolResults.push({ name: block.name, result: result.result, error: result.error });
 
-        // Save tool message
-        await saveMessage(supabase, conversation.id, "tool", JSON.stringify(result.result || result.error), {
-          tool_name: block.name,
-          tool_input: block.input,
-          tool_output: result.result || { error: result.error },
+        const toolMsgContent = JSON.stringify(result.result ?? result.error ?? "no data").substring(0, 2000);
+        await saveMessage(supabase, conversation.id, "tool", toolMsgContent, {
+          tool_name: block.name, tool_input: block.input, tool_output: result.result || { error: result.error },
         });
 
-        // If tool was executed, call Bedrock again with result
-        const followUpMessages = [
-          ...messages,
-          { role: "assistant", content: response.content },
-          {
-            role: "user",
-            content: [{
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: JSON.stringify(result.result || { error: result.error }),
-            }],
-          },
-        ];
+        // Truncate large results
+        let resultStr = "";
+        try { resultStr = JSON.stringify(result.result ?? result.error ?? "no data"); } catch { resultStr = "error"; }
+        if (resultStr.length > 3000) resultStr = resultStr.substring(0, 3000) + "...[truncado]";
 
-        const followUp = await callBedrock(systemPrompt, followUpMessages);
-        for (const fb of followUp.content) {
-          if (fb.type === "text") assistantText += (assistantText ? "\n\n" : "") + fb.text;
-        }
-
-        response.usage.input_tokens += followUp.usage.input_tokens;
-        response.usage.output_tokens += followUp.usage.output_tokens;
+        toolResultContents.push({
+          type: "tool_result",
+          tool_use_id: block.id,
+          content: resultStr,
+        });
       }
+
+      // Add tool results to messages for next iteration
+      currentMessages.push({ role: "user", content: toolResultContents });
     }
+
+    const response = { usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens } };
 
     // Save assistant response
     await saveMessage(supabase, conversation.id, "assistant", assistantText, {
