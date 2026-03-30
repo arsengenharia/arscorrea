@@ -251,7 +251,7 @@ export default function Indicadores() {
   const monthlyAggMap: Record<string, number> = {};
   for (const row of filteredMonthly) {
     const mes = row.mes ?? "";
-    monthlyAggMap[mes] = (monthlyAggMap[mes] ?? 0) + (row.total_custo ?? 0);
+    monthlyAggMap[mes] = (monthlyAggMap[mes] ?? 0) + (row.custo ?? 0);
   }
   const monthlyChartData = Object.entries(monthlyAggMap)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -282,11 +282,11 @@ export default function Indicadores() {
           .slice(0, 12);
       })()
     : [...categorySummary]
-        .sort((a, b) => (b.total_realizado ?? 0) - (a.total_realizado ?? 0))
+        .sort((a, b) => (b.total_custo ?? 0) - (a.total_custo ?? 0))
         .slice(0, 12)
         .map((c) => ({
-          name: abbrev(c.categoria_nome ?? c.nome ?? "—", 24),
-          total: c.total_realizado ?? 0,
+          name: abbrev(c.nome ?? "—", 24),
+          total: c.total_custo ?? 0,
           cor: c.cor_hex ?? COLOR_BLUE,
         }));
 
