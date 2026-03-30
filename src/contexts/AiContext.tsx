@@ -47,9 +47,9 @@ export function AiContextProvider({ children }: { children: React.ReactNode }) {
       return { contextType: "client", contextId: clienteMatch[1], contextLabel: "Cliente" };
     }
 
-    // /financeiro/* → financial context (no specific entity)
+    // /financeiro/* → general context with financial label (so ai_build_context returns summary)
     if (path.startsWith("/financeiro")) {
-      return { contextType: "financial", contextId: null, contextLabel: "Financeiro" };
+      return { contextType: "general", contextId: null, contextLabel: "Financeiro" };
     }
 
     // Default
