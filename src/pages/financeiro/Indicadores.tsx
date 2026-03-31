@@ -481,44 +481,42 @@ export default function Indicadores() {
             </div>
 
             {/* IFEC KPI Cards */}
-            {(projectsWithIfec.length > 0 || obrasComBaseline > 0) && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KpiCard
-                  icon={Activity}
-                  iconBg="violet"
-                  label="IFEC Médio"
-                  value={projectsWithIfec.length > 0 ? avgIfec.toFixed(3) : "—"}
-                  valueClassName={avgIfec > 0 && avgIfec < 0.8 ? "text-rose-600" : avgIfec >= 1 ? "text-emerald-600" : undefined}
-                  subtitle={projectsWithIfec.length > 0 ? "Média simples entre obras" : "Configure baselines para calcular"}
-                />
-                <KpiCard
-                  icon={AlertTriangle}
-                  iconBg="amber"
-                  label="IFEC < 0.8 (Atraso)"
-                  value={`${obrasIfecBaixo.length} / ${projectsWithIfec.length}`}
-                  subtitle={obrasIfecBaixo.length > 0 ? obrasIfecBaixo.map((p: any) => abbrev(p.name, 14)).join(", ") : "Nenhuma obra atrasada"}
-                />
-                <KpiCard
-                  icon={CalendarClock}
-                  iconBg="blue"
-                  label="Obras com Baseline"
-                  value={`${obrasComBaseline} / ${filteredProjects.length}`}
-                  subtitle="Cronograma previsto definido"
-                />
-                <KpiCard
-                  icon={Activity}
-                  iconBg="emerald"
-                  label="Saúde das Obras"
-                  value={(() => {
-                    const saudaveis = filteredProjects.filter((p: any) =>
-                      p.ifec_atual != null && p.iec_atual != null && p.ifec_atual >= 1.0 && p.iec_atual <= 1.0
-                    ).length;
-                    return `${saudaveis} / ${filteredProjects.length}`;
-                  })()}
-                  subtitle="IEC ≤ 1.0 e IFEC ≥ 1.0"
-                />
-              </div>
-            )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard
+                icon={Activity}
+                iconBg="violet"
+                label="IFEC Médio"
+                value={projectsWithIfec.length > 0 ? avgIfec.toFixed(3) : "—"}
+                valueClassName={avgIfec > 0 && avgIfec < 0.8 ? "text-rose-600" : avgIfec >= 1 ? "text-emerald-600" : undefined}
+                subtitle={projectsWithIfec.length > 0 ? "Média simples entre obras" : "Configure baselines em Medições"}
+              />
+              <KpiCard
+                icon={AlertTriangle}
+                iconBg="amber"
+                label="IFEC < 0.8 (Atraso)"
+                value={`${obrasIfecBaixo.length} / ${projectsWithIfec.length}`}
+                subtitle={obrasIfecBaixo.length > 0 ? obrasIfecBaixo.map((p: any) => abbrev(p.name, 14)).join(", ") : "Nenhuma obra atrasada"}
+              />
+              <KpiCard
+                icon={CalendarClock}
+                iconBg="blue"
+                label="Obras com Baseline"
+                value={`${obrasComBaseline} / ${filteredProjects.length}`}
+                subtitle="Cronograma previsto definido"
+              />
+              <KpiCard
+                icon={Activity}
+                iconBg="emerald"
+                label="Saúde das Obras"
+                value={(() => {
+                  const saudaveis = filteredProjects.filter((p: any) =>
+                    p.ifec_atual != null && p.iec_atual != null && p.ifec_atual >= 1.0 && p.iec_atual <= 1.0
+                  ).length;
+                  return `${saudaveis} / ${filteredProjects.length}`;
+                })()}
+                subtitle="IEC ≤ 1.0 e IFEC ≥ 1.0"
+              />
+            </div>
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -777,12 +775,12 @@ export default function Indicadores() {
               </ChartCard>
 
               {/* Chart 7: IEC vs IFEC por Obra */}
-              {ifecChartData.length > 0 && (
-                <ChartCard
-                  icon={Activity}
-                  iconColor="violet"
-                  title="IEC vs IFEC por Obra"
-                >
+              <ChartCard
+                icon={Activity}
+                iconColor="violet"
+                title="IEC vs IFEC por Obra"
+              >
+                {ifecChartData.length > 0 ? (
                   <BarChart
                     data={ifecChartData}
                     layout="vertical"
@@ -815,19 +813,25 @@ export default function Indicadores() {
                     <Bar dataKey="iec" name="IEC (Custo)" fill={COLOR_ROSE} radius={[0, 3, 3, 0]} />
                     <Bar dataKey="ifec" name="IFEC (Físico)" fill={COLOR_VIOLET} radius={[0, 3, 3, 0]} />
                   </BarChart>
-                </ChartCard>
-              )}
+                ) : (
+                  <BarChart data={[]} margin={{ top: 4, right: 20, left: 8, bottom: 4 }}>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" fontSize={12}>
+                      Configure baselines em Medições para ativar o IFEC
+                    </text>
+                  </BarChart>
+                )}
+              </ChartCard>
 
               {/* Chart 8: Avanço Previsto vs Real (Timeline) */}
-              {timelineChartData.length > 0 && (
-                <ChartCard
-                  icon={CalendarClock}
-                  iconColor="blue"
-                  title={isFiltered && filteredProjects.length > 0
-                    ? `Avanço Físico — ${filteredProjects[0].name}`
-                    : "Avanço Físico Previsto vs Real"
-                  }
-                >
+              <ChartCard
+                icon={CalendarClock}
+                iconColor="blue"
+                title={isFiltered && filteredProjects.length > 0
+                  ? `Avanço Físico — ${filteredProjects[0].name}`
+                  : "Avanço Físico Previsto vs Real"
+                }
+              >
+                {timelineChartData.length > 0 ? (
                   <LineChart
                     data={timelineChartData}
                     margin={{ top: 4, right: 20, left: 8, bottom: 4 }}
@@ -867,8 +871,14 @@ export default function Indicadores() {
                       connectNulls={false}
                     />
                   </LineChart>
-                </ChartCard>
-              )}
+                ) : (
+                  <LineChart data={[]} margin={{ top: 4, right: 20, left: 8, bottom: 4 }}>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" fontSize={12}>
+                      Selecione uma obra com baseline para ver o avanço físico
+                    </text>
+                  </LineChart>
+                )}
+              </ChartCard>
             </div>
           </>
         )}
