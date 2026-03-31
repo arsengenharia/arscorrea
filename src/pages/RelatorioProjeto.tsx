@@ -178,18 +178,21 @@ export default function RelatorioProjeto() {
       {/* Page content */}
       <div className="max-w-[210mm] mx-auto px-8 py-10">
         {/* Header */}
-        <div className="bg-[#1e3a5f] text-white rounded-lg px-6 py-5 mb-8">
-          <h1 className="text-xl font-bold">ARS Engenharia — {reportTitle}</h1>
-          <p className="text-sm text-blue-200 mt-1">{project.name}</p>
-          <div className="flex gap-6 text-xs text-blue-200 mt-2">
-            <span>Gerado em: {today}</span>
-            {project.status && <span>Status: {project.status}</span>}
-            {project.data_inicio && (
-              <span>
-                Período: {fmtDate(project.data_inicio)}
-                {project.data_conclusao_prevista ? ` a ${fmtDate(project.data_conclusao_prevista)}` : ""}
-              </span>
-            )}
+        <div className="bg-[#1e3a5f] text-white rounded-lg px-6 py-5 mb-8 flex items-center gap-4">
+          <img src="/lovable-uploads/ars-correa-logo.png" alt="ARS" className="h-14 w-14 object-contain" />
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">ARS Engenharia — {reportTitle}</h1>
+            <p className="text-sm text-blue-200 mt-1">{project.name}</p>
+            <div className="flex gap-6 text-xs text-blue-200 mt-2">
+              <span>Gerado em: {today}</span>
+              {project.status && <span>Status: {project.status}</span>}
+              {project.data_inicio && (
+                <span>
+                  Período: {fmtDate(project.data_inicio)}
+                  {project.data_conclusao_prevista ? ` a ${fmtDate(project.data_conclusao_prevista)}` : ""}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

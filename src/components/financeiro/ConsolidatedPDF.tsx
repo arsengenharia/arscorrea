@@ -1,4 +1,6 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+
+const LOGO_URL = "/lovable-uploads/ars-correa-logo.png";
 
 const fmt = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -15,6 +17,16 @@ const s = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderRadius: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerLogo: {
+    width: 48,
+    height: 48,
+  },
+  headerText: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 14,
@@ -173,8 +185,11 @@ export function ConsolidatedPDF({
       {/* Page 1 — Executive Summary */}
       <Page size="A4" style={s.page}>
         <View style={s.header}>
-          <Text style={s.headerTitle}>ARS Engenharia — Relatório Financeiro Consolidado</Text>
-          <Text style={s.headerSub}>Gerado em: {generatedAt}</Text>
+          <Image style={s.headerLogo} src={LOGO_URL} />
+          <View style={s.headerText}>
+            <Text style={s.headerTitle}>ARS Engenharia — Relatório Financeiro Consolidado</Text>
+            <Text style={s.headerSub}>Gerado em: {generatedAt}</Text>
+          </View>
         </View>
 
         <View style={s.section}>
@@ -201,8 +216,11 @@ export function ConsolidatedPDF({
       {/* Page 2 — Projects Comparison Table */}
       <Page size="A4" style={s.page} orientation="landscape">
         <View style={s.header}>
-          <Text style={s.headerTitle}>Comparativo por Obra</Text>
-          <Text style={s.headerSub}>Gerado em: {generatedAt}</Text>
+          <Image style={s.headerLogo} src={LOGO_URL} />
+          <View style={s.headerText}>
+            <Text style={s.headerTitle}>Comparativo por Obra</Text>
+            <Text style={s.headerSub}>Gerado em: {generatedAt}</Text>
+          </View>
         </View>
 
         <View style={s.section}>

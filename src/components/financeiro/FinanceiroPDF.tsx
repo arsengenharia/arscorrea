@@ -1,4 +1,6 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+
+const LOGO_URL = "/lovable-uploads/ars-correa-logo.png";
 
 const fmt = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,6 +22,16 @@ const s = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderRadius: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerLogo: {
+    width: 48,
+    height: 48,
+  },
+  headerText: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 14,
@@ -189,9 +201,12 @@ export function FinanceiroPDF({
       {/* Page 1 — Summary */}
       <Page size="A4" style={s.page}>
         <View style={s.header}>
-          <Text style={s.headerTitle}>ARS Engenharia — Relatório Financeiro</Text>
-          <Text style={s.headerSub}>{projectName}</Text>
-          <Text style={s.headerSub}>Gerado em: {today}</Text>
+          <Image style={s.headerLogo} src={LOGO_URL} />
+          <View style={s.headerText}>
+            <Text style={s.headerTitle}>ARS Engenharia — Relatório Financeiro</Text>
+            <Text style={s.headerSub}>{projectName}</Text>
+            <Text style={s.headerSub}>Gerado em: {today}</Text>
+          </View>
         </View>
 
         <View style={s.section}>
@@ -216,8 +231,11 @@ export function FinanceiroPDF({
       {/* Page 2 — Extrato Financeiro */}
       <Page size="A4" style={s.page}>
         <View style={s.header}>
-          <Text style={s.headerTitle}>Extrato Financeiro</Text>
-          <Text style={s.headerSub}>{projectName}</Text>
+          <Image style={s.headerLogo} src={LOGO_URL} />
+          <View style={s.headerText}>
+            <Text style={s.headerTitle}>Extrato Financeiro</Text>
+            <Text style={s.headerSub}>{projectName}</Text>
+          </View>
         </View>
 
         <View style={s.section}>
@@ -263,8 +281,11 @@ export function FinanceiroPDF({
       {topSuppliers.length > 0 && (
         <Page size="A4" style={s.page}>
           <View style={s.header}>
-            <Text style={s.headerTitle}>Top Fornecedores</Text>
-            <Text style={s.headerSub}>{projectName}</Text>
+            <Image style={s.headerLogo} src={LOGO_URL} />
+            <View style={s.headerText}>
+              <Text style={s.headerTitle}>Top Fornecedores</Text>
+              <Text style={s.headerSub}>{projectName}</Text>
+            </View>
           </View>
 
           <View style={s.section}>
