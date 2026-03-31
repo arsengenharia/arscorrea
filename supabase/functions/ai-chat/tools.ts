@@ -47,10 +47,23 @@ export async function executeTool(
     }
 
     if (tool.function_type === "direct_query") {
+      // Special: full-text search for documents
+      if (toolName === "search_documents" && toolInput.q) {
+        let q = supabase.from("document_summaries")
+          .select("source_type, filename, summary, keywords, project_id, supplier_id, created_at")
+          .textSearch("content_text", toolInput.q, { type: "websearch", config: "portuguese" });
+        if (toolInput.project_id) q = q.eq("project_id", toolInput.project_id);
+        if (toolInput.supplier_id) q = q.eq("supplier_id", toolInput.supplier_id);
+        q = q.limit(10);
+        const { data, error } = await q;
+        if (error) return { result: null, error: error.message };
+        return { result: data };
+      }
+
       let query = supabase.from(tool.function_name).select("*");
 
       // Apply filters — use ILIKE for text fields (partial match), eq for IDs
-      const textFields = ["name", "trade_name", "legal_name", "titulo", "title", "descricao", "observacoes"];
+      const textFields = ["name", "trade_name", "legal_name", "titulo", "title", "descricao", "observacoes", "document", "cidade"];
       for (const [key, value] of Object.entries(toolInput)) {
         if (value && key !== "limit") {
           if (textFields.includes(key) && typeof value === "string") {
