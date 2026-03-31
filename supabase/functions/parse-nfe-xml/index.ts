@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
     let cnpj = null, razaoSocial = null, numeroNota = null, dataEmissao = null;
     let valorTotal = null, chaveNfe = null;
     let itens: any[] = [];
+    let pdfEndereco: any = {};
     let extractionMode = "pdf_manual";
 
     // ── Step 1: Extract native text from PDF (FREE) ──
@@ -136,6 +137,16 @@ Responda APENAS com JSON valido (sem markdown, sem explicacao):
   "data_emissao": "YYYY-MM-DD",
   "valor_total": 0.00,
   "chave_nfe": "44 digitos ou null",
+  "emitente_endereco": {
+    "rua": "logradouro ou null",
+    "numero": "numero ou null",
+    "bairro": "bairro ou null",
+    "cidade": "municipio ou null",
+    "estado": "UF 2 letras ou null",
+    "cep": "8 digitos sem pontuacao ou null",
+    "telefone": "telefone com DDD ou null",
+    "email": "email do emitente ou null"
+  },
   "itens": [
     {"xProd": "descricao do produto", "NCM": "8 digitos", "qCom": 1.0, "uCom": "UN", "vUnCom": 0.00, "vProd": 0.00}
   ]
@@ -159,6 +170,7 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
             valorTotal = parsed.valor_total ? Number(parsed.valor_total) : null;
             chaveNfe = parsed.chave_nfe || null;
             itens = parsed.itens || [];
+            pdfEndereco = parsed.emitente_endereco || {};
             extractionMode = "pdf_ai";
 
             await supabase.from("ai_query_log").insert({
@@ -282,11 +294,30 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
       const cleanCnpj = cnpj.replace(/\D/g, "");
       if (cleanCnpj.length === 14) {
         const { data: existingSup } = await supabase.from("suppliers").select("id, trade_name").eq("document", cleanCnpj).maybeSingle();
-        if (existingSup) { supplierId = existingSup.id; if (!razaoSocial) razaoSocial = existingSup.trade_name; }
-        else if (razaoSocial) {
+        if (existingSup) {
+          supplierId = existingSup.id;
+          if (!razaoSocial) razaoSocial = existingSup.trade_name;
+          // Update address if empty
+          const upd: Record<string, any> = {};
+          if (pdfEndereco.rua) upd.rua = pdfEndereco.rua;
+          if (pdfEndereco.numero) upd.numero = pdfEndereco.numero;
+          if (pdfEndereco.bairro) upd.bairro = pdfEndereco.bairro;
+          if (pdfEndereco.cidade) upd.cidade = pdfEndereco.cidade;
+          if (pdfEndereco.estado) upd.estado = pdfEndereco.estado;
+          if (pdfEndereco.cep) upd.cep = pdfEndereco.cep;
+          if (pdfEndereco.telefone) upd.phone = pdfEndereco.telefone;
+          if (pdfEndereco.email) upd.email = pdfEndereco.email;
+          if (Object.keys(upd).length > 0) {
+            await supabase.from("suppliers").update(upd as any).eq("id", existingSup.id).is("rua", null);
+          }
+        } else if (razaoSocial) {
           const { data: ns } = await supabase.from("suppliers").insert({
             document: cleanCnpj, trade_name: razaoSocial, legal_name: razaoSocial,
             tipo: "Juridica", observacoes: "Cadastro automatico via PDF NF-e", ativo: true,
+            rua: pdfEndereco.rua || null, numero: pdfEndereco.numero || null,
+            bairro: pdfEndereco.bairro || null, cidade: pdfEndereco.cidade || null,
+            estado: pdfEndereco.estado || null, cep: pdfEndereco.cep || null,
+            phone: pdfEndereco.telefone || null, email: pdfEndereco.email || null,
           } as any).select("id").single();
           supplierId = ns?.id || null;
         }
@@ -362,6 +393,20 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
   const razaoSocial = emit ? getTag(emit, "xNome") : getTag(doc, "xNome");
   const nomeFantasia = emit ? getTag(emit, "xFant") : "";
   const numeroNota = getTag(doc, "nNF");
+
+  // Extract full supplier address from enderEmit
+  const enderEmit = emit?.getElementsByTagName("enderEmit")[0];
+  const emitEndereco = {
+    rua: enderEmit ? getTag(enderEmit, "xLgr") : "",
+    numero: enderEmit ? getTag(enderEmit, "nro") : "",
+    complemento: enderEmit ? getTag(enderEmit, "xCpl") : "",
+    bairro: enderEmit ? getTag(enderEmit, "xBairro") : "",
+    cidade: enderEmit ? getTag(enderEmit, "xMun") : "",
+    estado: enderEmit ? getTag(enderEmit, "UF") : "",
+    cep: enderEmit ? getTag(enderEmit, "CEP") : "",
+    telefone: enderEmit ? getTag(enderEmit, "fone") : "",
+    email: emit ? getTag(emit, "email") : "",
+  };
   const dataEmissao = (getTag(doc, "dhEmi") || "").substring(0, 10) || null;
   const valorTotal = parseFloat(getTag(doc, "vNF") || "0");
   const itens = Array.from(doc.getElementsByTagName("det")).map((d: any) => ({
@@ -374,11 +419,31 @@ Se nao encontrar um campo, use null. Para valor_total use numero com ponto decim
   let supplierId: string | null = null;
   if (cnpj) {
     const { data: existing } = await supabase.from("suppliers").select("id").eq("document", cnpj).maybeSingle();
-    if (existing) { supplierId = existing.id; }
-    else {
+    if (existing) {
+      supplierId = existing.id;
+      // Update address fields if they were empty
+      const updateFields: Record<string, any> = {};
+      if (emitEndereco.rua) updateFields.rua = emitEndereco.rua;
+      if (emitEndereco.numero) updateFields.numero = emitEndereco.numero;
+      if (emitEndereco.complemento) updateFields.complemento = emitEndereco.complemento;
+      if (emitEndereco.bairro) updateFields.bairro = emitEndereco.bairro;
+      if (emitEndereco.cidade) updateFields.cidade = emitEndereco.cidade;
+      if (emitEndereco.estado) updateFields.estado = emitEndereco.estado;
+      if (emitEndereco.cep) updateFields.cep = emitEndereco.cep;
+      if (emitEndereco.telefone) updateFields.phone = emitEndereco.telefone;
+      if (emitEndereco.email) updateFields.email = emitEndereco.email;
+      if (Object.keys(updateFields).length > 0) {
+        await supabase.from("suppliers").update(updateFields as any).eq("id", existing.id).is("rua", null);
+      }
+    } else {
       const { data: ns } = await supabase.from("suppliers").insert({
         document: cnpj, legal_name: razaoSocial, trade_name: nomeFantasia || razaoSocial,
         tipo: "Juridica", observacoes: "Cadastro automatico via NF-e", ativo: true,
+        rua: emitEndereco.rua || null, numero: emitEndereco.numero || null,
+        complemento: emitEndereco.complemento || null, bairro: emitEndereco.bairro || null,
+        cidade: emitEndereco.cidade || null, estado: emitEndereco.estado || null,
+        cep: emitEndereco.cep || null, phone: emitEndereco.telefone || null,
+        email: emitEndereco.email || null,
       } as any).select("id").single();
       supplierId = ns?.id ?? null;
     }
