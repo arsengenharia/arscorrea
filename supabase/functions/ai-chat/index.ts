@@ -2,13 +2,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callBedrock } from "./bedrock.ts";
 import { loadTools, executeTool } from "./tools.ts";
 import { buildSystemPrompt } from "./context.ts";
-import { getOrCreateConversation, getConversationHistory, saveMessage } from "./memory.ts";
+import { getOrCreateConversation, getConversationHistory, saveMessage, maybeSummarizeHistory } from "./memory.ts";
 import { logAiQuery } from "./logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const contextCache = new Map<string, { systemPrompt: string; contextData: any; ts: number }>();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -94,9 +96,22 @@ Deno.serve(async (req) => {
 
     // Build context (pass current message for question-type detection)
     const currentMessage = message || confirm_tool?.message || "";
-    const { systemPrompt, contextData } = await buildSystemPrompt(
-      supabase, conversation.context_type, conversation.context_id, user.id, currentMessage
-    );
+    const cacheKey = `ctx_${conversation.id}`;
+    const cached = contextCache.get(cacheKey);
+    let systemPrompt: string;
+    let contextData: any;
+
+    if (cached && Date.now() - cached.ts < 60_000) {
+      systemPrompt = cached.systemPrompt;
+      contextData = cached.contextData;
+    } else {
+      const result = await buildSystemPrompt(
+        supabase, conversation.context_type, conversation.context_id, user.id, currentMessage
+      );
+      systemPrompt = result.systemPrompt;
+      contextData = result.contextData;
+      contextCache.set(cacheKey, { systemPrompt, contextData, ts: Date.now() });
+    }
 
     // Load tools for user's role
     const tools = await loadTools(supabase, userRole);
@@ -206,6 +221,8 @@ Deno.serve(async (req) => {
       sources: toolResults.length > 0 ? toolResults : undefined,
       context_used: contextData,
     });
+    // Trigger summarization in background (non-blocking)
+    maybeSummarizeHistory(supabase, conversation.id).catch(() => {});
 
     // Auto-learn from conversation
     try {
