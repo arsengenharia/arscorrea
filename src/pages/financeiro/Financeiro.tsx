@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Receipt, GitMerge, Split, Settings, FileCheck, HandCoins, ShieldAlert, BarChart3, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Receipt, GitMerge, Split, Settings, FileCheck, HandCoins, ShieldAlert, BarChart3, MoreHorizontal, Lightbulb } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const primaryTabs = [
@@ -9,6 +9,7 @@ const primaryTabs = [
   { label: "Recebíveis", path: "/financeiro/recebiveis", icon: HandCoins },
   { label: "NF-e", path: "/financeiro/nfe", icon: FileCheck },
   { label: "Indicadores", path: "/financeiro/indicadores", icon: BarChart3 },
+  { label: "Insights", path: "/financeiro/insights", icon: Lightbulb },
 ];
 
 const secondaryTabs = [
