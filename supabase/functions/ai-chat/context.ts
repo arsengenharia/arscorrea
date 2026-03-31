@@ -258,6 +258,7 @@ ${anomalySection}
 ## Preferencias do Usuario
 - Idioma: ${prefs.idioma || "pt-BR"}
 - Nivel de detalhe: ${prefs.nivel_detalhe || "normal"}
+${(prefs.nivel_detalhe === "resumido") ? "IMPORTANTE: Responda em no maximo 2 frases. So numeros e conclusao. Sem explicacoes longas." : (prefs.nivel_detalhe === "detalhado") ? "IMPORTANTE: Inclua analise completa: dados, comparacoes, tendencias e recomendacoes detalhadas." : ""}
 ${prefs.apelidos && Object.keys(prefs.apelidos).length > 0 ? "- Apelidos: " + JSON.stringify(prefs.apelidos) : ""}`;
 
   // Append question-type-specific formatting instructions
