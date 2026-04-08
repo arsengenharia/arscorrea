@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale, Paperclip, Upload, Download, Trash2, Eye, File, Image, FolderOpen } from "lucide-react";
+import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale, Upload, Download, Trash2, Eye, File, Image, FolderOpen } from "lucide-react";
 import { ProjectSelect } from "@/components/shared/ProjectSelect";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalClientSection } from "./ProposalClientSection";
@@ -485,7 +485,7 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
               }}
               className="hidden sm:flex border-slate-200 text-slate-600"
             >
-              <Paperclip className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Anexos
             </Button>
 
@@ -641,7 +641,7 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
         {/* 6. Documentos Anexados */}
         <section id="proposal-attachments" className="space-y-4">
           <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
-            <Paperclip className="h-4 w-4 text-indigo-500" />
+            <FileText className="h-4 w-4 text-indigo-500" />
             <h3>Documentos Anexados</h3>
           </div>
 
