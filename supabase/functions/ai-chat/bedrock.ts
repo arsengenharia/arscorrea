@@ -37,12 +37,13 @@ export async function callBedrock(
   tools?: BedrockTool[]
 ): Promise<BedrockResponse> {
   const region = Deno.env.get("AWS_REGION") || "us-east-1";
-  const modelId = "us.anthropic.claude-sonnet-4-6-20250514";
+  const modelId = "us.anthropic.claude-sonnet-4-6";
 
   const aws = new AwsClient({
     accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID")!,
     secretAccessKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
     region,
+    service: "bedrock",
   });
 
   const body: BedrockRequest = {
