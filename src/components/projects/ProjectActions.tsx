@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Eye, FolderOpen, Plus, Trash2 } from "lucide-react";
+import { Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   AlertDialog,
@@ -44,7 +44,7 @@ export function ProjectActions({ projectId, onDelete }: ProjectActionsProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={() => navigate(`/obras/${projectId}?tab=documentos`)}>
-              <FolderOpen className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
