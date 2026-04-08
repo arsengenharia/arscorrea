@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale } from "lucide-react";
+import { ArrowLeft, Save, FileText, Send, Loader2, Building2, FileSpreadsheet, Scale, Paperclip, Upload, Download, Trash2, Eye, File, Image, FolderOpen } from "lucide-react";
 import { ProjectSelect } from "@/components/shared/ProjectSelect";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalClientSection } from "./ProposalClientSection";
@@ -20,6 +20,9 @@ import { pdf } from "@react-pdf/renderer";
 import { ProposalPDF } from "./pdf/ProposalPDF";
 import { ImportProposalSection, ParsedProposalData } from "./import";
 import { normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { getSignedUrl } from "@/hooks/use-signed-url";
 
 const DEFAULT_SCOPE = "";
 
@@ -50,9 +53,18 @@ export type ProposalFormData = {
   expectedCloseDate: string;
 };
 
+function getFileIcon(fileType: string | null) {
+  const type = fileType?.toLowerCase() || "";
+  if (type.includes("pdf")) return <FileText className="h-5 w-5 text-red-500" />;
+  if (type.includes("jpg") || type.includes("jpeg") || type.includes("png") || type.includes("webp") || type.includes("image"))
+    return <Image className="h-5 w-5 text-blue-500" />;
+  return <File className="h-5 w-5 text-muted-foreground" />;
+}
+
 export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormContentProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState<ProposalFormData>({
     clientId: "",
@@ -79,6 +91,74 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
   const [items, setItems] = useState<ProposalItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [attachFile, setAttachFile] = useState<globalThis.File | null>(null);
+  const [attachName, setAttachName] = useState("");
+
+  // Fetch attached documents
+  const { data: attachedDocs } = useQuery({
+    queryKey: ["proposal-documents", proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proposal_documents")
+        .select("*")
+        .eq("proposal_id", proposalId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+
+  const uploadAttachment = useMutation({
+    mutationFn: async (file: globalThis.File) => {
+      if (!proposalId) throw new Error("Salve a proposta antes de anexar arquivos.");
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const filePath = `${proposalId}/${crypto.randomUUID()}.${ext}`;
+      const { error: storageError } = await supabase.storage.from("proposal_documents").upload(filePath, file);
+      if (storageError) throw storageError;
+      const { error: dbError } = await supabase.from("proposal_documents").insert({
+        proposal_id: proposalId,
+        file_name: attachName.trim() || file.name,
+        file_path: filePath,
+        file_type: ext,
+        uploaded_by: user?.id || null,
+      });
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      toast.success("Arquivo anexado!");
+      setAttachFile(null);
+      setAttachName("");
+      queryClient.invalidateQueries({ queryKey: ["proposal-documents", proposalId] });
+    },
+    onError: (err: any) => toast.error("Erro ao anexar: " + err.message),
+  });
+
+  const deleteAttachment = useMutation({
+    mutationFn: async ({ docId, filePath }: { docId: string; filePath: string }) => {
+      await supabase.storage.from("proposal_documents").remove([filePath]);
+      const { error } = await supabase.from("proposal_documents").delete().eq("id", docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Arquivo removido!");
+      queryClient.invalidateQueries({ queryKey: ["proposal-documents", proposalId] });
+    },
+    onError: (err: any) => toast.error("Erro ao remover: " + err.message),
+  });
+
+  const handleDownloadAttachment = async (filePath: string, fileName: string) => {
+    const url = await getSignedUrl("proposal_documents", filePath);
+    if (url) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.target = "_blank";
+      a.click();
+    } else {
+      toast.error("Erro ao gerar link de download");
+    }
+  };
 
   // Fetch existing proposal for editing
   const { data: existingProposal, isLoading: isLoadingProposal } = useQuery({
@@ -396,6 +476,19 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
               Gerar PDF
             </Button>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const el = document.getElementById("proposal-attachments");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="hidden sm:flex border-slate-200 text-slate-600"
+            >
+              <Paperclip className="h-4 w-4 mr-2" />
+              Anexos
+            </Button>
+
             {formData.status === "draft" && (
               <Button
                 variant="outline"
@@ -543,6 +636,113 @@ export const ProposalFormContent = ({ proposalId, isEditing }: ProposalFormConte
             onExclusionsChange={(v) => updateFormData("exclusions", v)}
             onNotesChange={(v) => updateFormData("notes", v)}
           />
+        </section>
+
+        {/* 6. Documentos Anexados */}
+        <section id="proposal-attachments" className="space-y-4">
+          <div className="flex items-center gap-2 text-slate-800 font-medium pb-2 border-b border-slate-100">
+            <Paperclip className="h-4 w-4 text-indigo-500" />
+            <h3>Documentos Anexados</h3>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            {/* Upload area */}
+            {proposalId ? (
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1 space-y-1">
+                  <label className="text-sm font-medium text-slate-700">Nome do arquivo</label>
+                  <Input
+                    value={attachName}
+                    onChange={(e) => setAttachName(e.target.value)}
+                    placeholder="Nome do documento (opcional)"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-sm font-medium text-slate-700">Arquivo</label>
+                  <Input
+                    type="file"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setAttachFile(f);
+                      if (f && !attachName) setAttachName(f.name.replace(/\.[^.]+$/, ""));
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={() => attachFile && uploadAttachment.mutate(attachFile)}
+                  disabled={!attachFile || uploadAttachment.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                >
+                  {uploadAttachment.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Anexar
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Salve a proposta primeiro para anexar arquivos.</p>
+            )}
+
+            {/* File list */}
+            {attachedDocs && attachedDocs.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {attachedDocs.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center gap-3 py-3 group">
+                    <div className="shrink-0">{getFileIcon(doc.file_type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{doc.file_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString("pt-BR")}
+                        {doc.file_type && <span className="ml-2 uppercase">{doc.file_type}</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-blue-600"
+                        onClick={() => handleDownloadAttachment(doc.file_path, doc.file_name)}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-600" title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O documento "{doc.file_name}" será removido permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteAttachment.mutate({ docId: doc.id, filePath: doc.file_path })}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : proposalId ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Nenhum documento anexado ainda.</p>
+              </div>
+            ) : null}
+          </div>
         </section>
       </main>
     </div>
