@@ -320,12 +320,13 @@ Deno.serve(async (req) => {
         prompt: "error",
         model: "claude-sonnet-4-6",
         success: false,
-        error_message: String(err),
+        error_message: err instanceof Error ? err.message : JSON.stringify(err),
         latency_ms: Date.now() - startTime,
       });
     } catch (_) {}
 
-    return new Response(JSON.stringify({ error: String(err) }), {
+    const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
+    return new Response(JSON.stringify({ error: errMsg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
