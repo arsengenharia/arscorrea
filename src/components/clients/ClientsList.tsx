@@ -20,9 +20,11 @@ import {
   SearchX,
   Phone,
   FileText,
+  Paperclip,
 } from "lucide-react";
 import { ViewClientDialog } from "./ViewClientDialog";
 import { EditClientDialog } from "./EditClientDialog";
+import { ClientFilesDialog } from "./ClientFilesDialog";
 import { toast } from "sonner";
 import { ProjectsSearch } from "../projects/ProjectsSearch";
 import { useNavigate } from "react-router-dom";
@@ -417,6 +419,28 @@ export default function ClientsList() {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>Detalhes</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <ClientFilesDialog
+                                        clientId={client.id}
+                                        clientName={client.name}
+                                        trigger={
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50"
+                                            title="Arquivos"
+                                          >
+                                            <Paperclip className="h-4 w-4" />
+                                          </Button>
+                                        }
+                                      />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Arquivos</TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
 

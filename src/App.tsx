@@ -59,7 +59,7 @@ function RedirectToRelatorio() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Toaster position="top-center" />
+    <Toaster position="bottom-right" richColors closeButton />
     <BrowserRouter>
       <AuthProvider>
         <Routes>

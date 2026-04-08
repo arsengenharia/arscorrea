@@ -21,37 +21,7 @@ import { ProposalPDF } from "./pdf/ProposalPDF";
 import { ImportProposalSection, ParsedProposalData } from "./import";
 import { normalizeCategory, normalizeUnit } from "@/lib/itemOptions";
 
-const DEFAULT_SCOPE = `SERVIÇOS DE REFORMA DE FACHADA
-
-1. SERVIÇOS PRELIMINARES
-- Mobilização e instalação de canteiro de obras
-- Isolamento e sinalização da área de trabalho
-
-2. ACESSO E SEGURANÇA
-- Instalação de sistema de acesso (balancim/andaime)
-- Equipamentos de proteção coletiva
-
-3. TRATAMENTO DE PATOLOGIAS
-- Mapeamento e identificação de anomalias
-- Tratamento de fissuras e trincas
-- Recuperação de áreas deterioradas
-
-4. RECUPERAÇÃO DE CONCRETO
-- Remoção de concreto desagregado
-- Tratamento de armaduras expostas
-- Aplicação de argamassa estrutural
-
-5. SELANTES E JUNTAS
-- Tratamento de juntas de dilatação
-- Aplicação de selantes
-
-6. PINTURA E REVITALIZAÇÃO
-- Preparação de superfície
-- Aplicação de textura/pintura
-
-7. LIMPEZA E PROTEÇÃO
-- Limpeza final
-- Aplicação de hidrofugante (se aplicável)`;
+const DEFAULT_SCOPE = "";
 
 interface ProposalFormContentProps {
   proposalId?: string;

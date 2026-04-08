@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,12 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, Download, Loader2, MessageCircle, MapPin } from "lucide-react";
+import { Eye, Pencil, Trash2, Download, Loader2, MessageCircle, MapPin, Search, X, Paperclip } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalStageSelect } from "./ProposalStageSelect";
+import { ProposalDocumentsDialog } from "./ProposalDocumentsDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -85,6 +88,8 @@ const openGoogleMaps = (address: string) => {
 export const ProposalsList = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
 
   const { data: proposals, isLoading } = useQuery({
     queryKey: ["proposals"],
@@ -102,6 +107,28 @@ export const ProposalsList = () => {
       return data as ProposalWithClientAndStage[];
     },
   });
+
+  const filtersActive = search !== "" || statusFilter !== "todos";
+
+  const filteredProposals = useMemo(() => {
+    if (!proposals) return [];
+    return proposals.filter((proposal) => {
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        (proposal.title?.toLowerCase().includes(searchLower) ?? false) ||
+        (proposal.number?.toLowerCase().includes(searchLower) ?? false) ||
+        (proposal.client?.name?.toLowerCase().includes(searchLower) ?? false);
+      const matchesStatus =
+        statusFilter === "todos" || proposal.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [proposals, search, statusFilter]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("todos");
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (proposalId: string) => {
@@ -220,7 +247,51 @@ export const ProposalsList = () => {
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-4">
+      {/* Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por titulo, numero ou cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="todos">Status: Todos</option>
+          <option value="draft">Rascunho</option>
+          <option value="sent">Enviada</option>
+          <option value="won">Ganha</option>
+          <option value="lost">Perdida</option>
+        </select>
+        {filtersActive && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
+      {filteredProposals.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Nenhuma proposta encontrada com os filtros aplicados.</p>
+          <Button variant="link" onClick={clearFilters} className="mt-2">
+            Limpar filtros
+          </Button>
+        </div>
+      ) : (
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -235,7 +306,7 @@ export const ProposalsList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-        {proposals.map((proposal) => {
+        {filteredProposals.map((proposal) => {
             // Usa endereço da obra se disponível, senão usa endereço do cliente
             const hasWorkAddress = proposal.work_address || proposal.city || proposal.state;
             const fullAddress = hasWorkAddress
@@ -339,6 +410,15 @@ export const ProposalsList = () => {
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
+                  <ProposalDocumentsDialog
+                    proposalId={proposal.id}
+                    proposalTitle={proposal.title || proposal.number || "Proposta"}
+                    trigger={
+                      <Button variant="ghost" size="icon" title="Documentos">
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   {proposal.pdf_path && (
                     <Button
                       variant="ghost"
@@ -381,6 +461,8 @@ export const ProposalsList = () => {
           })}
         </TableBody>
       </Table>
+    </div>
+      )}
     </div>
   );
 };

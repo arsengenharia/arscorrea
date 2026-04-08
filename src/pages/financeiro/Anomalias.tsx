@@ -22,6 +22,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertTriangle,
   ShieldAlert,
@@ -51,6 +53,21 @@ function formatCurrency(value: number | null | undefined) {
     currency: "BRL",
   }).format(value);
 }
+
+function formatTipo(tipo: string | null | undefined) {
+  if (!tipo) return "—";
+  if (tipoLabels[tipo]) return tipoLabels[tipo];
+  return tipo
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const severidadeConfig: Record<string, { label: string; className: string }> = {
+  critica: { label: "Crítica", className: "bg-red-100 text-red-700 border-red-200" },
+  alta: { label: "Alta", className: "bg-orange-100 text-orange-700 border-orange-200" },
+  media: { label: "Média", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  baixa: { label: "Baixa", className: "bg-green-100 text-green-700 border-green-200" },
+};
 
 export default function Anomalias() {
   const queryClient = useQueryClient();
@@ -357,17 +374,79 @@ export default function Anomalias() {
           open={resolveDialog.open}
           onOpenChange={(open) => setResolveDialog({ open, anomaly: resolveDialog.anomaly })}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Resolver Anomalia</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
+              {/* Anomaly details */}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Anomalia</p>
-                <p className="text-sm font-medium text-slate-800">
+                <p className="text-sm font-medium text-slate-800 text-base">
                   {resolveDialog.anomaly?.titulo}
                 </p>
+                {resolveDialog.anomaly?.descricao && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {resolveDialog.anomaly.descricao}
+                  </p>
+                )}
               </div>
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Tipo</p>
+                  <p className="text-sm text-slate-800">
+                    {formatTipo(resolveDialog.anomaly?.tipo)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Severidade</p>
+                  <div>
+                    {resolveDialog.anomaly?.severidade && severidadeConfig[resolveDialog.anomaly.severidade] ? (
+                      <Badge variant="outline" className={severidadeConfig[resolveDialog.anomaly.severidade].className}>
+                        {severidadeConfig[resolveDialog.anomaly.severidade].label}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-slate-800">{resolveDialog.anomaly?.severidade ?? "—"}</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Obra</p>
+                  <p className="text-sm text-slate-800">
+                    {resolveDialog.anomaly?.project?.name ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Data</p>
+                  <p className="text-sm text-slate-800">
+                    {resolveDialog.anomaly?.created_at
+                      ? format(new Date(resolveDialog.anomaly.created_at), "dd/MM/yyyy")
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Valor detectado</p>
+                  <p className="text-sm text-slate-800">
+                    {formatCurrency(resolveDialog.anomaly?.valor_detectado)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Valor de referência</p>
+                  <p className="text-sm text-slate-800">
+                    {formatCurrency(resolveDialog.anomaly?.valor_referencia)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Detectado por</p>
+                  <p className="text-sm text-slate-800">
+                    {resolveDialog.anomaly?.detectado_por ?? "—"}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Action section */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1.5 block">
                   Novo status

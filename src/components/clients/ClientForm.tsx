@@ -27,6 +27,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { Loader2, Search } from "lucide-react";
+import { validateDocument } from "@/lib/document-validation";
 
 const CLIENT_TYPES = [
   { value: "pessoa_fisica", label: "Pessoa Física" },
@@ -57,7 +58,10 @@ const LEAD_CHANNELS = [
 
 const clientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  document: z.string().optional().or(z.literal("")),
+  document: z.string().optional().or(z.literal("")).refine((val) => {
+    if (!val || val.trim() === "") return true;
+    return validateDocument(val);
+  }, { message: "CPF ou CNPJ inválido" }),
   responsible: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),

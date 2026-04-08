@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Layout } from "@/components/layout/Layout";
 import { MiniCalendar } from "@/components/agenda/MiniCalendar";
+import { SidebarEventList } from "@/components/agenda/SidebarEventList";
 import { MonthView } from "@/components/agenda/MonthView";
 import { WeekView } from "@/components/agenda/WeekView";
 import { DayView } from "@/components/agenda/DayView";
@@ -275,6 +276,11 @@ export default function Agenda() {
                 setCurrentDate(date);
                 if (viewMode === "month") setViewMode("day");
               }}
+            />
+            <SidebarEventList
+              events={events}
+              selectedDate={currentDate}
+              onEventClick={handleEventClick}
             />
           </div>
 

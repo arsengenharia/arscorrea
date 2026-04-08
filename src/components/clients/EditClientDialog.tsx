@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { validateDocument } from "@/lib/document-validation";
 
 const CLIENT_TYPES = [
   { value: "pessoa_fisica", label: "Pessoa Física" },
@@ -34,7 +35,10 @@ const SEGMENTS = [
 
 const clientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  document: z.string().optional().or(z.literal("")),
+  document: z.string().optional().or(z.literal("")).refine((val) => {
+    if (!val || val.trim() === "") return true;
+    return validateDocument(val);
+  }, { message: "CPF ou CNPJ inválido" }),
   responsible: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
@@ -81,6 +85,28 @@ export function EditClientDialog({ client, open, onOpenChange, onClientUpdated }
       segment: client.segment || "",
     },
   });
+
+  useEffect(() => {
+    if (open && client) {
+      form.reset({
+        name: client.name,
+        document: client.document || "",
+        responsible: client.responsible || "",
+        phone: client.phone || "",
+        email: client.email || "",
+        street: client.street || "",
+        number: client.number || "",
+        complement: client.complement || "",
+        city: client.city || "",
+        state: client.state || "",
+        zip_code: client.zip_code || "",
+        observations: client.observations || "",
+        client_type: client.client_type || "",
+        segment: client.segment || "",
+      });
+      setDocumentNotProvided(!client.document);
+    }
+  }, [client, open]);
 
   const onSubmit = async (values: ClientFormValues) => {
     setIsSubmitting(true);
