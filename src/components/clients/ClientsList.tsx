@@ -20,7 +20,6 @@ import {
   SearchX,
   Phone,
   FileText,
-  Paperclip,
 } from "lucide-react";
 import { ViewClientDialog } from "./ViewClientDialog";
 import { EditClientDialog } from "./EditClientDialog";
@@ -435,7 +434,7 @@ export default function ClientsList() {
                                             className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50"
                                             title="Arquivos"
                                           >
-                                            <Paperclip className="h-4 w-4" />
+                                            <FileText className="h-4 w-4" />
                                           </Button>
                                         }
                                       />

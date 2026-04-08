@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, Download, Loader2, MessageCircle, MapPin, Search, X, Paperclip } from "lucide-react";
+import { Eye, Pencil, Trash2, Download, Loader2, MessageCircle, MapPin, Search, X, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
@@ -415,7 +415,7 @@ export const ProposalsList = () => {
                     proposalTitle={proposal.title || proposal.number || "Proposta"}
                     trigger={
                       <Button variant="ghost" size="icon" title="Documentos">
-                        <Paperclip className="h-4 w-4" />
+                        <FileText className="h-4 w-4" />
                       </Button>
                     }
                   />
