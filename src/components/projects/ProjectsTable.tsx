@@ -61,8 +61,9 @@ export function ProjectsTable({ projects, onStatusChange, onDeleteProject }: Pro
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <ProjectActions
-                projectId={project.id} 
-                onDelete={onDeleteProject} 
+                projectId={project.id}
+                projectName={project.name}
+                onDelete={onDeleteProject}
               />
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Eye, FolderOpen, Plus, Trash2 } from "lucide-react";
+import { Eye, Paperclip, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { EntityDocumentsDialog } from "@/components/shared/documents/EntityDocumentsDialog";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -21,10 +22,11 @@ import {
 
 interface ProjectActionsProps {
   projectId: string;
+  projectName?: string;
   onDelete: (projectId: string) => void;
 }
 
-export function ProjectActions({ projectId, onDelete }: ProjectActionsProps) {
+export function ProjectActions({ projectId, projectName, onDelete }: ProjectActionsProps) {
   const navigate = useNavigate();
 
   return (
@@ -43,9 +45,22 @@ export function ProjectActions({ projectId, onDelete }: ProjectActionsProps) {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/obras/${projectId}?tab=documentos`)}>
-              <FolderOpen className="h-4 w-4" />
-            </Button>
+            <EntityDocumentsDialog
+              entityType="project"
+              entityId={projectId}
+              entityLabel={projectName || "Obra"}
+              uploadDescription="O documento será compartilhado com o cliente no portal."
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50"
+                  title="Documentos"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              }
+            />
           </TooltipTrigger>
           <TooltipContent>
             <p>Documentos da Obra</p>

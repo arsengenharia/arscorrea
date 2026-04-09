@@ -237,23 +237,35 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          description: string | null
           file_name: string
-          file_url: string
+          file_path: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
+          uploaded_by: string | null
         }
         Insert: {
           client_id: string
           created_at?: string
+          description?: string | null
           file_name: string
-          file_url: string
+          file_path?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          uploaded_by?: string | null
         }
         Update: {
           client_id?: string
           created_at?: string
+          description?: string | null
           file_name?: string
-          file_url?: string
+          file_path?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
@@ -261,6 +273,47 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_type: string | null
+          id: string
+          proposal_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_type?: string | null
+          id?: string
+          proposal_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          proposal_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_documents_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]
