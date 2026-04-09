@@ -86,7 +86,6 @@ export function ChatPanel() {
               <Bot className="h-5 w-5" />
               <div>
                 <p className="text-sm font-semibold">Assistente ARS</p>
-                <p className="text-[10px] opacity-80">Claude via Bedrock</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
