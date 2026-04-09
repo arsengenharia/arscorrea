@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, DollarSign, FileText, Receipt } from "lucide-react";
+import { ArrowLeft, DollarSign, FileText, Receipt, MessageCircle } from "lucide-react";
 import { AnalyzeButton } from "@/components/ai/AnalyzeButton";
 import { formatBRL, formatDate } from "@/lib/formatters";
 import {
@@ -212,9 +212,26 @@ export default function SupplierDetail() {
                 <span className="text-muted-foreground">Contato</span>
                 <span className="font-medium">{supplier.contact_name || "—"}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Telefone</span>
-                <span className="font-medium">{supplier.phone || "—"}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{supplier.phone || "—"}</span>
+                  {supplier.phone && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Conversar no WhatsApp"
+                      onClick={() => {
+                        const numbers = supplier.phone!.replace(/\D/g, "");
+                        const formatted = numbers.length <= 11 ? `55${numbers}` : numbers;
+                        window.open(`https://wa.me/${formatted}`, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 text-green-600" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Email</span>

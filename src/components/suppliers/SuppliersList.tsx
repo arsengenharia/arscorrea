@@ -5,7 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, MessageCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  const numbers = phone.replace(/\D/g, "");
+  return numbers.length <= 11 ? `55${numbers}` : numbers;
+};
+
+const openWhatsApp = (phone: string) => {
+  window.open(`https://wa.me/${formatPhoneForWhatsApp(phone)}`, "_blank", "noopener,noreferrer");
+};
 import { toast } from "sonner";
 import { SupplierForm } from "./SupplierForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -112,7 +122,30 @@ export function SuppliersList() {
                   </TableCell>
                   <TableCell>{s.document || "—"}</TableCell>
                   <TableCell>{s.contact_name || "—"}</TableCell>
-                  <TableCell>{s.phone || "—"}</TableCell>
+                  <TableCell>
+                    {s.phone ? (
+                      <div className="flex items-center gap-2">
+                        <span>{s.phone}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); openWhatsApp(s.phone!); }}
+                              >
+                                <MessageCircle className="h-4 w-4 text-green-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Conversar no WhatsApp</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell>{s.email || "—"}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
